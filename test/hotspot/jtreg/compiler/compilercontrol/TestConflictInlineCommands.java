@@ -39,7 +39,7 @@ import jdk.test.lib.process.ProcessTools;
 
 public class TestConflictInlineCommands {
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
                 "-Xbatch",
                 "-XX:CompileCommand=inline,*TestConflictInlineCommands::caller",
                 "-XX:CompileCommand=dontinline,*TestConflictInlineCommands::caller",

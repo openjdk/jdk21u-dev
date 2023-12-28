@@ -52,7 +52,7 @@ public class TestPosixSig {
             // modification, the JVM may crash or hang in an endless loop, where the
             // illegal instruction will be continously executed, raising SIGILL, and
             // the signal handler will return to the illegal instruction again...
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+            ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
                 "-XX:+CheckJNICalls",
                 "-Xint",
                 "-Djava.library.path=" + libpath + ":.",
