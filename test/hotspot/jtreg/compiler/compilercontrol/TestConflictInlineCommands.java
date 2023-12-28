@@ -52,7 +52,7 @@ public class TestConflictInlineCommands {
         analyzer.shouldContain("disallowed by CompileCommand");
         analyzer.shouldNotContain("force inline by CompileCommand");
 
-        pb = ProcessTools.createJavaProcessBuilder(
+        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
                 "-Xbatch",
                 "-XX:CompileCommand=dontinline,*TestConflictInlineCommands::*caller",
                 "-XX:CompileCommand=inline,*TestConflictInlineCommands::caller",
