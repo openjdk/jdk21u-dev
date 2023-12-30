@@ -60,7 +60,7 @@ public class TestAbortVmOnException {
     private static Process runProcess(String exceptionName, boolean withMessage, String exceptionMessage) throws IOException {
         if (exceptionMessage == null) {
             return ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+UnlockDiagnosticVMOptions",
-                "-XX:AbortVMOnException=" + exceptionName, "-Xcomp", "-Xbatch", "-XX:TieredStopAtLevel=3", "-XX:-CreateCoredumpOnCrash",
+                "-XX:AbortVMOnException=" + exceptionName, "-Xcomp", "-XX:TieredStopAtLevel=3", "-XX:-CreateCoredumpOnCrash",
                 "-XX:CompileCommand=compileonly,TestAbortVmOnException::*", TestAbortVmOnException.class.getName(),
                 withMessage ? "throwExceptionWithMessage" : "throwException").start();
         } else {
