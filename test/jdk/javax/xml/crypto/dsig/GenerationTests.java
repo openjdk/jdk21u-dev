@@ -242,7 +242,7 @@ public class GenerationTests {
                 })
                 .toArray(String[]::new);
 
-    // As of JDK 17, the number of defined algorithms are...
+    // As of JDK 21, the number of defined algorithms are...
     static {
         if (allSignatureMethods.length != 25
                 || allDigestMethods.length != 9) {
