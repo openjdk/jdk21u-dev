@@ -157,7 +157,7 @@ function show(tableId, selected, columns) {
 }
 
 function updateTabs(tableId, selected) {
-    document.getElementById(tableId + '.tabpanel' )
+    document.getElementById(tableId + '.tabpanel')
         .setAttribute('aria-labelledby', selected);
     document.querySelectorAll('button[id^="' + tableId + '"]')
         .forEach(function(tab, index) {
