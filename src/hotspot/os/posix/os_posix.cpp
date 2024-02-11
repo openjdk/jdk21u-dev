@@ -735,6 +735,7 @@ void os::dll_unload(void *lib) {
   if (l_path == nullptr) {
     l_path = "<not available>";
   }
+
   char ebuf[1024];
   bool res = os::pd_dll_unload(lib, ebuf, sizeof(ebuf));
 

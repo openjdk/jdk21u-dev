@@ -1128,8 +1128,9 @@ void *os::dll_load(const char *filename, char *ebuf, int ebuflen) {
     dflags |= RTLD_MEMBER;
   }
 
+  void* result;
   const char* error_report = nullptr;
-  void * result = Aix_dlopen(filename, dflags, &error_report);
+  result = Aix_dlopen(filename, dflags, &error_report);
   if (result != nullptr) {
     Events::log_dll_message(nullptr, "Loaded shared library %s", filename);
     // Reload dll cache. Don't do this in signal handling.
