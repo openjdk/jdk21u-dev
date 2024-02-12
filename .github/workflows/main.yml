@@ -227,8 +227,8 @@ jobs:
     uses: ./.github/workflows/build-macos.yml
     with:
       platform: macos-x64
-      runs-on: 'macos-11'
-      xcode-toolset-version: '12.5.1'
+      runs-on: 'macos-13'
+      xcode-toolset-version: '14.3.1'
       configure-arguments: ${{ github.event.inputs.configure-arguments }}
       make-arguments: ${{ github.event.inputs.make-arguments }}
     if: needs.select.outputs.macos-x64 == 'true'
@@ -319,7 +319,7 @@ jobs:
     with:
       platform: macos-x64
       bootjdk-platform: macos-x64
-      runs-on: macos-11
+      runs-on: macos-13
 
   test-macos-aarch64:
     name: macos-aarch64
