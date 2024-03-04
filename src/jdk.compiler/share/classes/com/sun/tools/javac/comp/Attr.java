@@ -5492,7 +5492,7 @@ public class Attr extends JCTree.Visitor {
 
                 if (!c.type.isCompound()) {
                     for (ClassSymbol supertypeSym : sealedSupers) {
-                       if (!supertypeSym.isPermittedSubclass(c.type.tsym)) {
+                        if (!supertypeSym.isPermittedSubclass(c.type.tsym)) {
                             log.error(TreeInfo.diagnosticPositionFor(c.type.tsym, env.tree), Errors.CantInheritFromSealed(supertypeSym));
                         }
                     }
