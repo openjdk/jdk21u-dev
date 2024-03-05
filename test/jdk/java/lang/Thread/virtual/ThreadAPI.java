@@ -23,6 +23,7 @@
 
 /*
  * @test id=default
+ * @enablePreview
  * @bug 8284161 8286788 8321270
  * @summary Test Thread API with virtual threads
  * @modules java.base/java.lang:+open
@@ -32,6 +33,7 @@
 
 /*
  * @test id=no-vmcontinuations
+ * @enablePreview
  * @requires vm.continuations
  * @modules java.base/java.lang:+open
  * @library /test/lib

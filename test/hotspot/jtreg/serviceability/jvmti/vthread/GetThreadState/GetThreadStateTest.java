@@ -23,6 +23,7 @@
 
 /*
  * @test id=default
+ * @enablePreview
  * @bug 8312498
  * @summary Basic test for JVMTI GetThreadState with virtual threads
  * @library /test/lib
@@ -31,6 +32,7 @@
 
 /*
  * @test id=no-vmcontinuations
+ * @enablePreview
  * @requires vm.continuations
  * @library /test/lib
  * @run junit/othervm/native -XX:+UnlockExperimentalVMOptions -XX:-VMContinuations GetThreadStateTest
