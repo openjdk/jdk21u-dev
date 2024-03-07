@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2023, 2024, Red Hat, Inc. All rights reserved.
+ * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,14 +19,33 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
- *
  */
 
-/* @test
- * @summary Run a subset of gtests with the native trimmer activated.
- * @library /test/lib
- * @modules java.base/jdk.internal.misc
- *          java.xml
- * @requires vm.flagless
- * @run main/native GTestWrapper --gtest_filter=os.trim* -Xlog:trimnative -XX:TrimNativeHeapInterval=100
- */
+#include "jni.h"
+#include "jvmti.h"
+
+static jvmtiEnv *jvmti;
+
+JNIEXPORT void JNICALL Java_GetThreadStateTest_init(JNIEnv *env, jclass clazz) {
+    JavaVM* vm;
+    jint res;
+    res = (*env)->GetJavaVM(env, &vm);
+    if (res != 0) {
+        (*env)->FatalError(env, "GetJavaVM failed");
+    } else {
+        res = (*vm)->GetEnv(vm, (void**)&jvmti, JVMTI_VERSION);
+        if (res != JNI_OK) {
+            (*env)->FatalError(env, "GetEnv failed");
+        }
+    }
+}
+
+JNIEXPORT jint JNICALL Java_GetThreadStateTest_jvmtiState(JNIEnv *env, jclass clazz, jobject thread) {
+    jvmtiError err;
+    jint state = 0;
+    err = (*jvmti)->GetThreadState(jvmti, thread, &state);
+    if (err != JVMTI_ERROR_NONE) {
+        (*env)->FatalError(env, "GetThreadState failed");
+    }
+    return state;
+}

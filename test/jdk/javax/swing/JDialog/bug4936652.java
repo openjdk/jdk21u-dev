@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2023, 2024, Red Hat, Inc. All rights reserved.
+ * Copyright (c) 2003, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,14 +19,29 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
- *
  */
 
-/* @test
- * @summary Run a subset of gtests with the native trimmer activated.
- * @library /test/lib
- * @modules java.base/jdk.internal.misc
- *          java.xml
- * @requires vm.flagless
- * @run main/native GTestWrapper --gtest_filter=os.trim* -Xlog:trimnative -XX:TrimNativeHeapInterval=100
+/*
+ * @test
+ * @bug 4936652
+ * @key headful
+ * @summary JDialog.setVisible, JDialog.dispose works incorrectly
  */
+
+import javax.swing.JDialog;
+import javax.swing.SwingUtilities;
+
+public class bug4936652 {
+    public static void main(String[] args) throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            for (int i = 0 ; i < 100; i++) {
+                System.out.println("i: " + i);
+                JDialog o = new JDialog();
+                o.setTitle("bug4936652");
+                o.setVisible(true);
+                o.setVisible(false);
+                o.dispose();
+            }
+        });
+    }
+}
