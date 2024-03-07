@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -237,7 +237,11 @@ bool PhaseIdealLoop::cannot_split_division(const Node* n, const Node* region) co
       return false;
   }
 
-  assert(n->in(0) == nullptr, "divisions with zero check should already have bailed out earlier in split-if");
+  if (n->in(0) != nullptr) {
+    // Cannot split through phi if Div or Mod node has a control dependency to a zero check.
+    return true;
+  }
+
   Node* divisor = n->in(2);
   return is_divisor_counted_loop_phi(divisor, region) &&
          loop_phi_backedge_type_contains_zero(divisor, zero);
@@ -517,8 +521,8 @@ Node* PhaseIdealLoop::remix_address_expressions(Node* n) {
   }
 
   // Replace ((I1 +p V) +p I2) with ((I1 +p I2) +p V),
-  // but not if I2 is a constant.
-  if (n_op == Op_AddP) {
+  // but not if I2 is a constant. Skip for irreducible loops.
+  if (n_op == Op_AddP && n_loop->_head->is_Loop()) {
     if (n2_loop == n_loop && n3_loop != n_loop) {
       if (n->in(2)->Opcode() == Op_AddP && !n->in(3)->is_Con()) {
         Node* n22_ctrl = get_ctrl(n->in(2)->in(2));
