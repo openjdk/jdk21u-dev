@@ -574,7 +574,7 @@ public final class String
                     this.coder = LATIN1;
                     return;
                 }
-                byte[] buf = new byte[length << 1];
+                byte[] buf = StringUTF16.newBytesFor(length);
                 StringLatin1.inflate(dst, 0, buf, 0, dp);
                 dst = buf;
                 dp = decodeUTF8_UTF16(bytes, offset, sl, dst, dp, true);
