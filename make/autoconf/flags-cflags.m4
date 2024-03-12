@@ -122,6 +122,11 @@ AC_DEFUN([FLAGS_SETUP_DEBUG_SYMBOLS],
             # Add debug prefix map gcc system include paths, as they cause
             # non-deterministic debug paths depending on gcc path location.
             DEBUG_PREFIX_MAP_GCC_INCLUDE_PATHS
+
+            # Add debug prefix map for OUTPUTDIR to handle the scenario when
+            # it is not located within WORKSPACE_ROOT
+            outputdir_slash="${OUTPUTDIR%/}/"
+            DEBUG_PREFIX_CFLAGS="$DEBUG_PREFIX_CFLAGS -fdebug-prefix-map=${outputdir_slash}="
         ]
       )
     fi
@@ -485,7 +490,7 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_HELPER],
     CFLAGS_OS_DEF_JVM="-D_ALLBSD_SOURCE -D_DARWIN_C_SOURCE -D_XOPEN_SOURCE"
     CFLAGS_OS_DEF_JDK="-D_ALLBSD_SOURCE -D_DARWIN_UNLIMITED_SELECT"
   elif test "x$OPENJDK_TARGET_OS" = xaix; then
-    CFLAGS_OS_DEF_JVM="-DAIX"
+    CFLAGS_OS_DEF_JVM="-DAIX -D_LARGE_FILES"
   elif test "x$OPENJDK_TARGET_OS" = xbsd; then
     CFLAGS_OS_DEF_JDK="-D_ALLBSD_SOURCE"
   elif test "x$OPENJDK_TARGET_OS" = xwindows; then
