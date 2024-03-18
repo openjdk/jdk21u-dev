@@ -459,7 +459,6 @@ java/awt/KeyboardFocusmanager/TypeAhead/MenuItemActivatedTest/MenuItemActivatedT
 java/awt/Window/GetScreenLocation/GetScreenLocationTest.java 8225787 linux-x64
 java/awt/Dialog/MakeWindowAlwaysOnTop/MakeWindowAlwaysOnTop.java 8266243 macosx-aarch64
 java/awt/dnd/BadSerializationTest/BadSerializationTest.java 8277817 linux-x64,windows-x64
-java/awt/GraphicsDevice/CheckDisplayModes.java 8266242 macosx-aarch64
 java/awt/GraphicsDevice/DisplayModes/UnknownRefrshRateTest.java 8286436 macosx-aarch64
 java/awt/image/multiresolution/MultiresolutionIconTest.java 8291979 linux-x64,windows-all
 java/awt/event/SequencedEvent/MultipleContextsFunctionalTest.java 8305061 macosx-x64
@@ -496,7 +495,6 @@ java/lang/instrument/RetransformBigClass.sh                     8065756 generic-
 # jdk_io
 
 java/io/pathNames/GeneralWin32.java                             8180264 windows-all
-java/io/File/createTempFile/SpecialTempFile.java                8274122 windows11
 
 ############################################################################
 
@@ -617,15 +615,7 @@ com/sun/security/sasl/gsskerb/NoSecurityLayer.java              8039280 generic-
 sun/security/provider/PolicyFile/GrantAllPermToExtWhenNoPolicy.java 8039280 generic-all
 sun/security/provider/PolicyParser/PrincipalExpansionError.java 8039280 generic-all
 
-sun/security/tools/keytool/NssTest.java                         8295343 linux-all
-sun/security/pkcs11/Signature/TestRSAKeyLength.java             8295343 linux-all
-sun/security/pkcs11/rsa/TestSignatures.java                     8295343 linux-all
-sun/security/pkcs11/rsa/TestKeyPairGenerator.java               8295343 linux-all
-sun/security/pkcs11/rsa/TestKeyFactory.java                     8295343 linux-all
-sun/security/pkcs11/KeyStore/Basic.java                         8295343 linux-all
-sun/security/pkcs11/Cipher/TestKATForGCM.java                   8240611 linux-x64,macosx-x64
 sun/security/pkcs11/sslecc/ClientJSSEServerJSSE.java            8316183 linux-ppc64le
-
 
 ############################################################################
 
