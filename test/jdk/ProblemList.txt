@@ -562,8 +562,6 @@ java/nio/channels/DatagramChannel/AfterDisconnect.java          8308807 aix-ppc6
 java/nio/channels/DatagramChannel/ManySourcesAndTargets.java    8264385 macosx-aarch64
 java/nio/channels/DatagramChannel/Unref.java                    8233437 generic-all
 
-jdk/nio/zipfs/TestLocOffsetFromZip64EF.java                     8301183 linux-all
-
 java/nio/channels/DatagramChannel/AfterDisconnect.java          8308807 aix-ppc64
 
 ############################################################################
@@ -738,8 +736,6 @@ sun/tools/jhsdb/HeapDumpTestWithActiveProcess.java              8313798 generic-
 ############################################################################
 
 # jdk_other
-
-javax/rmi/ssl/SSLSocketParametersTest.sh                        8162906 generic-all
 
 jdk/incubator/vector/ShortMaxVectorTests.java                   8306592 generic-i586
 jdk/incubator/vector/LoadJsvmlTest.java                         8305390 windows-x64

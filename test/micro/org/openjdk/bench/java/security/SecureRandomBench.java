@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -19,32 +19,25 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
+ *
  */
 
-/*
- * @test
- * @bug 8004240
- * @summary Verify that getAdapterPreference returns an unmodifiable list.
- * @modules java.base/sun.util.locale.provider
- * @compile -XDignore.symbol.file Bug8004240.java
- * @run main Bug8004240
- */
+package org.openjdk.bench.java.security;
 
-import java.util.List;
-import sun.util.locale.provider.LocaleProviderAdapter;
+import org.openjdk.jmh.annotations.*;
 
-public class Bug8004240 {
+import java.security.SecureRandom;
+import java.util.concurrent.TimeUnit;
 
-    public static void main(String[] args) {
-        List<LocaleProviderAdapter.Type> types = LocaleProviderAdapter.getAdapterPreference();
+@BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
+@Warmup(iterations = 5, time = 1)
+@Measurement(iterations = 5, time = 1)
+@Fork(value = 3)
+public class SecureRandomBench {
 
-        try {
-            types.set(0, null);
-        } catch (UnsupportedOperationException e) {
-            // success
-            return;
-        }
-
-        throw new RuntimeException("LocaleProviderAdapter.getAdapterPrefence() returned a modifiable list.");
+    @Benchmark
+    public SecureRandom create() throws Exception {
+        return new SecureRandom();
     }
 }
