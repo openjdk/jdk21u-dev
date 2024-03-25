@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,26 +20,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-/**
-    @test
-    @summary Locale constructor should allow language-only argument
-    @bug 4316602
-    @author joconner
-*/
 
-import java.util.Locale;
+#include "precompiled.hpp"
+#include "oops/symbolHandle.hpp"
+#include "runtime/atomic.hpp"
 
-public class Bug4316602 {
+Symbol* volatile TempSymbolCleanupDelayer::_queue[QueueSize] = {};
+volatile uint TempSymbolCleanupDelayer::_index = 0;
 
-    public static void main(String[] args) throws Exception {
-        String language = "ja";
-        Locale aLocale = Locale.of(language);
-        if (aLocale.toString().equals(language)) {
-            System.out.println("passed");
-        } else {
-            System.out.println("Bug4316602 failed");
-            throw new Exception("Bug4316602 failed");
-        }
-    }
+// Keep this symbol alive for some time to allow for reuse.
+// Temp symbols for the same string can often be created in quick succession,
+// and this queue allows them to be reused instead of churning.
+void TempSymbolCleanupDelayer::delay_cleanup(Symbol* sym) {
+  assert(sym != nullptr, "precondition");
+  sym->increment_refcount();
+  uint i = Atomic::add(&_index, 1u) % QueueSize;
+  Symbol* old = Atomic::xchg(&_queue[i], sym);
+  Symbol::maybe_decrement_refcount(old);
+}
 
+void TempSymbolCleanupDelayer::drain_queue() {
+  for (uint i = 0; i < QueueSize; i++) {
+    Symbol* sym = Atomic::xchg(&_queue[i], (Symbol*) nullptr);
+    Symbol::maybe_decrement_refcount(sym);
+  }
 }
