@@ -117,7 +117,6 @@ public:
   // The region is being reclaimed; clear its remset, and any mention of
   // entries for this region in other remsets.
   void clear(bool only_cardset = false);
-  void clear_locked(bool only_cardset = false);
 
   void reset_table_scanner();
 

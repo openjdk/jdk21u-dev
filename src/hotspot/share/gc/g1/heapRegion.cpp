@@ -107,7 +107,7 @@ void HeapRegion::handle_evacuation_failure() {
   move_to_old();
 
   _rem_set->clean_code_roots(this);
-  _rem_set->clear_locked(true /* only_cardset */);
+  _rem_set->clear(true /* only_cardset */);
 }
 
 void HeapRegion::unlink_from_list() {

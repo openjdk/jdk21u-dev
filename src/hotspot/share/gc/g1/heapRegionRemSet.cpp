@@ -68,11 +68,6 @@ void HeapRegionRemSet::clear_fcc() {
 }
 
 void HeapRegionRemSet::clear(bool only_cardset) {
-  MutexLocker x(&_m, Mutex::_no_safepoint_check_flag);
-  clear_locked(only_cardset);
-}
-
-void HeapRegionRemSet::clear_locked(bool only_cardset) {
   if (!only_cardset) {
     _code_roots.clear();
   }
@@ -103,34 +98,12 @@ void HeapRegionRemSet::print_static_mem_size(outputStream* out) {
 // When not at safepoint the CodeCache_lock must be held during modifications.
 
 void HeapRegionRemSet::add_code_root(nmethod* nm) {
-  assert(nm != nullptr, "sanity");
-  assert((!CodeCache_lock->owned_by_self() || SafepointSynchronize::is_at_safepoint()),
-          "should call add_code_root_locked instead. CodeCache_lock->owned_by_self(): %s, is_at_safepoint(): %s",
-          BOOL_TO_STR(CodeCache_lock->owned_by_self()), BOOL_TO_STR(SafepointSynchronize::is_at_safepoint()));
-
-  MutexLocker ml(&_m, Mutex::_no_safepoint_check_flag);
-  add_code_root_locked(nm);
-}
-
-void HeapRegionRemSet::add_code_root_locked(nmethod* nm) {
-  assert(nm != nullptr, "sanity");
-  assert((CodeCache_lock->owned_by_self() ||
-         (SafepointSynchronize::is_at_safepoint() &&
-          (_m.owned_by_self() || Thread::current()->is_VM_thread()))),
-          "not safely locked. CodeCache_lock->owned_by_self(): %s, is_at_safepoint(): %s, _m.owned_by_self(): %s, Thread::current()->is_VM_thread(): %s",
-          BOOL_TO_STR(CodeCache_lock->owned_by_self()), BOOL_TO_STR(SafepointSynchronize::is_at_safepoint()),
-          BOOL_TO_STR(_m.owned_by_self()), BOOL_TO_STR(Thread::current()->is_VM_thread()));
-
-  if (!_code_roots.contains(nm)) { // with this test, we can assert that we do not modify the hash table while iterating over it
-    _code_roots.add(nm);
-  }
+  _code_roots.add(nm);
 }
 
 void HeapRegionRemSet::remove_code_root(nmethod* nm) {
   assert(nm != nullptr, "sanity");
-  assert_locked_or_safepoint(CodeCache_lock);
 
-  MutexLocker ml(CodeCache_lock->owned_by_self() ? nullptr : &_m, Mutex::_no_safepoint_check_flag);
   _code_roots.remove(nm);
 
   // Check that there were no duplicates
