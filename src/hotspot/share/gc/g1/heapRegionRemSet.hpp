@@ -40,7 +40,6 @@ class outputStream;
 class HeapRegionRemSet : public CHeapObj<mtGC> {
   friend class VMStructs;
 
-  Mutex _m;
   // A set of code blobs (nmethods) whose code contains pointers into
   // the region that owns this RSet.
   G1CodeRootSet _code_roots;
@@ -167,7 +166,6 @@ public:
   // Returns true if the code roots contains the given
   // nmethod.
   bool code_roots_list_contains(nmethod* nm) {
-    MutexLocker ml(&_m, Mutex::_no_safepoint_check_flag);
     return _code_roots.contains(nm);
   }
 
