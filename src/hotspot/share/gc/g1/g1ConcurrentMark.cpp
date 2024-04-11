@@ -1293,12 +1293,6 @@ void G1ConcurrentMark::remark() {
       reclaim_empty_regions();
     }
 
-    // Clean out dead classes
-    if (ClassUnloadingWithConcurrentMark) {
-      GCTraceTime(Debug, gc, phases) debug("Purge Metaspace", _gc_timer_cm);
-      ClassLoaderDataGraph::purge(/*at_safepoint*/true);
-    }
-
     _g1h->resize_heap_if_necessary();
     _g1h->uncommit_regions_if_necessary();
 
