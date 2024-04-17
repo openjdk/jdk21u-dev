@@ -4210,7 +4210,7 @@ SWPointer::SWPointer(MemNode* mem, SuperWord* slp, Node_Stack *nstack, bool anal
   // allows us to keep the rest of the autovectorization code much simpler, since we
   // do not have to deal with overflows.
   jlong long_scale  = _scale;
-  jlong long_stride = slp->iv_stride();
+  jlong long_stride = slp->lp()->stride_is_con() ? slp->iv_stride() : 0;
   jlong max_val = 1 << 30;
   if (abs(long_scale) >= max_val ||
       abs(long_stride) >= max_val ||
