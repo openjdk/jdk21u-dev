@@ -52,6 +52,7 @@ class VirtualMemory {
   inline void reserve_memory(size_t sz) { _reserved += sz; }
   inline void commit_memory (size_t sz) {
     _committed += sz;
+    DEBUG_ONLY(update_peak(sz);)
     assert(_committed <= _reserved, "Sanity check");
     update_peak(_committed);
   }
