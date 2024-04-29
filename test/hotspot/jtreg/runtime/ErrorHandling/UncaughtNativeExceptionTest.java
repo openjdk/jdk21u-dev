@@ -54,7 +54,7 @@ public class UncaughtNativeExceptionTest {
     // and don't terminate abruptly due to stack overflow error
     @Test
     public void testNativeExceptionReporting() throws Exception {
-        OutputAnalyzer output = ProcessTools.executeTestJvm(
+        OutputAnalyzer output = ProcessTools.executeTestJava(
                 // executeTestJvm doesn't seem to forward 'java.library.path'
                 "-Djava.library.path=" + System.getProperty("java.library.path"),
                 Crasher.class.getName());
