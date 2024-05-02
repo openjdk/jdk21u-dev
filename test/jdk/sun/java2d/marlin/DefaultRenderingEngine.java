@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -21,30 +21,22 @@
  * questions.
  */
 
-/*
+import sun.java2d.pipe.RenderingEngine;
+
+/**
  * @test
- * @bug 7198073 7197662
- * @summary Tests that user preferences are stored in the permanent storage
- * @library /test/lib
- * @build jdk.test.lib.process.* CheckUserPrefFirst CheckUserPrefLater
- * @run main CheckUserPrefsStorage
+ * @bug 8241307
+ * @summary Verifies that the Marlin renderer is the default RenderingEngine
+ * @modules java.desktop/sun.java2d.pipe
  */
+public final class DefaultRenderingEngine {
 
-import jdk.test.lib.process.ProcessTools;
+    public static void main(String[] argv) {
 
-public class CheckUserPrefsStorage {
+        final RenderingEngine engine = RenderingEngine.getInstance();
 
-    public static void main(String[] args) throws Throwable {
-        // First to create and store a user preference
-        run("CheckUserPrefFirst");
-        // Then check that preferences stored by CheckUserPrefFirst can be retrieved
-        run("CheckUserPrefLater");
-    }
-
-    public static void run(String testName) throws Exception {
-        ProcessTools.executeTestJava("-Djava.util.prefs.userRoot=.", testName)
-                    .outputTo(System.out)
-                    .errorTo(System.out)
-                    .shouldHaveExitValue(0);
+        if (!engine.getClass().getSimpleName().contains("Marlin")) {
+            throw new RuntimeException("Marlin must be the default RenderingEngine");
+        }
     }
 }
