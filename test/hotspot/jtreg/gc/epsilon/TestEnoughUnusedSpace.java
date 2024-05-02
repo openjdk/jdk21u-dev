@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 1997, 2023, Oracle and/or its affiliates. All rights reserved.
- * Copyright 2009, 2021, Red Hat, Inc.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,32 +22,22 @@
  *
  */
 
-#ifndef CPU_ZERO_GLOBALDEFINITIONS_ZERO_HPP
-#define CPU_ZERO_GLOBALDEFINITIONS_ZERO_HPP
+package gc.epsilon;
 
-#ifdef _LP64
-#define SUPPORTS_NATIVE_CX8
-#endif
+/**
+ * @test TestEnoughUnusedSpace
+ * @requires vm.gc.Epsilon
+ * @summary Epsilon should allocates object successfully if it has enough space.
+ * @run main/othervm -Xms64M -Xmx128M -XX:+UnlockExperimentalVMOptions
+ *                   -XX:+UseEpsilonGC gc.epsilon.TestEnoughUnusedSpace
+ */
 
-#define DEFAULT_CACHE_LINE_SIZE 64
+public class TestEnoughUnusedSpace {
+    static volatile Object arr;
 
-#define SUPPORT_MONITOR_COUNT
-
-#ifdef __APPLE__
-#define FFI_GO_CLOSURES 0
-#endif
-
-#include <ffi.h>
-
-// Indicates whether the C calling conventions require that
-// 32-bit integer argument values are extended to 64 bits.
-const bool CCallingConventionRequiresIntsAsLongs = false;
-#if defined(AIX)
-const size_t pd_segfault_address = -1;
-#elif defined(S390)
-const size_t pd_segfault_address = 4096;
-#else
-const size_t pd_segfault_address = 1024;
-#endif
-
-#endif // CPU_ZERO_GLOBALDEFINITIONS_ZERO_HPP
+    public static void main(String[] args) {
+        // Create an array about 90M. It should be created successfully
+        // instead of throwing OOME, because 90M is smaller than 128M.
+        arr = new byte[90 * 1024 * 1024];
+    }
+}

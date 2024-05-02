@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 1997, 2023, Oracle and/or its affiliates. All rights reserved.
- * Copyright 2009, 2021, Red Hat, Inc.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,32 +22,22 @@
  *
  */
 
-#ifndef CPU_ZERO_GLOBALDEFINITIONS_ZERO_HPP
-#define CPU_ZERO_GLOBALDEFINITIONS_ZERO_HPP
+#include "precompiled.hpp"
+#include "compiler/cHeapStringHolder.hpp"
 
-#ifdef _LP64
-#define SUPPORTS_NATIVE_CX8
-#endif
+void CHeapStringHolder::set(const char* string) {
+  clear();
+  if (string != nullptr) {
+    size_t len = strlen(string);
+    _string = NEW_C_HEAP_ARRAY(char, len + 1, mtCompiler);
+    ::memcpy(_string, string, len);
+    _string[len] = 0; // terminating null
+  }
+}
 
-#define DEFAULT_CACHE_LINE_SIZE 64
-
-#define SUPPORT_MONITOR_COUNT
-
-#ifdef __APPLE__
-#define FFI_GO_CLOSURES 0
-#endif
-
-#include <ffi.h>
-
-// Indicates whether the C calling conventions require that
-// 32-bit integer argument values are extended to 64 bits.
-const bool CCallingConventionRequiresIntsAsLongs = false;
-#if defined(AIX)
-const size_t pd_segfault_address = -1;
-#elif defined(S390)
-const size_t pd_segfault_address = 4096;
-#else
-const size_t pd_segfault_address = 1024;
-#endif
-
-#endif // CPU_ZERO_GLOBALDEFINITIONS_ZERO_HPP
+void CHeapStringHolder::clear() {
+  if (_string != nullptr) {
+    FREE_C_HEAP_ARRAY(char, _string);
+    _string = nullptr;
+  }
+}

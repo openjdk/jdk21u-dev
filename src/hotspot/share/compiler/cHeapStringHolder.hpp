@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 1997, 2023, Oracle and/or its affiliates. All rights reserved.
- * Copyright 2009, 2021, Red Hat, Inc.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,32 +22,29 @@
  *
  */
 
-#ifndef CPU_ZERO_GLOBALDEFINITIONS_ZERO_HPP
-#define CPU_ZERO_GLOBALDEFINITIONS_ZERO_HPP
+#ifndef SHARE_COMPILER_CHEAPSTRINGHOLDER_HPP
+#define SHARE_COMPILER_CHEAPSTRINGHOLDER_HPP
 
-#ifdef _LP64
-#define SUPPORTS_NATIVE_CX8
-#endif
+#include "memory/allocation.hpp"
 
-#define DEFAULT_CACHE_LINE_SIZE 64
+// Holder for a C-Heap allocated String
+// The user must ensure that the destructor is called, or at least clear.
+class CHeapStringHolder : public StackObj {
+private:
+  char* _string;
 
-#define SUPPORT_MONITOR_COUNT
+public:
+  CHeapStringHolder() : _string(nullptr) {}
+  ~CHeapStringHolder() { clear(); };
+  NONCOPYABLE(CHeapStringHolder);
 
-#ifdef __APPLE__
-#define FFI_GO_CLOSURES 0
-#endif
+  // Allocate memory to hold a copy of string
+  void set(const char* string);
 
-#include <ffi.h>
+  // Release allocated memory
+  void clear();
 
-// Indicates whether the C calling conventions require that
-// 32-bit integer argument values are extended to 64 bits.
-const bool CCallingConventionRequiresIntsAsLongs = false;
-#if defined(AIX)
-const size_t pd_segfault_address = -1;
-#elif defined(S390)
-const size_t pd_segfault_address = 4096;
-#else
-const size_t pd_segfault_address = 1024;
-#endif
+  const char* get() const { return _string; };
+};
 
-#endif // CPU_ZERO_GLOBALDEFINITIONS_ZERO_HPP
+#endif // SHARE_COMPILER_CHEAPSTRINGHOLDER_HPP
