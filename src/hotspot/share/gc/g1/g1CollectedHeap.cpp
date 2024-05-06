@@ -25,7 +25,7 @@
 #include "precompiled.hpp"
 #include "classfile/classLoaderDataGraph.hpp"
 #include "classfile/metadataOnStackMark.hpp"
-#include "classfile/stringTable.hpp"
+#include "classfile/systemDictionary.hpp"
 #include "code/codeCache.hpp"
 #include "code/icBuffer.hpp"
 #include "compiler/oopMap.hpp"
@@ -74,6 +74,7 @@
 #include "gc/g1/heapRegion.inline.hpp"
 #include "gc/g1/heapRegionRemSet.inline.hpp"
 #include "gc/g1/heapRegionSet.inline.hpp"
+#include "gc/shared/classUnloadingContext.hpp"
 #include "gc/shared/concurrentGCBreakpoints.hpp"
 #include "gc/shared/gcBehaviours.hpp"
 #include "gc/shared/gcHeapSummary.hpp"
@@ -855,10 +856,6 @@ void G1CollectedHeap::verify_before_full_collection() {
 }
 
 void G1CollectedHeap::prepare_for_mutator_after_full_collection() {
-  // Delete metaspaces for unloaded class loaders and clean up loader_data graph
-  ClassLoaderDataGraph::purge(/*at_safepoint*/true);
-  DEBUG_ONLY(MetaspaceUtils::verify();)
-
   // Prepare heap for normal collections.
   assert(num_free_regions() == 0, "we should not have added any free regions");
   rebuild_region_sets(false /* free_list_only */);
@@ -2596,6 +2593,33 @@ void G1CollectedHeap::complete_cleaning(bool class_unloading_occurred) {
   workers()->run_task(&unlink_task);
 }
 
+void G1CollectedHeap::unload_classes_and_code(const char* description, BoolObjectClosure* is_alive, GCTimer* timer) {
+  GCTraceTime(Debug, gc, phases) debug(description, timer);
+
+  ClassUnloadingContext ctx(workers()->active_workers(),
+                            false /* lock_codeblob_free_separately */);
+  {
+    CodeCache::UnlinkingScope scope(is_alive);
+    bool unloading_occurred = SystemDictionary::do_unloading(timer);
+    GCTraceTime(Debug, gc, phases) t("G1 Complete Cleaning", timer);
+    complete_cleaning(unloading_occurred);
+  }
+  {
+    GCTraceTime(Debug, gc, phases) t("Purge Unlinked NMethods", timer);
+    ctx.purge_nmethods();
+  }
+  {
+    GCTraceTime(Debug, gc, phases) t("Free Code Blobs", timer);
+    ctx.free_code_blobs();
+  }
+  {
+    GCTraceTime(Debug, gc, phases) t("Purge Class Loader Data", timer);
+    ClassLoaderDataGraph::purge(true /* at_safepoint */);
+    DEBUG_ONLY(MetaspaceUtils::verify();)
+  }
+}
+
+
 bool G1STWSubjectToDiscoveryClosure::do_object_b(oop obj) {
   assert(obj != nullptr, "must not be null");
   assert(_g1h->is_in_reserved(obj), "Trying to discover obj " PTR_FORMAT " not in heap", p2i(obj));
@@ -2761,7 +2785,7 @@ bool G1CollectedHeap::check_young_list_empty() {
 
 // Remove the given HeapRegion from the appropriate region set.
 void G1CollectedHeap::prepare_region_for_full_compaction(HeapRegion* hr) {
-   if (hr->is_humongous()) {
+  if (hr->is_humongous()) {
     _humongous_set.remove(hr);
   } else if (hr->is_old()) {
     _old_set.remove(hr);
@@ -3008,8 +3032,7 @@ public:
              " starting at " HR_FORMAT,
              p2i(_nm), HR_FORMAT_PARAMS(hr), HR_FORMAT_PARAMS(hr->humongous_start_region()));
 
-      // HeapRegion::add_code_root_locked() avoids adding duplicate entries.
-      hr->add_code_root_locked(_nm);
+      hr->add_code_root(_nm);
     }
   }
 
