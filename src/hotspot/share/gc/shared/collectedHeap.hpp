@@ -95,7 +95,6 @@ class CollectedHeap : public CHeapObj<mtGC> {
   friend class VMStructs;
   friend class JVMCIVMStructs;
   friend class IsGCActiveMark; // Block structured external access to _is_gc_active
-  friend class DisableIsGCActiveMark; // Disable current IsGCActiveMark
   friend class MemAllocator;
   friend class ParallelObjectIterator;
 

@@ -36,10 +36,4 @@ class IsGCActiveMark : public StackObj {
   ~IsGCActiveMark();
 };
 
-class DisableIsGCActiveMark : public StackObj {
- public:
-  DisableIsGCActiveMark();
-  ~DisableIsGCActiveMark();
-};
-
 #endif // SHARE_GC_SHARED_ISGCACTIVEMARK_HPP
