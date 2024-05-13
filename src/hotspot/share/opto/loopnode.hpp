@@ -1115,6 +1115,7 @@ private:
   // Compute the Ideal Node to Loop mapping
   PhaseIdealLoop(PhaseIterGVN& igvn, LoopOptsMode mode) :
     PhaseTransform(Ideal_Loop),
+    _loop_or_ctrl(igvn.C->comp_arena()),
     _igvn(igvn),
     _verify_me(nullptr),
     _verify_only(false),
@@ -1129,6 +1130,7 @@ private:
   // or only verify that the graph is valid if verify_me is null.
   PhaseIdealLoop(PhaseIterGVN& igvn, const PhaseIdealLoop* verify_me = nullptr) :
     PhaseTransform(Ideal_Loop),
+    _loop_or_ctrl(igvn.C->comp_arena()),
     _igvn(igvn),
     _verify_me(verify_me),
     _verify_only(verify_me == nullptr),
@@ -1693,8 +1695,8 @@ public:
   LoopNode* create_inner_head(IdealLoopTree* loop, BaseCountedLoopNode* head, IfNode* exit_test);
 
 
-  int extract_long_range_checks(const IdealLoopTree* loop, jlong stride_con, int iters_limit, PhiNode* phi,
-                                      Node_List &range_checks);
+  int extract_long_range_checks(const IdealLoopTree* loop, jint stride_con, int iters_limit, PhiNode* phi,
+                                Node_List &range_checks);
 
   void transform_long_range_checks(int stride_con, const Node_List &range_checks, Node* outer_phi,
                                    Node* inner_iters_actual_int, Node* inner_phi,

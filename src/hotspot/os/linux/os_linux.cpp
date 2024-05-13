@@ -83,6 +83,8 @@
 #endif
 
 // put OS-includes here
+# include <ctype.h>
+# include <stdlib.h>
 # include <sys/types.h>
 # include <sys/mman.h>
 # include <sys/stat.h>
@@ -309,6 +311,22 @@ static void next_line(FILE *f) {
   } while (c != '\n' && c != EOF);
 }
 
+void os::Linux::kernel_version(long* major, long* minor) {
+  *major = -1;
+  *minor = -1;
+
+  struct utsname buffer;
+  int ret = uname(&buffer);
+  if (ret != 0) {
+    log_warning(os)("uname(2) failed to get kernel version: %s", os::errno_name(ret));
+    return;
+  }
+  int nr_matched = sscanf(buffer.release, "%ld.%ld", major, minor);
+  if (nr_matched != 2) {
+    log_warning(os)("Parsing kernel version failed, expected 2 version numbers, only matched %d", nr_matched);
+  }
+}
+
 bool os::Linux::get_tick_information(CPUPerfTicks* pticks, int which_logical_cpu) {
   FILE*         fh;
   uint64_t      userTicks, niceTicks, systemTicks, idleTicks;
@@ -411,7 +429,7 @@ pid_t os::Linux::gettid() {
 julong os::Linux::host_swap() {
   struct sysinfo si;
   sysinfo(&si);
-  return (julong)si.totalswap;
+  return (julong)(si.totalswap * si.mem_unit);
 }
 
 // Most versions of linux have a bug where the number of processors are
@@ -557,17 +575,6 @@ void os::init_system_properties_values() {
 #undef DEFAULT_LIBPATH
 #undef SYS_EXT_DIR
 #undef EXTENSIONS_DIR
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// breakpoint support
-
-void os::breakpoint() {
-  BREAKPOINT;
-}
-
-extern "C" void breakpoint() {
-  // use debugger to set breakpoint here
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -2145,6 +2152,8 @@ void os::Linux::print_proc_sys_info(outputStream* st) {
                       "/proc/sys/kernel/threads-max", st);
   _print_ascii_file_h("/proc/sys/vm/max_map_count (maximum number of memory map areas a process may have)",
                       "/proc/sys/vm/max_map_count", st);
+  _print_ascii_file_h("/proc/sys/vm/swappiness (control to define how aggressively the kernel swaps out anonymous memory)",
+                      "/proc/sys/vm/swappiness", st);
   _print_ascii_file_h("/proc/sys/kernel/pid_max (system-wide limit on number of process identifiers)",
                       "/proc/sys/kernel/pid_max", st);
 }
@@ -5570,3 +5579,25 @@ bool os::trim_native_heap(os::size_change_t* rss_change) {
   return false; // musl
 #endif
 }
+
+bool os::pd_dll_unload(void* libhandle, char* ebuf, int ebuflen) {
+
+  if (ebuf && ebuflen > 0) {
+    ebuf[0] = '\0';
+    ebuf[ebuflen - 1] = '\0';
+  }
+
+  bool res = (0 == ::dlclose(libhandle));
+  if (!res) {
+    // error analysis when dlopen fails
+    const char* error_report = ::dlerror();
+    if (error_report == nullptr) {
+      error_report = "dlerror returned no error description";
+    }
+    if (ebuf != nullptr && ebuflen > 0) {
+      snprintf(ebuf, ebuflen - 1, "%s", error_report);
+    }
+  }
+
+  return res;
+} // end: os::pd_dll_unload()
