@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 1997, 2023, Oracle and/or its affiliates. All rights reserved.
- * Copyright 2009, 2021, Red Hat, Inc.
+ * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,35 +19,14 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
- *
  */
 
-#ifndef CPU_ZERO_GLOBALDEFINITIONS_ZERO_HPP
-#define CPU_ZERO_GLOBALDEFINITIONS_ZERO_HPP
+#include <jni.h>
 
-#ifdef _LP64
-#define SUPPORTS_NATIVE_CX8
-#endif
+#include <Windows.h>
 
-#define DEFAULT_CACHE_LINE_SIZE 64
+const DWORD EX_CODE = 42;
 
-#define SUPPORT_MONITOR_COUNT
-
-#ifdef __APPLE__
-#define FFI_GO_CLOSURES 0
-#endif
-
-#include <ffi.h>
-
-// Indicates whether the C calling conventions require that
-// 32-bit integer argument values are extended to 64 bits.
-const bool CCallingConventionRequiresIntsAsLongs = false;
-#if defined(AIX)
-const size_t pd_segfault_address = -1;
-#elif defined(S390)
-const size_t pd_segfault_address = 4096;
-#else
-const size_t pd_segfault_address = 1024;
-#endif
-
-#endif // CPU_ZERO_GLOBALDEFINITIONS_ZERO_HPP
+JNIEXPORT void JNICALL Java_UncaughtNativeExceptionTest_00024Crasher_throwException(JNIEnv* env, jclass cls) {
+  RaiseException(EX_CODE, EXCEPTION_NONCONTINUABLE, 0, NULL);
+}
