@@ -276,7 +276,6 @@ bool HeapShared::archive_object(oop obj) {
   } else {
     count_allocation(obj->size());
     ArchiveHeapWriter::add_source_obj(obj);
-
     CachedOopInfo info = make_cached_oop_info();
     archived_object_cache()->put(obj, info);
     mark_native_pointers(obj);
