@@ -102,7 +102,8 @@ public class IREncodingPrinter {
         "asimd",
         "sve",
         // Riscv64
-        "rvv"
+        "v",
+        "zvbb"
     ));
 
     public IREncodingPrinter() {
