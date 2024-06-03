@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,33 +20,25 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-
-package gc.arguments;
-
-/*
- * @test TestSerialHeapSizeFlags
- * @bug 8006088
- * @summary Tests argument processing for initial and maximum heap size for the Serial collector
- * @key flag-sensitive
- * @requires vm.gc.Serial & vm.opt.MinHeapSize == null & vm.opt.MaxHeapSize == null & vm.opt.InitialHeapSize == null
- * @library /test/lib
- * @library /
- * @modules java.base/jdk.internal.misc
- *          java.management
- * @build jdk.test.whitebox.WhiteBox
- * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
- * @run driver gc.arguments.TestSerialHeapSizeFlags
- * @author thomas.schatzl@oracle.com
+ /*
+ * @test
+ * @bug 8312229
+ * @summary Ensure javac does not crash when a variable is used from an anonymous class
+ * @compile T8312229.java
  */
-
-public class TestSerialHeapSizeFlags {
-
-  public static void main(String args[]) throws Exception {
-    final String gcName = "-XX:+UseSerialGC";
-
-    TestMaxHeapSizeTools.checkMinInitialMaxHeapFlags(gcName);
-
-    TestMaxHeapSizeTools.checkGenMaxHeapErgo(gcName);
-  }
+public class T8312229 {
+    void test(Object o) {
+        Runnable r = () -> {
+            var l = switch (o) {
+                default -> {
+                    Integer i = 42;
+                    yield new Runnable() {
+                        public void run() {
+                            i.toString(); // should not crash here
+                        }
+                    };
+                }
+            };
+        };
+    }
 }
-
