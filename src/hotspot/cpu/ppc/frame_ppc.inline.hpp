@@ -362,7 +362,7 @@ inline const ImmutableOopMap* frame::get_oop_map() const {
 }
 
 inline int frame::compiled_frame_stack_argsize() const {
-  assert(cb()->is_nmethod(), "");
+  assert(cb()->is_compiled(), "");
   return (cb()->as_nmethod()->num_stack_arg_slots() * VMRegImpl::stack_slot_size) >> LogBytesPerWord;
 }
 
