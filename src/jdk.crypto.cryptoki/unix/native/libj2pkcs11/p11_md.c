@@ -162,7 +162,7 @@ JNIEXPORT jobject JNICALL Java_sun_security_pkcs11_wrapper_PKCS11_connect
             rv = (C_GetInterface)(NULL, NULL, &interface, 0L);
             // don't use ckAssertReturnValueOK as we want to continue trying
             // C_GetFunctionList() or method named by "getFunctionListStr"
-            if (rv == CKR_OK && interface != NULL) {
+            if (rv == CKR_OK) {
                 goto setModuleData;
             }
         }
@@ -210,13 +210,15 @@ setModuleData:
         }
     } else if (interface != NULL) {
         moduleData->ckFunctionListPtr = interface->pFunctionList;
+        if (((CK_VERSION *)moduleData->ckFunctionListPtr)->major == 3) {
+            moduleData->ckFunctionList30Ptr = interface->pFunctionList;
+        }
     } else {
         // should never happen
         p11ThrowIOException(env, "ERROR: No function list ptr found");
         goto cleanup;
     }
-    if (((CK_VERSION *)moduleData->ckFunctionListPtr)->major == 3 &&
-            interface != NULL) {
+    if (((CK_VERSION *)moduleData->ckFunctionListPtr)->major == 3) {
         moduleData->ckFunctionList30Ptr = interface->pFunctionList;
     } else {
         moduleData->ckFunctionList30Ptr = NULL;
