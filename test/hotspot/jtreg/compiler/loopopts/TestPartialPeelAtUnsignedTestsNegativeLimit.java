@@ -26,7 +26,7 @@
  * @bug 8332920
  * @summary Tests partial peeling at unsigned tests with limit being negative in exit tests "i >u limit".
  * @run main/othervm -Xbatch -XX:-TieredCompilation
- *                   -XX:CompileOnly=*TestPartialPeel*::original*,*TestPartialPeel*::test*
+ *                   -XX:CompileCommand=compileonly,*TestPartialPeel*::original*,*TestPartialPeel*::test*
  *                   compiler.loopopts.TestPartialPeelAtUnsignedTestsNegativeLimit
  */
 
@@ -35,7 +35,7 @@
  * @bug 8332920
  * @summary Tests partial peeling at unsigned tests with limit being negative in exit tests "i >u limit".
  * @run main/othervm -Xcomp -XX:-TieredCompilation
- *                   -XX:CompileOnly=*TestPartialPeel*::original*,*TestPartialPeel*::run*,*TestPartialPeel*::test*
+ *                   -XX:CompileCommand=compileonly,*TestPartialPeel*::original*,*TestPartialPeel*::run*,*TestPartialPeel*::test*
  *                   -XX:CompileCommand=inline,*TestPartialPeelAtUnsignedTestsNegativeLimit::test*
  *                   -XX:CompileCommand=dontinline,*TestPartialPeelAtUnsignedTestsNegativeLimit::check
  *                   compiler.loopopts.TestPartialPeelAtUnsignedTestsNegativeLimit
@@ -45,7 +45,7 @@
  * @test id=Xcomp-compile-test
  * @bug 8332920
  * @summary Tests partial peeling at unsigned tests with limit being negative in exit tests "i >u limit".
- * @run main/othervm -Xcomp -XX:-TieredCompilation -XX:CompileOnly=*TestPartialPeel*::original*,*TestPartialPeel*::test*
+ * @run main/othervm -Xcomp -XX:-TieredCompilation -XX:CompileCommand=compileonly,*TestPartialPeel*::original*,*TestPartialPeel*::test*
  *                   compiler.loopopts.TestPartialPeelAtUnsignedTestsNegativeLimit
  */
 
