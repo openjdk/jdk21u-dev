@@ -614,7 +614,7 @@ public:
     if (_subtasks.try_claim_task(SafepointSynchronize::SAFEPOINT_CLEANUP_REQUEST_OOPMAPCACHE_CLEANUP)) {
       if (OopMapCache::has_cleanup_work()) {
         Tracer t("triggering oopmap cache cleanup");
-        OopMapCache::trigger_cleanup();
+        OopMapCache::try_trigger_cleanup();
       }
     }
 
