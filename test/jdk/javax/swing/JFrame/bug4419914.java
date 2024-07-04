@@ -68,7 +68,7 @@ public class bug4419914 {
         frame.enableInputMethods(false);
 
         frame.getContentPane().setComponentOrientation(
-                ComponentOrientation.RIGHT_TO_LEFT);
+                               ComponentOrientation.RIGHT_TO_LEFT);
         frame.getContentPane().setLocale(Locale.ENGLISH);
         frame.getContentPane().setLayout(new BorderLayout());
         frame.add(new JButton("SOUTH"), BorderLayout.SOUTH);
