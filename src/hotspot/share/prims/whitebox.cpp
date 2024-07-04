@@ -1095,6 +1095,10 @@ bool WhiteBox::compile_method(Method* method, int comp_level, int bci, JavaThrea
   return false;
 }
 
+size_t WhiteBox::get_in_use_monitor_count() {
+  return ObjectSynchronizer::_in_use_list.count();
+}
+
 WB_ENTRY(jboolean, WB_EnqueueMethodForCompilation(JNIEnv* env, jobject o, jobject method, jint comp_level, jint bci))
   jmethodID jmid = reflected_method_to_jmid(thread, env, method);
   CHECK_JNI_EXCEPTION_(env, JNI_FALSE);
