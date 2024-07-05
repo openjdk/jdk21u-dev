@@ -2061,9 +2061,10 @@ typedef void (*voidfun_t)();
 // Crash with an authentic sigfpe; behavior is subtly different from a real signal
 // compared to one generated with raise (asynchronous vs synchronous). See JDK-8065895.
 volatile int sigfpe_int = 0;
-
+#ifdef UNDEFINED_BEHAVIOR_SANITIZER
 #if defined(__clang__) || defined(__GNUC__)
 __attribute__((no_sanitize("undefined")))
+#endif
 #endif
 static void ALWAYSINLINE crash_with_sigfpe() {
 
