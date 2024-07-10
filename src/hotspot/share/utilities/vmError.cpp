@@ -59,6 +59,7 @@
 #include "runtime/vmOperations.hpp"
 #include "runtime/vm_version.hpp"
 #include "services/memTracker.hpp"
+#include "sanitizers/ub.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/decoder.hpp"
 #include "utilities/defaultStream.hpp"
@@ -2055,17 +2056,15 @@ bool VMError::check_timeout() {
 
 }
 
+#define ASSERT
+
 #ifdef ASSERT
 typedef void (*voidfun_t)();
 
 // Crash with an authentic sigfpe; behavior is subtly different from a real signal
 // compared to one generated with raise (asynchronous vs synchronous). See JDK-8065895.
 volatile int sigfpe_int = 0;
-#ifdef UNDEFINED_BEHAVIOR_SANITIZER
-#if defined(__clang__) || defined(__GNUC__)
-__attribute__((no_sanitize("undefined")))
-#endif
-#endif
+ATTRIBUTE_NO_UBSAN
 static void ALWAYSINLINE crash_with_sigfpe() {
 
   // generate a native synchronous SIGFPE where possible;
