@@ -2056,8 +2056,6 @@ bool VMError::check_timeout() {
 
 }
 
-#define ASSERT
-
 #ifdef ASSERT
 typedef void (*voidfun_t)();
 
