@@ -365,8 +365,6 @@ void ConstantPoolCacheEntry::set_method_handle_common(const constantPoolHandle& 
   assert(resolved_references() != nullptr,
          "a resolved_references array should have been created for this class");
   ObjectLocker ol(resolved_references, current);
-  // TODO remove - not in 21
-  //ResolvedMethodEntry* method_entry = resolved_method_entry_at(method_index);
 
   if (!is_f1_null()) {
     return;
