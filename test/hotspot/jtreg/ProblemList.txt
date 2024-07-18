@@ -75,6 +75,8 @@ compiler/jvmci/TestUncaughtErrorInCompileMethod.java 8309073 generic-all
 
 compiler/codecache/CheckLargePages.java 8319795 linux-x64
 
+compiler/interpreter/Test6833129.java 8335266 generic-i586
+
 #############################################################################
 
 # :hotspot_gc
