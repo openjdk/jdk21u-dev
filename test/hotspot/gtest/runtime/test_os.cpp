@@ -172,15 +172,8 @@ static void do_test_print_hex_dump(const_address from, const_address to, int uni
   char buf[2048];
   buf[0] = '\0';
   stringStream ss(buf, sizeof(buf));
-<<<<<<< HEAD
-  os::print_hex_dump(&ss, addr, addr + len, unitsize);
-  // tty->print_cr("expected: %s", expected);
-  // tty->print_cr("result: %s", buf);
-  EXPECT_THAT(buf, testing::HasSubstr(expected));
-=======
   os::print_hex_dump(&ss, from, to, unitsize, /* print_ascii=*/true, bytes_per_line, logical_start);
   EXPECT_STREQ(buf, expected);
->>>>>>> 38a578d547f... 8334738: os::print_hex_dump should optionally print ASCII
 }
 
 TEST_VM(os, test_print_hex_dump) {
@@ -228,13 +221,6 @@ TEST_VM(os, test_print_hex_dump) {
               ADDRESS3 ":   4c69627261726965 7300000000000000                                     " ASCII_2 "\n"
 #endif
 
-<<<<<<< HEAD
-  // Test dumping readable memory
-  address arr = (address)os::malloc(100, mtInternal);
-  for (int c = 0; c < 100; c++) {
-    arr[c] = c;
-  }
-=======
   constexpr uint8_t bytes[] = {
     0xff, 0xff, 0xe0, 0xdc, 0x23, 0x00, 0x6a, 0x64, 0x6b, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e,
     0x61, 0x6c, 0x2f, 0x6c, 0x6f, 0x61, 0x64, 0x65, 0x72, 0x2f, 0x4e, 0x61, 0x74, 0x69, 0x76, 0x65,
@@ -253,7 +239,6 @@ TEST_VM(os, test_print_hex_dump) {
   const const_address from = (const_address) two_pages + ps - 32;
   const const_address to = (const_address) from + 32 + sizeof(bytes);
   const const_address logical_start = (const_address) LP64_ONLY(0xAAAAAAAAAA00ULL) NOT_LP64(0xAAAAAA00ULL);
->>>>>>> 38a578d547f... 8334738: os::print_hex_dump should optionally print ASCII
 
   do_test_print_hex_dump(from, to, 1, 32, logical_start, PAT_1);
   do_test_print_hex_dump(from, to, 2, 32, logical_start, PAT_2);

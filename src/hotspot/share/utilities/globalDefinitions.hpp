@@ -450,7 +450,6 @@ typedef unsigned int uint;   NEEDS_CLEANUP
 typedef   signed char s_char;
 typedef unsigned char u_char;
 typedef u_char*       address;
-<<<<<<< HEAD
 typedef uintptr_t     address_word; // unsigned integer which will hold a pointer
                                     // except for some implementations of a C++
                                     // linkage pointer to function. Should never
@@ -468,9 +467,8 @@ inline address       clear_address_bits(address x, int m)     { return address(i
 inline address_word  mask_address_bits(address x, int m)      { return address_word(x) & m; }
 inline address_word  castable_address(address x)              { return address_word(x) ; }
 inline address_word  castable_address(void* x)                { return address_word(x) ; }
-=======
+
 typedef const u_char* const_address;
->>>>>>> 38a578d547f... 8334738: os::print_hex_dump should optionally print ASCII
 
 // Pointer subtraction.
 // The idea here is to avoid ptrdiff_t, which is signed and so doesn't have
