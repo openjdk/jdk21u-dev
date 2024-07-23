@@ -117,6 +117,7 @@ import static com.sun.source.doctree.DocTree.Kind.COMMENT;
 import static com.sun.source.doctree.DocTree.Kind.LINK;
 import static com.sun.source.doctree.DocTree.Kind.LINK_PLAIN;
 import static com.sun.source.doctree.DocTree.Kind.SEE;
+import static com.sun.source.doctree.DocTree.Kind.START_ELEMENT;
 import static com.sun.source.doctree.DocTree.Kind.TEXT;
 
 
@@ -1133,21 +1134,28 @@ public class HtmlDocletWriter {
         }
     }
 
-    boolean ignoreNonInlineTag(DocTree dtree) {
+    boolean ignoreNonInlineTag(DocTree dtree, List<Name> openTags) {
         Name name = null;
-        if (dtree.getKind() == Kind.START_ELEMENT) {
-            StartElementTree setree = (StartElementTree)dtree;
-            name = setree.getName();
-        } else if (dtree.getKind() == Kind.END_ELEMENT) {
-            EndElementTree eetree = (EndElementTree)dtree;
-            name = eetree.getName();
+        Kind kind = dtree.getKind();
+        if (kind == Kind.START_ELEMENT) {
+            name = ((StartElementTree)dtree).getName();
+        } else if (kind == Kind.END_ELEMENT) {
+            name = ((EndElementTree)dtree).getName();
         }
 
         if (name != null) {
             HtmlTag htmlTag = HtmlTag.get(name);
-            if (htmlTag != null &&
-                    htmlTag.blockType != jdk.javadoc.internal.doclint.HtmlTag.BlockType.INLINE) {
-                return true;
+            if (htmlTag != null) {
+                if (htmlTag.blockType != HtmlTag.BlockType.INLINE) {
+                    return true;
+                }
+                // Keep track of open inline tags that need to be closed, see 8326332
+                if (kind == START_ELEMENT && htmlTag.endKind == HtmlTag.EndKind.REQUIRED) {
+                    openTags.add(name);
+                } else if (kind == Kind.END_ELEMENT && !openTags.isEmpty()
+                        && openTags.getLast().equals(name)) {
+                    openTags.removeLast();
+                }
             }
         }
         return false;
@@ -1219,6 +1227,7 @@ public class HtmlDocletWriter {
         CommentHelper ch = utils.getCommentHelper(element);
         configuration.tagletManager.checkTags(element, trees);
         commentRemoved = false;
+        List<Name> openTags = new ArrayList<>();
 
         for (ListIterator<? extends DocTree> iterator = trees.listIterator(); iterator.hasNext();) {
             boolean isFirstNode = !iterator.hasPrevious();
@@ -1227,14 +1236,16 @@ public class HtmlDocletWriter {
 
             if (context.isFirstSentence) {
                 // Ignore block tags
-                if (ignoreNonInlineTag(tag))
+                if (ignoreNonInlineTag(tag, openTags)) {
                     continue;
+                }
 
                 // Ignore any trailing whitespace OR whitespace after removed html comment
                 if ((isLastNode || commentRemoved)
                         && tag.getKind() == TEXT
-                        && ((tag instanceof TextTree tt) && tt.getBody().isBlank()))
+                        && ((tag instanceof TextTree tt) && tt.getBody().isBlank())) {
                     continue;
+                }
 
                 // Ignore any leading html comments
                 if ((isFirstNode || commentRemoved) && tag.getKind() == COMMENT) {
@@ -1484,6 +1495,10 @@ public class HtmlDocletWriter {
 
             if (allDone)
                 break;
+        }
+        // Close any open inline tags
+        while (!openTags.isEmpty()) {
+            result.add(RawHtml.endElement(openTags.removeLast()));
         }
         return result;
     }
