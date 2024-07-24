@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -1134,6 +1135,23 @@ public class HtmlDocletWriter {
         }
     }
 
+    // helper methods because jdk21 functionality is not allowed
+    Name getLastHelper(List<Name> l) {
+        if (l.isEmpty()) {
+            throw new NoSuchElementException();
+        } else {
+            return l.get(l.size() - 1);
+        }
+    }
+
+    Name removeLastHelper(List<Name> l) {
+        if (l.isEmpty()) {
+            throw new NoSuchElementException();
+        } else {
+            return l.remove(l.size() - 1);
+        }
+    }
+
     boolean ignoreNonInlineTag(DocTree dtree, List<Name> openTags) {
         Name name = null;
         Kind kind = dtree.getKind();
@@ -1153,8 +1171,8 @@ public class HtmlDocletWriter {
                 if (kind == START_ELEMENT && htmlTag.endKind == HtmlTag.EndKind.REQUIRED) {
                     openTags.add(name);
                 } else if (kind == Kind.END_ELEMENT && !openTags.isEmpty()
-                        && openTags.getLast().equals(name)) {
-                    openTags.removeLast();
+                        && getLastHelper(openTags).equals(name)) {
+                    removeLastHelper(openTags);
                 }
             }
         }
@@ -1498,7 +1516,7 @@ public class HtmlDocletWriter {
         }
         // Close any open inline tags
         while (!openTags.isEmpty()) {
-            result.add(RawHtml.endElement(openTags.removeLast()));
+            result.add(RawHtml.endElement(removeLastHelper(openTags)));
         }
         return result;
     }
