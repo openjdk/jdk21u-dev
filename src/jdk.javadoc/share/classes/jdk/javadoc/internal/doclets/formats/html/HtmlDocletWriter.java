@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -1137,19 +1136,11 @@ public class HtmlDocletWriter {
 
     // helper methods because jdk21 functionality is not allowed
     Name getLastHelper(List<Name> l) {
-        if (l.isEmpty()) {
-            throw new NoSuchElementException();
-        } else {
-            return l.get(l.size() - 1);
-        }
+        return l.get(l.size() - 1);
     }
 
     Name removeLastHelper(List<Name> l) {
-        if (l.isEmpty()) {
-            throw new NoSuchElementException();
-        } else {
-            return l.remove(l.size() - 1);
-        }
+        return l.remove(l.size() - 1);
     }
 
     boolean ignoreNonInlineTag(DocTree dtree, List<Name> openTags) {
