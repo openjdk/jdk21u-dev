@@ -1135,11 +1135,11 @@ public class HtmlDocletWriter {
     }
 
     // helper methods because jdk21 functionality is not allowed
-    Name getLastHelper(List<Name> l) {
+    private static Name getLastHelper(List<Name> l) {
         return l.get(l.size() - 1);
     }
 
-    Name removeLastHelper(List<Name> l) {
+    private static Name removeLastHelper(List<Name> l) {
         return l.remove(l.size() - 1);
     }
 
