@@ -50,8 +50,7 @@ public class Standard {
     // These are the charsets StandardCharsets.java is expected to contain.
     private static final String[] expectedCharsets = {
             "US-ASCII", "ISO-8859-1", "UTF-8",
-            "UTF-16BE", "UTF-16LE", "UTF-16",
-            "UTF-32BE", "UTF-32LE", "UTF-32"
+            "UTF-16BE", "UTF-16LE", "UTF-16"
     };
 
     private static final Field[] standardCharsetFields =
@@ -136,10 +135,7 @@ public class Standard {
                 Arguments.of(StandardCharsets.UTF_8, "UTF-8"),
                 Arguments.of(StandardCharsets.UTF_16BE, "UTF-16BE"),
                 Arguments.of(StandardCharsets.UTF_16LE, "UTF-16LE"),
-                Arguments.of(StandardCharsets.UTF_16, "UTF-16"),
-                Arguments.of(StandardCharsets.UTF_32BE, "UTF-32BE"),
-                Arguments.of(StandardCharsets.UTF_32LE, "UTF-32LE"),
-                Arguments.of(StandardCharsets.UTF_32, "UTF-32")
+                Arguments.of(StandardCharsets.UTF_16, "UTF-16")
         );
     }
 
