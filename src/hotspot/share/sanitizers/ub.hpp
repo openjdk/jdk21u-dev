@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024 SAP SE. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -19,25 +20,26 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
+ *
  */
 
-/**
- * @test
- * @bug 7200264
- * @summary 7192963 changes disabled shift vectors
- * @requires vm.cpu.features ~= ".*sse4\\.1.*" & vm.debug & vm.flavor == "server"
- * @requires !vm.emulatedClient & !vm.graal.enabled
- * @library /test/lib /
- * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -XX:StressLongCountedLoop=0
- *                   compiler.c2.cr7200264.TestSSE4IntVect
- */
+#ifndef SHARE_SANITIZERS_UB_HPP
+#define SHARE_SANITIZERS_UB_HPP
 
-package compiler.c2.cr7200264;
+// ATTRIBUTE_NO_UBSAN
+//
+// Function attribute which informs the compiler to disable UBSan checks in the
+// following function or method.
+// Useful if the function or method is known to do something special or even 'dangerous', for
+// example causing desired signals/crashes.
+#ifdef UNDEFINED_BEHAVIOR_SANITIZER
+#if defined(__clang__) || defined(__GNUC__)
+#define ATTRIBUTE_NO_UBSAN __attribute__((no_sanitize("undefined")))
+#endif
+#endif
 
-public class TestSSE4IntVect {
-    public static void main(String[] args) throws Throwable {
-        TestDriver test = new TestDriver();
-        test.addExpectedVectorization("MulVI", 2);
-        test.run();
-    }
-}
+#ifndef ATTRIBUTE_NO_UBSAN
+#define ATTRIBUTE_NO_UBSAN
+#endif
+
+#endif // SHARE_SANITIZERS_UB_HPP
