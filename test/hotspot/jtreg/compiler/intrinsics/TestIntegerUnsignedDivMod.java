@@ -23,8 +23,8 @@
 
 /**
 * @test
-* @summary Test x86_64 intrinsic for divideUnsigned() and remainderUnsigned() methods for Integer
-* @requires os.arch=="amd64" | os.arch=="x86_64"
+* @summary Test intrinsic for divideUnsigned() and remainderUnsigned() methods for Integer
+* @requires os.arch=="amd64" | os.arch=="x86_64" | os.arch=="aarch64"
 * @library /test/lib /
 * @run driver compiler.intrinsics.TestIntegerUnsignedDivMod
 */
