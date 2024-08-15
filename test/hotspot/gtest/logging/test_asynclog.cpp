@@ -74,6 +74,7 @@ LOG_LEVEL_LIST
   // Emit all logs between constructor and destructor of BufferUpdater.
   void test_asynclog_drop_messages() {
     const size_t sz = 2000;
+
     // shrink async buffer.
     AsyncLogWriter::BufferUpdater saver(1024);
     test_asynclog_ls(); // roughly 200 bytes.
