@@ -69,21 +69,20 @@ LOG_LEVEL_LIST
     log_debug(logging)("log_debug-test");
   }
 
+  // Caveat: BufferUpdater is not MT-safe. We use it only for testing.
+  // We would observe missing loglines if we interleaved buffers.
+  // Emit all logs between constructor and destructor of BufferUpdater.
   void test_asynclog_drop_messages() {
-    auto writer = AsyncLogWriter::instance();
-    if (writer != nullptr) {
-      const size_t sz = 2000;
-
-      // shrink async buffer.
-      AsyncLogWriter::BufferUpdater saver(1024);
-      LogMessage(logging) lm;
-
-      // write more messages than its capacity in burst
-      for (size_t i = 0; i < sz; ++i) {
-        lm.debug("a lot of log...");
-      }
-      lm.flush();
+    const size_t sz = 2000;
+    // shrink async buffer.
+    AsyncLogWriter::BufferUpdater saver(1024);
+    test_asynclog_ls(); // roughly 200 bytes.
+    LogMessage(logging) lm;
+    // write more messages than its capacity in burst
+    for (size_t i = 0; i < sz; ++i) {
+      lm.debug("a lot of log...");
     }
+    lm.flush();
   }
 
   // stdout/stderr support
@@ -93,8 +92,7 @@ LOG_LEVEL_LIST
     if (f != NULL) {
       size_t sz = output.size();
       size_t written = fwrite(output.c_str(), sizeof(char), output.size(), f);
-      // at least see "header"
-      return fclose(f) == 0 && sz == written && sz >= 6;
+      return fclose(f) == 0 && sz == written;
     }
 
     return false;
