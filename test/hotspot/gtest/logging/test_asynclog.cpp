@@ -79,6 +79,7 @@ LOG_LEVEL_LIST
     AsyncLogWriter::BufferUpdater saver(1024);
     test_asynclog_ls(); // roughly 200 bytes.
     LogMessage(logging) lm;
+
     // write more messages than its capacity in burst
     for (size_t i = 0; i < sz; ++i) {
       lm.debug("a lot of log...");
