@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -148,11 +148,10 @@ class InterpreterOopMap: ResourceObj {
 class OopMapCache : public CHeapObj<mtClass> {
  static OopMapCacheEntry* volatile _old_entries;
  private:
-  enum { _size        = 32,     // Use fixed size for now
-         _probe_depth = 3       // probe depth in case of collisions
-  };
+  static constexpr int size = 32;        // Use fixed size for now
+  static constexpr int probe_depth = 3;  // probe depth in case of collisions
 
-  OopMapCacheEntry* volatile * _array;
+  OopMapCacheEntry* volatile _array[size];
 
   unsigned int hash_value_for(const methodHandle& method, int bci) const;
   OopMapCacheEntry* entry_at(int i) const;
@@ -175,7 +174,15 @@ class OopMapCache : public CHeapObj<mtClass> {
 
   // Compute an oop map without updating the cache or grabbing any locks (for debugging)
   static void compute_one_oop_map(const methodHandle& method, int bci, InterpreterOopMap* entry);
-  static void cleanup_old_entries();
+
+  // Check if we need to clean up old entries
+  static bool has_cleanup_work();
+
+  // Request cleanup if work is needed and notification is currently possible
+  static void try_trigger_cleanup();
+
+  // Clean up the old entries
+  static void cleanup();
 };
 
 #endif // SHARE_INTERPRETER_OOPMAPCACHE_HPP

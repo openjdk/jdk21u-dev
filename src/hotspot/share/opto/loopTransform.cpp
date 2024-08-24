@@ -2049,8 +2049,7 @@ void PhaseIdealLoop::update_main_loop_assertion_predicates(Node* ctrl, CountedLo
   if (init->is_CastII()) {
     // skip over the cast added by PhaseIdealLoop::cast_incr_before_loop() when pre/post/main loops are created because
     // it can get in the way of type propagation
-    // The 2nd part of the assertion can be enabled after JDK-8305636.
-    assert(init->as_CastII()->carry_dependency() /* && loop_head->skip_assertion_predicates_with_halt() == init->in(0) */, "casted iv phi from pre loop expected");
+    assert(init->as_CastII()->carry_dependency() && loop_head->skip_predicates() == init->in(0), "casted iv phi from pre loop expected");
     init = init->in(1);
   }
   Node* entry = ctrl;
@@ -2333,6 +2332,8 @@ void PhaseIdealLoop::do_unroll(IdealLoopTree *loop, Node_List &old_new, bool adj
     // can edit it's inputs directly.  Hammer in the new limit for the
     // minimum-trip guard.
     assert(opaq->outcnt() == 1, "");
+    // Notify limit -> opaq -> CmpI, it may constant fold.
+    _igvn.add_users_to_worklist(opaq->in(1));
     _igvn.replace_input_of(opaq, 1, new_limit);
   }
 
