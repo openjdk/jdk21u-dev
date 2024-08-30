@@ -687,7 +687,7 @@ Java_sun_nio_fs_UnixNativeDispatcher_stat0(JNIEnv* env, jclass this,
         if (err == 0) {
             copy_statx_attributes(env, &statx_buf, attrs);
             return 0;
-        } else {
+        } else if (errno != ENOSYS && errno != EPERM) {
             return errno;
         }
     }
@@ -718,11 +718,11 @@ Java_sun_nio_fs_UnixNativeDispatcher_lstat0(JNIEnv* env, jclass this,
         RESTARTABLE(statx_wrapper(AT_FDCWD, path, flags, mask, &statx_buf), err);
         if (err == 0) {
             copy_statx_attributes(env, &statx_buf, attrs);
-        } else {
+            return;
+        } else if (errno != ENOSYS && errno != EPERM) {
             throwUnixException(env, errno);
+            return;
         }
-        // statx was available, so return now
-        return;
     }
 #endif
     RESTARTABLE(lstat64(path, &buf), err);
@@ -750,11 +750,11 @@ Java_sun_nio_fs_UnixNativeDispatcher_fstat0(JNIEnv* env, jclass this, jint fd,
         RESTARTABLE(statx_wrapper((int)fd, "", flags, mask, &statx_buf), err);
         if (err == 0) {
             copy_statx_attributes(env, &statx_buf, attrs);
-        } else {
+            return;
+        } else if (errno != ENOSYS && errno != EPERM) {
             throwUnixException(env, errno);
+            return;
         }
-        // statx was available, so return now
-        return;
     }
 #endif
     RESTARTABLE(fstat64((int)fd, &buf), err);
@@ -785,11 +785,11 @@ Java_sun_nio_fs_UnixNativeDispatcher_fstatat0(JNIEnv* env, jclass this, jint dfd
         RESTARTABLE(statx_wrapper((int)dfd, path, flags, mask, &statx_buf), err);
         if (err == 0) {
             copy_statx_attributes(env, &statx_buf, attrs);
-        } else {
+            return;
+        } else if (errno != ENOSYS && errno != EPERM) {
             throwUnixException(env, errno);
+            return;
         }
-        // statx was available, so return now
-        return;
     }
 #endif
 

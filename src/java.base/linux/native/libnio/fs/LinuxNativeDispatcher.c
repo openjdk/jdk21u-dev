@@ -199,6 +199,7 @@ Java_sun_nio_fs_LinuxNativeDispatcher_directCopy0
                     case EINVAL:
                     case ENOSYS:
                     case EXDEV:
+                    case EPERM:
                         // ignore and try sendfile()
                         break;
                     default:
