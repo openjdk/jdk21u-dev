@@ -642,6 +642,7 @@ jdk_core_manual_interactive = \
     java/rmi/registry/nonLocalRegistry/NonLocalRegistryTest.java \
     java/rmi/registry/nonLocalRegistry/NonLocalSkeletonTest.java \
     java/security/Policy/Root/Root.java \
+    com/sun/security/auth/callback/TextCallbackHandler/Password.java \
     sun/security/krb5/config/native/TestDynamicStore.java
 
 
