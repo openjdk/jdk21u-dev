@@ -324,7 +324,8 @@ GB of free disk space is required.</p>
 <p>Even for 32-bit builds, it is recommended to use a 64-bit build
 machine, and instead create a 32-bit target using
 <code>--with-target-bits=32</code>.</p>
-<p>Note: The Windows 32-bit x86 port is deprecated and may be removed in a future release.</p>
+<p>Note: The Windows 32-bit x86 port is deprecated and may be removed in
+a future release.</p>
 <h3 id="building-on-aarch64">Building on aarch64</h3>
 <p>At a minimum, a machine with 8 cores is advisable, as well as 8 GB of
 RAM. (The more cores to use, the more memory you need.) At least 6 GB of
@@ -401,7 +402,8 @@ to the build system, e.g. in arguments to <code>configure</code>. So,
 use <code>--with-msvcr-dll=/cygdrive/c/msvcr100.dll</code> rather than
 <code>--with-msvcr-dll=c:\msvcr100.dll</code>. For details on this
 conversion, see the section on <a href="#fixpath">Fixpath</a>.</p>
-<p>Note: The Windows 32-bit x86 port is deprecated and may be removed in a future release.</p>
+<p>Note: The Windows 32-bit x86 port is deprecated and may be removed in
+a future release.</p>
 <h4 id="cygwin">Cygwin</h4>
 <p>A functioning <a href="http://www.cygwin.com/">Cygwin</a> environment
 is required for building the JDK on Windows. If you have a 64-bit OS, we
@@ -569,10 +571,9 @@ be accepted by <code>configure</code>.</p>
 <code>--with-toolchain-type=clang</code>.</p>
 <h3 id="apple-xcode">Apple Xcode</h3>
 <p>The oldest supported version of Xcode is 8.</p>
-<p>You will need the Xcode command line developer tools to be able to
-build the JDK. (Actually, <em>only</em> the command line tools are
-needed, not the IDE.) The simplest way to install these is to run:</p>
-<pre><code>xcode-select --install</code></pre>
+<p>You will need to download Xcode either from the App Store or specific
+versions can be easily located via the <a
+href="https://xcodereleases.com">Xcode Releases</a> website.</p>
 <p>When updating Xcode, it is advisable to keep an older version for
 building the JDK. To use a specific version of Xcode you have multiple
 options:</p>
