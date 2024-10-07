@@ -106,7 +106,7 @@ public class DeferredCloseTest {
                                     bb.clear();
                                     dc.send(bb, target);
                                 }
-                            } catch (ClosedChannelException _) {
+                            } catch (ClosedChannelException e) {
                             } catch (Exception e) {
                                 throw new RuntimeException(e);
                             }
@@ -139,7 +139,7 @@ public class DeferredCloseTest {
                                     rcvBB.clear();
                                     dc.receive(rcvBB);
                                 }
-                            } catch (ClosedChannelException _) {
+                            } catch (ClosedChannelException e) {
                             } catch (Exception e) {
                                 throw new RuntimeException(e);
                             }
@@ -198,7 +198,7 @@ public class DeferredCloseTest {
                                     bb.clear();
                                     sc.write(bb);
                                 }
-                            } catch (ClosedChannelException _) {
+                            } catch (ClosedChannelException e) {
                             } catch (IOException ioe) {
                                 throw new UncheckedIOException(ioe);
                             }
@@ -215,7 +215,7 @@ public class DeferredCloseTest {
                                     bb.clear();
                                     sc.read(bb);
                                 }
-                            } catch (ClosedChannelException _) {
+                            } catch (ClosedChannelException e) {
                             } catch (IOException ioe) {
                                 throw new UncheckedIOException(ioe);
                             }
@@ -301,7 +301,7 @@ public class DeferredCloseTest {
                             while (true) {
                                 ssc.accept();
                             }
-                        } catch (ClosedChannelException _) {
+                        } catch (ClosedChannelException e) {
                         }
                         return null;
                     }, opStartLatch);
@@ -337,7 +337,7 @@ public class DeferredCloseTest {
                                 bb.clear();
                                 sink.write(bb);
                             }
-                        } catch (ClosedChannelException _) {
+                        } catch (ClosedChannelException e) {
                         }
                         return null;
                     }, opStartLatch);
@@ -373,7 +373,7 @@ public class DeferredCloseTest {
                                 bb.clear();
                                 source.read(bb);
                             }
-                        } catch (ClosedChannelException _) {
+                        } catch (ClosedChannelException e) {
                         }
                         return null;
                     }, opStartLatch);
@@ -461,7 +461,7 @@ public class DeferredCloseTest {
                         break;
                     }
                 }
-            } catch (ClosedSelectorException _) {
+            } catch (ClosedSelectorException e) {
             }
             return null;
         }
