@@ -2759,7 +2759,19 @@ void MacroAssembler::compiler_fast_lock_object(ConditionRegister flag, Register 
   // flag == NE indicates failure
   bind(success);
   inc_held_monitor_count(temp);
+#ifdef ASSERT
+  // Check that unlocked label is reached with flag == EQ.
+  Label flag_correct;
+  beq(flag, flag_correct);
+  stop("compiler_fast_lock_object: Flag != EQ");
+#endif
   bind(failure);
+#ifdef ASSERT
+  // Check that slow_path label is reached with flag == NE.
+  bne(flag, flag_correct);
+  stop("compiler_fast_lock_object: Flag != NE");
+  bind(flag_correct);
+#endif
 }
 
 void MacroAssembler::compiler_fast_unlock_object(ConditionRegister flag, Register oop, Register box,
@@ -2848,9 +2860,10 @@ void MacroAssembler::compiler_fast_unlock_object(ConditionRegister flag, Registe
   bne(flag, failure);
 
   ld(displaced_header, in_bytes(ObjectMonitor::recursions_offset()), current_header);
-
   addic_(displaced_header, displaced_header, -1);
   blt(CCR0, notRecursive); // Not recursive if negative after decrement.
+
+  // Recursive unlock
   std(displaced_header, in_bytes(ObjectMonitor::recursions_offset()), current_header);
   if (flag == CCR0) { // Otherwise, flag is already EQ, here.
     crorc(CCR0, Assembler::equal, CCR0, Assembler::equal); // Set CCR0 EQ
@@ -2870,7 +2883,19 @@ void MacroAssembler::compiler_fast_unlock_object(ConditionRegister flag, Registe
   // flag == NE indicates failure
   bind(success);
   dec_held_monitor_count(temp);
+#ifdef ASSERT
+  // Check that unlocked label is reached with flag == EQ.
+  Label flag_correct;
+  beq(flag, flag_correct);
+  stop("compiler_fast_unlock_object: Flag != EQ");
+#endif
   bind(failure);
+#ifdef ASSERT
+  // Check that slow_path label is reached with flag == NE.
+  bne(flag, flag_correct);
+  stop("compiler_fast_unlock_object: Flag != NE");
+  bind(flag_correct);
+#endif
 }
 
 void MacroAssembler::safepoint_poll(Label& slow_path, Register temp, bool at_return, bool in_nmethod) {
