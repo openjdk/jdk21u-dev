@@ -27,6 +27,7 @@
  * @summary Basic test for creationTime attribute on platforms/file systems
  *     that support it, tests using /tmp directory.
  * @library  ../.. /test/lib
+ * @build jdk.test.lib.Platform
  * @comment We see this failing with "UnsatisfiedLinkError: Native Library ...libCreationTimeHelper.so already loaded in another classloader". Thus run as othervm
  * @run main/othervm/native CreationTime
  */
@@ -36,6 +37,7 @@
  *     that support it, tests using the test scratch directory, the test
  *     scratch directory maybe at diff disk partition to /tmp on linux.
  * @library  ../.. /test/lib
+ * @build jdk.test.lib.Platform
  * @run main/othervm/native CreationTime .
  */
 
