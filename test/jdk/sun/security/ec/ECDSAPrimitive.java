@@ -39,7 +39,7 @@ import jdk.test.lib.Asserts;
  * @bug 8189189 8147502 8295010
  * @summary Test ECDSA primitive operations
  * @library /test/lib
- * @modules java.base/sun.security.ec java.base/sun.security.ec.point
+ * @modules jdk.crypto.ec/sun.security.ec jdk.crypto.ec/sun.security.ec.point
  *          java.base/sun.security.util java.base/sun.security.util.math
  * @run main ECDSAPrimitive
  */
@@ -252,11 +252,7 @@ public class ECDSAPrimitive {
                 ecOps.getField());
         MutablePoint R = ecOps.multiply(publicKeyPoint, u2Bytes);
         AffinePoint a1 = ops.basePointMultiply(u1Bytes);
-        MutablePoint p2 = new ProjectivePoint.Mutable(
-                a1.getX(false).mutable(),
-                a1.getY(false).mutable(),
-                ecOps.getField().get1().mutable());
-        ecOps.setSum(R, p2);
+        ecOps.setSum(R, a1);
 
         // can't continue if R is neutral
         if (ecOps.isNeutral(R)) {
