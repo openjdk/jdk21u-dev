@@ -1835,6 +1835,18 @@ WB_ENTRY(jboolean, WB_IsMonitorInflated(JNIEnv* env, jobject wb, jobject obj))
   return (jboolean) obj_oop->mark().has_monitor();
 WB_END
 
+WB_ENTRY(jlong, WB_getInUseMonitorCount(JNIEnv* env, jobject wb))
+  return (jlong) WhiteBox::get_in_use_monitor_count();
+WB_END
+
+WB_ENTRY(jint, WB_getLockStackCapacity(JNIEnv* env))
+  return (jint) LockStack::CAPACITY;
+WB_END
+
+WB_ENTRY(jboolean, WB_supportsRecursiveLightweightLocking(JNIEnv* env))
+  return (jboolean) VM_Version::supports_recursive_lightweight_locking();
+WB_END
+
 WB_ENTRY(jboolean, WB_DeflateIdleMonitors(JNIEnv* env, jobject wb))
   log_info(monitorinflation)("WhiteBox initiated DeflateIdleMonitors");
   return ObjectSynchronizer::request_deflate_idle_monitors_from_wb();
@@ -2754,6 +2766,9 @@ static JNINativeMethod methods[] = {
                                                       (void*)&WB_AddModuleExportsToAll },
   {CC"deflateIdleMonitors", CC"()Z",                  (void*)&WB_DeflateIdleMonitors },
   {CC"isMonitorInflated0", CC"(Ljava/lang/Object;)Z", (void*)&WB_IsMonitorInflated  },
+  {CC"getInUseMonitorCount", CC"()J", (void*)&WB_getInUseMonitorCount  },
+  {CC"getLockStackCapacity", CC"()I",                 (void*)&WB_getLockStackCapacity },
+  {CC"supportsRecursiveLightweightLocking", CC"()Z",  (void*)&WB_supportsRecursiveLightweightLocking },
   {CC"forceSafepoint",     CC"()V",                   (void*)&WB_ForceSafepoint     },
   {CC"forceClassLoaderStatsSafepoint", CC"()V",       (void*)&WB_ForceClassLoaderStatsSafepoint },
   {CC"getConstantPool0",   CC"(Ljava/lang/Class;)J",  (void*)&WB_GetConstantPool    },
