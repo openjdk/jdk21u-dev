@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -43,6 +43,9 @@
 #include "runtime/atomic.hpp"
 #include "utilities/events.hpp"
 #include "utilities/exceptions.hpp"
+
+// Limit exception message components to 64K (the same max as Symbols)
+#define MAX_LEN 65535
 
 // Implementation of ThreadShadow
 void check_ThreadShadow() {
@@ -146,10 +149,11 @@ void Exceptions::_throw(JavaThread* thread, const char* file, int line, Handle h
 
   // tracing (do this up front - so it works during boot strapping)
   // Note, the print_value_string() argument is not called unless logging is enabled!
-  log_info(exceptions)("Exception <%s%s%s> (" PTR_FORMAT ") \n"
+  log_info(exceptions)("Exception <%.*s%s%.*s> (" PTR_FORMAT ") \n"
                        "thrown [%s, line %d]\nfor thread " PTR_FORMAT,
-                       h_exception->print_value_string(),
-                       message ? ": " : "", message ? message : "",
+                       MAX_LEN, h_exception->print_value_string(),
+                       message ? ": " : "",
+                       MAX_LEN, message ? message : "",
                        p2i(h_exception()), file, line, p2i(thread));
 
   // for AbortVMOnException flag
@@ -434,6 +438,7 @@ void Exceptions::wrap_dynamic_exception(bool is_indy, JavaThread* THREAD) {
       // Pass through an Error, including BootstrapMethodError, any other form
       // of linkage error, or say OutOfMemoryError
       if (ls != nullptr) {
+        ResourceMark rm(THREAD);
         ls->print_cr("bootstrap method invocation wraps BSME around " PTR_FORMAT, p2i(exception));
         exception->print_on(ls);
       }
@@ -442,6 +447,7 @@ void Exceptions::wrap_dynamic_exception(bool is_indy, JavaThread* THREAD) {
 
     // Otherwise wrap the exception in a BootstrapMethodError
     if (ls != nullptr) {
+      ResourceMark rm(THREAD);
       ls->print_cr("%s throws BSME for " PTR_FORMAT, is_indy ? "invokedynamic" : "dynamic constant", p2i(exception));
       exception->print_on(ls);
     }
@@ -567,13 +573,13 @@ void Exceptions::log_exception(Handle exception, const char* message) {
   ResourceMark rm;
   const char* detail_message = java_lang_Throwable::message_as_utf8(exception());
   if (detail_message != nullptr) {
-    log_info(exceptions)("Exception <%s: %s>\n thrown in %s",
-                         exception->print_value_string(),
-                         detail_message,
-                         message);
+    log_info(exceptions)("Exception <%.*s: %.*s>\n thrown in %.*s",
+                         MAX_LEN, exception->print_value_string(),
+                         MAX_LEN, detail_message,
+                         MAX_LEN, message);
   } else {
-    log_info(exceptions)("Exception <%s>\n thrown in %s",
-                         exception->print_value_string(),
-                         message);
+    log_info(exceptions)("Exception <%.*s>\n thrown in %.*s",
+                         MAX_LEN, exception->print_value_string(),
+                         MAX_LEN, message);
   }
 }
