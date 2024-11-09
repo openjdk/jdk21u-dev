@@ -56,7 +56,7 @@ public class TestOAEPPadding {
                         System.getProperty("test.provider.name", "SunJCE"));
         System.out.println("Testing provider " + cp.getName() + "...");
         Provider kfp = Security.getProvider(
-                        System.getProperty("test.providername", "SunRsaSign"));
+                        System.getProperty("test.provider.name", "SunRsaSign"));
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA", kfp);
         kpg.initialize(2048);
         KeyPair kp = kpg.generateKeyPair();
