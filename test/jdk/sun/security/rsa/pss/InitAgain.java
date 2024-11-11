@@ -27,18 +27,23 @@ import java.security.spec.*;
  * @test
  * @bug 8205445
  * @summary Make sure old state is cleared when init is called again
+ * @run main InitAgain default
+ * @run main InitAgain SHA-256
  */
 public class InitAgain {
 
     public static void main(String[] args) throws Exception {
+        String mdName = args[0];
+        PSSParameterSpec pssParamSpec = "default".equals(mdName) ? PSSParameterSpec.DEFAULT :
+                new PSSParameterSpec(mdName, "MGF1", new MGF1ParameterSpec(mdName), 20, 1);
 
         byte[] msg = "hello".getBytes();
 
         Signature s1 = Signature.getInstance("RSASSA-PSS");
         Signature s2 = Signature.getInstance("RSASSA-PSS");
 
-        s1.setParameter(PSSParameterSpec.DEFAULT);
-        s2.setParameter(PSSParameterSpec.DEFAULT);
+        s1.setParameter(pssParamSpec);
+        s2.setParameter(pssParamSpec);
 
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
         kpg.initialize(1024);

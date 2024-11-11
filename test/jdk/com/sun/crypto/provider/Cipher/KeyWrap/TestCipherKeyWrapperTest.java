@@ -165,7 +165,8 @@ public class TestCipherKeyWrapperTest {
 
         test.wrapperPBEKeyTest(provider);
         // Public and private key wrap test
-        test.wrapperPublicPriviteKeyTest(provider, publicPrivateAlgos);
+        test.wrapperPublicPriviteKeyTest(provider, publicPrivateAlgos, "DES");
+        test.wrapperPublicPriviteKeyTest(provider, publicPrivateAlgos, "AES");
     }
 
     private void wrapperAesDESedeKeyTest(String algo, String wrapAlgo,
@@ -261,7 +262,7 @@ public class TestCipherKeyWrapperTest {
         }
     }
 
-    private void wrapperPublicPriviteKeyTest(Provider p, String[] algorithms)
+    private void wrapperPublicPriviteKeyTest(Provider p, String[] algorithms, String algoWrap)
             throws NoSuchAlgorithmException, InvalidKeyException,
             NoSuchPaddingException, IllegalBlockSizeException,
             InvalidAlgorithmParameterException {
@@ -273,7 +274,6 @@ public class TestCipherKeyWrapperTest {
             kpg.initialize(512);
             KeyPair kp = kpg.genKeyPair();
             // key generated
-            String algoWrap = "DES";
             KeyGenerator kg = KeyGenerator.getInstance(algoWrap, p);
             Key key = kg.generateKey();
             wrapTest(algo, algoWrap, key, kp.getPrivate(), Cipher.PRIVATE_KEY,
