@@ -130,7 +130,7 @@ frame os::fetch_frame_from_context(const void* ucVoid) {
     // compiled frame stack bang
     return fetch_compiled_frame_from_context(ucVoid);
   }
-  return fr(sp, epc);
+  return frame(sp, epc);
 }
 
 frame os::fetch_compiled_frame_from_context(const void* ucVoid) {
