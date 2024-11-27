@@ -61,7 +61,7 @@ compiler/rtm/locking/TestRTMLockingThreshold.java 8183263,8307907 generic-x64,ge
 compiler/rtm/locking/TestRTMSpinLoopCount.java 8183263,8313877 generic-x64,generic-i586,generic-ppc64le,generic-ppc64
 compiler/rtm/locking/TestUseRTMDeopt.java 8183263 generic-x64,generic-i586,generic-ppc64le,generic-ppc64
 compiler/rtm/locking/TestUseRTMXendForLockBusy.java 8183263,8307907 generic-x64,generic-i586,generic-ppc64le,generic-ppc64
-compiler/rtm/print/TestPrintPreciseRTMLockingStatistics.java 8183263,8307907 generic-x64,generic-i586,
+compiler/rtm/print/TestPrintPreciseRTMLockingStatistics.java 8183263,8307907 generic-x64,generic-i586,generic-ppc64le,generic-ppc64
 
 compiler/c2/Test8004741.java 8235801 generic-all
 compiler/c2/irTests/TestDuplicateBackedge.java 8318904 generic-all
