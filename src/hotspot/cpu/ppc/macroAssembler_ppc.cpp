@@ -2839,7 +2839,10 @@ void MacroAssembler::compiler_fast_unlock_object(ConditionRegister flag, Registe
   bind(object_has_monitor);
   STATIC_ASSERT(markWord::monitor_value <= INT_MAX);
   addi(current_header, current_header, -(int)markWord::monitor_value); // monitor
-  ld(temp,             in_bytes(ObjectMonitor::owner_offset()), current_header);
+
+  if ((LockingMode == LM_LIGHTWEIGHT) || use_rtm) {
+    ld(temp,             in_bytes(ObjectMonitor::owner_offset()), current_header);
+  }
 
   // It's inflated.
 #if INCLUDE_RTM_OPT
@@ -2854,10 +2857,12 @@ void MacroAssembler::compiler_fast_unlock_object(ConditionRegister flag, Registe
   }
 #endif
 
-  // In case of LM_LIGHTWEIGHT, we may reach here with (temp & ObjectMonitor::ANONYMOUS_OWNER) != 0.
-  // This is handled like owner thread mismatches: We take the slow path.
-  cmpd(flag, temp, R16_thread);
-  bne(flag, failure);
+  if (LockingMode == LM_LIGHTWEIGHT) {
+    // In case of LM_LIGHTWEIGHT, we may reach here with (temp & ObjectMonitor::ANONYMOUS_OWNER) != 0.
+    // This is handled like owner thread mismatches: We take the slow path.
+    cmpd(flag, temp, R16_thread);
+    bne(flag, failure);
+  }
 
   ld(displaced_header, in_bytes(ObjectMonitor::recursions_offset()), current_header);
   addic_(displaced_header, displaced_header, -1);
