@@ -134,10 +134,11 @@ CodeBuffer::~CodeBuffer() {
     // Previous incarnations of this buffer are held live, so that internal
     // addresses constructed before expansions will not be confused.
     cb->free_blob();
-    // free any overflow storage
-    delete cb->_overflow_arena;
   }
-
+  if (_overflow_arena != nullptr) {
+    // free any overflow storage
+    delete _overflow_arena;
+  }
   if (_shared_trampoline_requests != nullptr) {
     delete _shared_trampoline_requests;
   }
@@ -959,8 +960,6 @@ void CodeBuffer::take_over_code_from(CodeBuffer* cb) {
     CodeSection* this_sect = code_section(n);
     this_sect->take_over_code_from(cb_sect);
   }
-  _overflow_arena = cb->_overflow_arena;
-  cb->_overflow_arena = nullptr;
   // Make sure the old cb won't try to use it or free it.
   DEBUG_ONLY(cb->_blob = (BufferBlob*)badAddress);
 }
@@ -1059,11 +1058,6 @@ void CodeSection::print(const char* name) {
 }
 
 void CodeBuffer::print() {
-  if (this == nullptr) {
-    tty->print_cr("null CodeBuffer pointer");
-    return;
-  }
-
   tty->print_cr("CodeBuffer:");
   for (int n = 0; n < (int)SECT_LIMIT; n++) {
     // print each section
