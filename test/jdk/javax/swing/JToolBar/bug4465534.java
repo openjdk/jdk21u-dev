@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023, Red Hat, Inc.
- * Copyright (c) 2024 Alibaba Group Holding Limited. All Rights Reserved.
+ * Copyright (c) 2001, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,12 +21,23 @@
  * questions.
  */
 
-public class CreationTimeHelper {
+/* @test
+ * @bug 4465534
+ * @summary Tests adding borderless button to a toolbar
+ * @run main bug4465534
+ */
 
-    static {
-        System.loadLibrary("CreationTimeHelper");
+import javax.swing.JButton;
+import javax.swing.JToolBar;
+import javax.swing.SwingUtilities;
+
+public class bug4465534 {
+    public static void main(String[] args) throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            JToolBar toolbar = new JToolBar();
+            JButton button = new JButton("text");
+            button.setBorder(null);
+            toolbar.add(button);
+        });
     }
-
-    // Helper so as to determine 'statx' support on the runtime system
-    static native boolean linuxIsCreationTimeSupported(String file);
 }

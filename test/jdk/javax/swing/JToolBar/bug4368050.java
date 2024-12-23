@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023, Red Hat, Inc.
- * Copyright (c) 2024 Alibaba Group Holding Limited. All Rights Reserved.
+ * Copyright (c) 2000, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,12 +21,31 @@
  * questions.
  */
 
-public class CreationTimeHelper {
+/* @test
+ * @bug 4368050
+ * @summary Default toolbar layout manager should be serializable.
+ * @run main bug4368050
+ */
 
-    static {
-        System.loadLibrary("CreationTimeHelper");
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
+import javax.swing.JToolBar;
+
+public class bug4368050 {
+    public static void main(String[] args) throws Exception {
+        JToolBar toolBar = new JToolBar();
+
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(toolBar);
+            byte[] buf = baos.toByteArray();
+            try (ByteArrayInputStream bais = new ByteArrayInputStream(buf);
+                 ObjectInputStream ois = new ObjectInputStream(bais)) {
+                ois.readObject();
+            }
+        }
     }
-
-    // Helper so as to determine 'statx' support on the runtime system
-    static native boolean linuxIsCreationTimeSupported(String file);
 }

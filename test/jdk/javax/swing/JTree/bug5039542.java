@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023, Red Hat, Inc.
- * Copyright (c) 2024 Alibaba Group Holding Limited. All Rights Reserved.
+ * Copyright (c) 2004, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,12 +21,22 @@
  * questions.
  */
 
-public class CreationTimeHelper {
+/* @test
+ * @bug 5039542
+ * @summary JTree's setToolTipText() doesn't work
+ * @run main bug5039542
+ */
 
-    static {
-        System.loadLibrary("CreationTimeHelper");
+import javax.swing.JTree;
+
+public class bug5039542 {
+    public static void main(String[] args) throws Exception {
+        final String exampleStr = "TEST";
+        JTree tree = new JTree();
+        tree.setToolTipText(exampleStr);
+        if (tree.getToolTipText(null) != exampleStr) {
+            throw new RuntimeException("The default JTree tooltip text " +
+                    "have to be used if renderer doesn't provide it.");
+        }
     }
-
-    // Helper so as to determine 'statx' support on the runtime system
-    static native boolean linuxIsCreationTimeSupported(String file);
 }

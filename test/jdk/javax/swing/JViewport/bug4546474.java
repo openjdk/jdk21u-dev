@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023, Red Hat, Inc.
- * Copyright (c) 2024 Alibaba Group Holding Limited. All Rights Reserved.
+ * Copyright (c) 2003, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,12 +21,30 @@
  * questions.
  */
 
-public class CreationTimeHelper {
+/* @test
+ * @bug 4546474
+ * @summary JScrollPane's always-visible scrollbars not updated when
+ * viewport is replaced
+ * @run main bug4546474
+ */
 
-    static {
-        System.loadLibrary("CreationTimeHelper");
+import javax.swing.JPanel;
+import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
+
+public class bug4546474 {
+    public static void main(String[] args) {
+        JPanel panel = new JPanel();
+        JScrollPane scrollpane = new JScrollPane(panel,
+                JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        JScrollBar sbar = scrollpane.getVerticalScrollBar();
+
+        scrollpane.setViewportView(null);
+
+        if (sbar.getVisibleAmount() > 0) {
+            throw new RuntimeException("Vertical scrollbar is not " +
+                    "updated when viewport is replaced");
+        }
     }
-
-    // Helper so as to determine 'statx' support on the runtime system
-    static native boolean linuxIsCreationTimeSupported(String file);
 }

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023, Red Hat, Inc.
- * Copyright (c) 2024 Alibaba Group Holding Limited. All Rights Reserved.
+ * Copyright (c) 2003, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,12 +21,35 @@
  * questions.
  */
 
-public class CreationTimeHelper {
+/* @test
+ * @bug 4677611
+ * @summary JViewport sets Opaque after UpdateUI (prevents UI delegates
+ * to determine look)
+ * @run main bug4677611
+ */
 
-    static {
-        System.loadLibrary("CreationTimeHelper");
+import java.awt.Color;
+
+import javax.swing.JScrollPane;
+import javax.swing.JViewport;
+
+public class bug4677611 {
+    public static void main(String[] args) throws Exception {
+        JScrollPane sp = new JScrollPane();
+        JViewport vp = new MyViewport();
+        vp.setBackground(Color.blue);
+        sp.setViewport(vp);
+
+        if (vp.isOpaque()) {
+            throw new RuntimeException("JViewport shouldn't set Opaque " +
+                    "after update the UI");
+        }
     }
 
-    // Helper so as to determine 'statx' support on the runtime system
-    static native boolean linuxIsCreationTimeSupported(String file);
+    static class MyViewport extends JViewport {
+        public void updateUI() {
+            setOpaque(false);
+            super.updateUI();
+        }
+    }
 }
