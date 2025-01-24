@@ -2955,7 +2955,7 @@ JVM_ENTRY(void, JVM_StartThread(JNIEnv* env, jobject jthread))
   // We must release the Threads_lock before we can post a jvmti event
   // in Thread::start.
   {
-    ConditionalMutexLocker throttle_ml(ThreadsLockThrottle_lock, UseThreadsLockThrottleLock);
+    MutexLocker throttle_ml(UseThreadsLockThrottleLock ? ThreadsLockThrottle_lock : NULL);
     // Ensure that the C++ Thread and OSThread structures aren't freed before
     // we operate.
     MutexLocker ml(Threads_lock);
