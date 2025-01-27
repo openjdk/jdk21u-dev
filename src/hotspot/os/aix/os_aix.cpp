@@ -2956,6 +2956,10 @@ void os::Aix::initialize_libperfstat() {
   }
 }
 
+bool os::Aix::supports_64K_mmap_pages() {
+  return g_multipage_support.can_use_64K_mmap_pages;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // thread stack
 
