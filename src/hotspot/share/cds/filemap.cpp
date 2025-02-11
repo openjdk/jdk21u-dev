@@ -2410,6 +2410,11 @@ bool FileMapHeader::validate() {
     return false;
   }
 
+  if (! _use_secondary_supers_table && UseSecondarySupersTable) {
+    log_warning(cds)("The shared archive was created without UseSecondarySupersTable.");
+    return false;
+  }
+
   if (!_use_optimized_module_handling) {
     MetaspaceShared::disable_optimized_module_handling();
     log_info(cds)("optimized module handling: disabled because archive was created without optimized module handling");
