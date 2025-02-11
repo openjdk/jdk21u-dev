@@ -302,16 +302,6 @@ final class DHPrivateKey implements PrivateKey,
         }
     }
 
-    private void parseKeyBits() throws InvalidKeyException {
-        try {
-            DerInputStream in = new DerInputStream(this.key);
-            this.x = in.getBigInteger();
-        } catch (IOException e) {
-            throw new InvalidKeyException(
-                "Error parsing key encoding: " + e.getMessage(), e);
-        }
-    }
-
     /**
      * Calculates a hash code value for the object.
      * Objects that are equal will also have the same hashcode.
