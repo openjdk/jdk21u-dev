@@ -80,10 +80,10 @@ public class DumbTerminalProvider implements TerminalProvider {
         return null;
     }
 
-    @Override
-    public int systemStreamWidth(SystemStream stream) {
-        return 0;
-    }
+    //@Override
+    //public int systemStreamWidth(SystemStream stream) {
+    //    return 0;
+    //}
 
     @Override
     public String toString() {

@@ -170,14 +170,14 @@ public class ExecTerminalProvider implements TerminalProvider {
         return null;
     }
 
-    @Override
-    public int systemStreamWidth(SystemStream stream) {
-        try (ExecPty pty = new ExecPty(this, stream, null)) {
-            return pty.getSize().getColumns();
-        } catch (Throwable t) {
-            return -1;
-        }
-    }
+//    @Override
+//    public int systemStreamWidth(SystemStream stream) {
+//        try (ExecPty pty = new ExecPty(this, stream, null)) {
+//            return pty.getSize().getColumns();
+//        } catch (Throwable t) {
+//            return -1;
+//        }
+//    }
 
     private static RedirectPipeCreator redirectPipeCreator;
 

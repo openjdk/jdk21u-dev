@@ -53,7 +53,7 @@ public interface TerminalProvider {
 
     String systemStreamName(SystemStream stream);
 
-    int systemStreamWidth(SystemStream stream);
+    //int systemStreamWidth(SystemStream stream);
 
     static TerminalProvider load(String name) throws IOException {
         switch (name) {
