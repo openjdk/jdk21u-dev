@@ -19,7 +19,6 @@ import jdk.internal.org.jline.terminal.Attributes;
 import jdk.internal.org.jline.terminal.Size;
 import jdk.internal.org.jline.terminal.Terminal;
 import jdk.internal.org.jline.terminal.impl.exec.ExecTerminalProvider;
-import jdk.internal.org.jline.terminal.impl.ffm.FfmTerminalProvider;
 
 public interface TerminalProvider {
 
@@ -58,7 +57,13 @@ public interface TerminalProvider {
     static TerminalProvider load(String name) throws IOException {
         switch (name) {
             case "exec": return new ExecTerminalProvider();
-            case "ffm": return new FfmTerminalProvider();
+            case "jna": {
+                try {
+                    return (TerminalProvider) Class.forName("jdk.internal.org.jline.terminal.impl.jna.JnaTerminalProvider").getConstructor().newInstance();
+                } catch (ReflectiveOperationException t) {
+                    throw new IOException(t);
+                }
+            }
         }
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         if (cl == null) {
