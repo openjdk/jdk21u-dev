@@ -632,6 +632,10 @@ public class Http2TestServerConnection {
         });
     }
 
+    final String connectionKey() {
+        return this.server.getAddress() + "->" + this.socket.getRemoteSocketAddress();
+    }
+
     // all other streams created here
     @SuppressWarnings({"rawtypes","unchecked"})
     void createStream(HeaderFrame frame) throws IOException {
