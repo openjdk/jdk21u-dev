@@ -227,11 +227,6 @@ public class Http2TestExchangeImpl implements Http2TestExchange {
         }
     }
 
-    @Override
-    public String getConnectionKey() {
-        return conn.connectionKey();
-    }
-
     private boolean isHeadRequest() {
         return HEAD.equalsIgnoreCase(getRequestMethod());
     }
