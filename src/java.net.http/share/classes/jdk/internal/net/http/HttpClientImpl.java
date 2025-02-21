@@ -282,25 +282,23 @@ final class HttpClientImpl extends HttpClient implements Trackable {
         }
     }
 
-    static <T> CompletableFuture<T> registerPending(PendingRequest pending, CompletableFuture<T> res) {
+    static void registerPending(PendingRequest pending) {
         // shortcut if cf is already completed: no need to go through the trouble of
         //    registering it
-        if (pending.cf.isDone()) return res;
+        if (pending.cf.isDone()) return;
 
         var client = pending.client;
         var cf = pending.cf;
         var id = pending.id;
         boolean added = client.pendingRequests.add(pending);
         // this may immediately remove `pending` from the set is the cf is already completed
-        var ref = res.whenComplete((r,t) -> client.pendingRequests.remove(pending));
-        pending.ref = ref;
+        pending.ref = cf.whenComplete((r,t) -> client.pendingRequests.remove(pending));
         assert added : "request %d was already added".formatted(id);
         // should not happen, unless the selector manager has already
         // exited abnormally
         if (client.selmgr.isClosed()) {
             pending.abort(client.selmgr.selectorClosedException());
         }
-        return ref;
     }
 
     static void abortPendingRequests(HttpClientImpl client, Throwable reason) {
@@ -933,9 +931,8 @@ final class HttpClientImpl extends HttpClient implements Trackable {
             cf = sendAsync(req, responseHandler, null, null);
             return cf.get();
         } catch (InterruptedException ie) {
-            if (cf != null) {
+            if (cf != null )
                 cf.cancel(true);
-            }
             throw ie;
         } catch (ExecutionException e) {
             final Throwable throwable = e.getCause();
@@ -1057,23 +1054,19 @@ final class HttpClientImpl extends HttpClient implements Trackable {
                         (b,t) -> debugCompleted("ClientImpl (async)", start, userRequest));
             }
 
+            // makes sure that any dependent actions happen in the CF default
+            // executor. This is only needed for sendAsync(...), when
+            // exchangeExecutor is non-null.
+            if (exchangeExecutor != null) {
+                res = res.whenCompleteAsync((r, t) -> { /* do nothing */}, ASYNC_POOL);
+            }
+
             // The mexCf is the Cf we need to abort if the SelectorManager thread
             // is aborted.
             PendingRequest pending = new PendingRequest(id, requestImpl, mexCf, mex, this);
-            res = registerPending(pending, res);
-
-            if (exchangeExecutor != null) {
-                // makes sure that any dependent actions happen in the CF default
-                // executor. This is only needed for sendAsync(...), when
-                // exchangeExecutor is non-null.
-                return res.isDone() ? res
-                        : res.whenCompleteAsync((r, t) -> { /* do nothing */}, ASYNC_POOL);
-            } else {
-                // make a defensive copy that can be safely canceled
-                // by the caller
-                return res.isDone() ? res : res.copy();
-            }
-        } catch (Throwable t) {
+            registerPending(pending);
+            return res;
+        } catch(Throwable t) {
             requestUnreference();
             debugCompleted("ClientImpl (async)", start, userRequest);
             throw t;
