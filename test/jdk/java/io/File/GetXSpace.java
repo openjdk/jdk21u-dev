@@ -430,9 +430,9 @@ public class GetXSpace {
         if (l.size() == 0)
             throw new RuntimeException("no partitions?");
 
-        for (int i = 0; i < sma.length; i++) {
-            for (var p : l) {
-                Space s = new Space(p);
+        for (var p : l) {
+            Space s = new Space(p);
+            for (int i = 0; i < sma.length; i++) {
                 System.setSecurityManager(sma[i]);
                 SecurityManager sm = System.getSecurityManager();
                 if (sma[i] != null && sm == null)
@@ -448,8 +448,8 @@ public class GetXSpace {
                     compareZeroNonExist();
                     compareZeroExist();
                 }
-                System.setSecurityManager(null);
             }
+            System.setSecurityManager(null);
         }
 
         if (fail != 0) {
