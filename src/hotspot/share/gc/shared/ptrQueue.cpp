@@ -23,10 +23,8 @@
  */
 
 #include "precompiled.hpp"
+#include "gc/shared/bufferNode.hpp"
 #include "gc/shared/ptrQueue.hpp"
-#include "memory/allocation.inline.hpp"
-
-#include <new>
 
 PtrQueue::PtrQueue(PtrQueueSet* qset) :
   _index(0),
