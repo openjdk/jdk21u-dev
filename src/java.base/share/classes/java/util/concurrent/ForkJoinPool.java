@@ -1881,6 +1881,18 @@ public class ForkJoinPool extends AbstractExecutorService {
             Thread.onSpinWait();
         if (p < 0) {
             long deadline = idle ? keepAlive + System.currentTimeMillis() : 0L;
+            // recheck queues before park
+            int n = (qs == null) ? 0 : qs.length;
+            WorkQueue q; ForkJoinTask<?>[] a; int cap;
+            for (int i = 0; i < n; ++i) {
+                if ((q = qs[i]) != null &&
+                    (a = q.array) != null && (cap = a.length) > 0 &&
+                    a[q.base & (cap - 1)] != null &&
+                    ctl == qc && compareAndSetCtl(qc, pc)) {
+                    w.phase = (int)qc;           // release
+                    return 0;
+                }
+            }
             LockSupport.setCurrentBlocker(this);
             for (;;) {                           // await signal or termination
                 if (runState < 0)
