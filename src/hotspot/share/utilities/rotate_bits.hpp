@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -19,11 +19,39 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
+ *
  */
 
-extern "C" {
+#ifndef SHARE_UTILITIES_ROTATE_BITS_HPP
+#define SHARE_UTILITIES_ROTATE_BITS_HPP
 
-char const *TranslateEvent(jint kind);
-char const *TranslateError(jvmdiError err);
+#include "utilities/globalDefinitions.hpp"
 
+inline uint32_t rotate_right_32(uint32_t x, int distance) {
+  distance = distance & 0x1F;
+  if (distance > 0) {
+    return (x >> distance) | (x << (32 - distance));
+  } else {
+    return x;
+  }
 }
+
+inline uint64_t rotate_right_64(uint64_t x, int distance) {
+  distance = distance & 0x3F;
+  if (distance > 0) {
+    return (x >> distance) | (x << (64 - distance));
+  } else {
+    return x;
+  }
+}
+
+template<typename T,
+    ENABLE_IF(std::is_integral<T>::value),
+ENABLE_IF(sizeof(T) <= sizeof(uint64_t))>
+inline T rotate_right(T x, int dist) {
+  return (sizeof(x) <= sizeof(uint32_t)) ?
+         rotate_right_32(static_cast<uint32_t>(x), dist) :
+         rotate_right_64(static_cast<uint64_t>(x), dist);
+}
+
+#endif // SHARE_UTILITIES_ROTATE_BITS_HPP
