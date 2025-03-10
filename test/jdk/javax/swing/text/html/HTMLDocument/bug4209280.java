@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -19,26 +19,21 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
- *
  */
 
-#ifndef SHARE_JFR_LEAKPROFILER_LEAKPROFILER_HPP
-#define SHARE_JFR_LEAKPROFILER_LEAKPROFILER_HPP
+import javax.swing.JLabel;
 
-#include "memory/allStatic.hpp"
-#include "utilities/globalDefinitions.hpp"
+/*
+ * @test
+ * @bug 4209280
+ * @summary Tests that no exception is thrown on unknown HTML tag
+ */
 
-class JavaThread;
+public class bug4209280 {
 
-class LeakProfiler : public AllStatic {
- public:
-  static bool start(int sample_count);
-  static bool stop();
-  static bool is_running();
-  static bool is_supported();
-
-  static void emit_events(int64_t cutoff_ticks, bool emit_all, bool skip_bfs);
-  static void sample(HeapWord* object, size_t size, JavaThread* thread);
-};
-
-#endif // SHARE_JFR_LEAKPROFILER_LEAKPROFILER_HPP
+    public static void main(String[] args) throws Exception {
+        String html = "<html><bold>Foo</bold></html>";
+        // The following line should throw no exceptions
+        new JLabel(html);
+    }
+}

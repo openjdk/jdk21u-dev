@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,23 +22,36 @@
  *
  */
 
-#ifndef SHARE_JFR_LEAKPROFILER_LEAKPROFILER_HPP
-#define SHARE_JFR_LEAKPROFILER_LEAKPROFILER_HPP
+#ifndef SHARE_UTILITIES_ROTATE_BITS_HPP
+#define SHARE_UTILITIES_ROTATE_BITS_HPP
 
-#include "memory/allStatic.hpp"
 #include "utilities/globalDefinitions.hpp"
 
-class JavaThread;
+inline uint32_t rotate_right_32(uint32_t x, int distance) {
+  distance = distance & 0x1F;
+  if (distance > 0) {
+    return (x >> distance) | (x << (32 - distance));
+  } else {
+    return x;
+  }
+}
 
-class LeakProfiler : public AllStatic {
- public:
-  static bool start(int sample_count);
-  static bool stop();
-  static bool is_running();
-  static bool is_supported();
+inline uint64_t rotate_right_64(uint64_t x, int distance) {
+  distance = distance & 0x3F;
+  if (distance > 0) {
+    return (x >> distance) | (x << (64 - distance));
+  } else {
+    return x;
+  }
+}
 
-  static void emit_events(int64_t cutoff_ticks, bool emit_all, bool skip_bfs);
-  static void sample(HeapWord* object, size_t size, JavaThread* thread);
-};
+template<typename T,
+    ENABLE_IF(std::is_integral<T>::value),
+ENABLE_IF(sizeof(T) <= sizeof(uint64_t))>
+inline T rotate_right(T x, int dist) {
+  return (sizeof(x) <= sizeof(uint32_t)) ?
+         rotate_right_32(static_cast<uint32_t>(x), dist) :
+         rotate_right_64(static_cast<uint64_t>(x), dist);
+}
 
-#endif // SHARE_JFR_LEAKPROFILER_LEAKPROFILER_HPP
+#endif // SHARE_UTILITIES_ROTATE_BITS_HPP

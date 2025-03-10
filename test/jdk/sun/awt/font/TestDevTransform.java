@@ -167,7 +167,6 @@ public class TestDevTransform {
           draw(gv_g2d, gv, 10f, 24f, 1.0f);
           draw(gv_g2d, gv, 10f, 36f, .33f);
       }
-
       compare(tl_Image, "textlayout", st_Image, "string");
       compare(gv_Image, "glyphvector", st_Image, "string");
   }
