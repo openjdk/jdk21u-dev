@@ -73,7 +73,9 @@ public:
   class AllocatorConfig;
   class Allocator;              // Free-list based allocator.
   class TestSupport;            // Unit test support.
-};// We use BufferNode::AllocatorConfig to set the allocation options for the
+};
+
+// We use BufferNode::AllocatorConfig to set the allocation options for the
 // FreeListAllocator.
 class BufferNode::AllocatorConfig : public FreeListConfig {
   const size_t _buffer_size;
