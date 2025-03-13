@@ -48,7 +48,7 @@ TEST_VM(LogTagSet, has_output) {
   LogTagSet& ts = LogTagSetMapping<LOG_TAGS(logging)>::tagset();
   ts.set_output_level(StderrLog, LogLevel::Trace);
   EXPECT_TRUE(ts.has_output(StderrLog));
-  EXPECT_FALSE(ts.has_output(NULL));
+  EXPECT_FALSE(ts.has_output(nullptr));
   ts.set_output_level(StderrLog, LogLevel::Off);
   EXPECT_FALSE(ts.has_output(StderrLog));
 }
