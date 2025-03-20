@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,7 @@
  */
 
 #include "precompiled.hpp"
-#include "gc/shared/ptrQueue.hpp"
+#include "gc/shared/bufferNode.hpp"
 #include "memory/allocation.hpp"
 #include "runtime/atomic.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
@@ -51,7 +51,7 @@ typedef BufferNode::TestSupport::AllocatorThread AllocatorThread;
 typedef BufferNode::TestSupport::ProcessorThread ProcessorThread;
 
 // Some basic testing of BufferNode::Allocator.
-TEST_VM(PtrQueueBufferAllocatorTest, test) {
+TEST_VM(BufferNodeAllocatorTest, test) {
   const size_t buffer_size = 256;
   BufferNode::Allocator allocator("Test Buffer Allocator", buffer_size);
   ASSERT_EQ(buffer_size, allocator.buffer_size());
@@ -62,7 +62,7 @@ TEST_VM(PtrQueueBufferAllocatorTest, test) {
   for (size_t i = 0; i < node_count; ++i) {
     ASSERT_EQ(0u, allocator.free_count());
     nodes[i] = allocator.allocate();
-    ASSERT_EQ((BufferNode*)NULL, nodes[i]->next());
+    ASSERT_EQ(nullptr, nodes[i]->next());
   }
 
   // Release the nodes, adding them to the allocator's free list.
@@ -102,7 +102,7 @@ public:
   }
 
   void push(BufferNode* node) {
-    assert(node != NULL, "precondition");
+    assert(node != nullptr, "precondition");
     _completed_list.push(*node);
   }
 
@@ -169,7 +169,7 @@ public:
     bool shutdown_requested = false;
     while (true) {
       BufferNode* node = _cbl->pop();
-      if (node != NULL) {
+      if (node != nullptr) {
         _allocator->release(node);
       } else if (shutdown_requested) {
         return;
@@ -235,7 +235,7 @@ static void run_test(BufferNode::Allocator* allocator, CompletedList* cbl) {
 
 const size_t buffer_size = 1024;
 
-TEST_VM(PtrQueueBufferAllocatorTest, stress_free_list_allocator) {
+TEST_VM(BufferNodeAllocatorTest, stress_free_list_allocator) {
   BufferNode::Allocator allocator("Test Allocator", buffer_size);
   CompletedList completed;
   run_test(&allocator, &completed);
