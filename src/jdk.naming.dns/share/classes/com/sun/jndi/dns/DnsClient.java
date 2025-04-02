@@ -229,7 +229,7 @@ public class DnsClient {
         boolean[] doNotRetry = new boolean[servers.length];
         // Holder for unfulfilled timeouts left for each server
         AtomicLong[] unfulfilledUdpTimeouts = IntStream.range(0, servers.length)
-                .mapToObj(_ -> new AtomicLong())
+                .mapToObj(AtomicLong::new)
                 .toArray(AtomicLong[]::new);
         try {
             //
