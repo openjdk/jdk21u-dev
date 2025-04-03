@@ -200,13 +200,7 @@ class Stream<T> extends ExchangeImpl<T> {
                 Http2Frame frame = inputQ.peek();
                 if (frame instanceof ResetFrame rf) {
                     inputQ.remove();
-                    if (endStreamReceived() && rf.getErrorCode() == ResetFrame.NO_ERROR) {
-                        // If END_STREAM is already received, complete the requestBodyCF successfully
-                        // and stop sending any request data.
-                        requestBodyCF.complete(null);
-                    } else {
-                        handleReset(rf, subscriber);
-                    }
+                    handleReset(rf, subscriber);
                     return;
                 }
                 DataFrame df = (DataFrame) frame;
