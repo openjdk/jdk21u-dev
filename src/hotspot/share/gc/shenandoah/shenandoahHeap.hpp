@@ -374,7 +374,7 @@ private:
   void update_heap_region_states(bool concurrent);
   void rebuild_free_set(bool concurrent);
 
-  void rendezvous_threads();
+  void rendezvous_threads(const char* name);
   void recycle_trash();
 public:
   void notify_gc_progress()    { _progress_last_gc.set();   }
@@ -469,6 +469,8 @@ private:
 public:
   bool is_maximal_no_gc() const override shenandoah_not_implemented_return(false);
 
+  // Check the pointer is in active part of Java heap.
+  // Use is_in_reserved to check if object is within heap bounds.
   bool is_in(const void* p) const override;
 
   bool requires_barriers(stackChunkOop obj) const override;
@@ -476,6 +478,7 @@ public:
   MemRegion reserved_region() const { return _reserved; }
   bool is_in_reserved(const void* addr) const { return _reserved.contains(addr); }
 
+  void collect_as_vm_thread(GCCause::Cause cause) override;
   void collect(GCCause::Cause cause) override;
   void do_full_collection(bool clear_all_soft_refs) override;
 
