@@ -351,9 +351,7 @@ bool PosixSignals::pd_hotspot_signal_handler(int sig, siginfo_t* info,
 
         // End life with a fatal error, message and detail message and the context.
         // Note: no need to do any post-processing here (e.g. signal chaining)
-        va_list va_dummy;
-        VMError::report_and_die(thread, uc, nullptr, 0, msg, detail_msg, va_dummy);
-        va_end(va_dummy);
+        VMError::report_and_die(thread, uc, nullptr, 0, msg, "%s", detail_msg);
 
         ShouldNotReachHere();
 
@@ -471,7 +469,7 @@ void os::print_context(outputStream *st, const void *context) {
 }
 
 void os::print_register_info(outputStream *st, const void *context, int& continuation) {
-  const int register_count = 32 /* r0-r32 */ + 3 /* pc, lr, ctr */;
+  const int register_count = 32 /* r0-r31 */ + 3 /* pc, lr, ctr */;
   int n = continuation;
   assert(n >= 0 && n <= register_count, "Invalid continuation value");
   if (context == nullptr || n == register_count) {
