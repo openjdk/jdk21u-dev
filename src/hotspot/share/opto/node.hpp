@@ -1121,6 +1121,7 @@ public:
 
   // Set control or add control as precedence edge
   void ensure_control_or_add_prec(Node* c);
+  void add_prec_from(Node* n);
 
   // Returns a clone of the current node that's pinned (if the current node is not) for nodes found in array accesses
   // (Load and range check CastII nodes).
@@ -1222,6 +1223,8 @@ public:
 
   // Whether this is a memory-writing machine node.
   bool is_memory_writer() const { return is_Mach() && bottom_type()->has_memory(); }
+
+  bool is_div_or_mod(BasicType bt) const;
 
 //----------------- Printing, etc
 #ifndef PRODUCT
@@ -1947,6 +1950,10 @@ Op_IL(URShift)
 Op_IL(LShift)
 Op_IL(Xor)
 Op_IL(Cmp)
+Op_IL(Div)
+Op_IL(Mod)
+Op_IL(UDiv)
+Op_IL(UMod)
 
 inline int Op_ConIL(BasicType bt) {
   assert(bt == T_INT || bt == T_LONG, "only for int or longs");

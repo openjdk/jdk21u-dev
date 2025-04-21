@@ -53,6 +53,7 @@ class Block;
 class Bundle;
 class CallGenerator;
 class CallStaticJavaNode;
+class CastIINode;
 class CloneMap;
 class ConnectionGraph;
 class IdealGraphPrinter;
@@ -1265,6 +1266,8 @@ class Compile : public Phase {
                             BasicType out_bt, BasicType in_bt);
 
   static Node* narrow_value(BasicType bt, Node* value, const Type* type, PhaseGVN* phase, bool transform_res);
+
+  void remove_range_check_cast(CastIINode* cast);
 };
 
 #endif // SHARE_OPTO_COMPILE_HPP
