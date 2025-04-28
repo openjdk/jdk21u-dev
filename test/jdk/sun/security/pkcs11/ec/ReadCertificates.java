@@ -28,7 +28,6 @@
  *   and verify their signatures
  * @author Andreas Sterbenz
  * @library /test/lib ..
- * @library ../../../../java/security/testlibrary
  * @modules jdk.crypto.cryptoki
  * @run main/othervm ReadCertificates
  * @run main/othervm -Djava.security.manager=allow ReadCertificates sm policy
@@ -56,6 +55,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import javax.security.auth.x500.X500Principal;
+import jdk.test.lib.security.Providers;
 
 public class ReadCertificates extends PKCS11Test {
 

@@ -33,8 +33,8 @@ import java.security.KeyStore;
 import java.security.PublicKey;
 import java.util.concurrent.TimeUnit;
 
-import sun.security.testlibrary.SimpleOCSPServer;
-import sun.security.testlibrary.CertificateBuilder;
+import jdk.test.lib.security.SimpleOCSPServer;
+import jdk.test.lib.security.CertificateBuilder;
 
 import static sun.security.ssl.CertStatusExtension.*;
 

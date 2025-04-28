@@ -27,7 +27,6 @@
  * @summary Verify that we can parse ECPrivateKeys from PKCS#12 and use them
  * @author Andreas Sterbenz
  * @library /test/lib ..
- * @library ../../../../java/security/testlibrary
  * @key randomness
  * @modules jdk.crypto.cryptoki jdk.crypto.ec/sun.security.ec
  * @run main/othervm ReadPKCS12
@@ -55,6 +54,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import jdk.test.lib.security.Providers;
 
 public class ReadPKCS12 extends PKCS11Test {
 

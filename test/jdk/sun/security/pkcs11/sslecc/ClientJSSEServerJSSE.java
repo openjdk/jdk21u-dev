@@ -32,7 +32,6 @@
  * @summary Verify that all ciphersuites work (incl. ECC using NSS crypto)
  * @author Andreas Sterbenz
  * @library /test/lib .. ../../../../javax/net/ssl/TLSCommon
- * @library ../../../../java/security/testlibrary
  * @modules jdk.crypto.cryptoki
  * @run main/othervm -Djdk.tls.namedGroups="secp256r1,sect193r1"
  *      ClientJSSEServerJSSE
@@ -42,6 +41,7 @@
 
 import java.security.Provider;
 import java.security.Security;
+import jdk.test.lib.security.Providers;
 
 public class ClientJSSEServerJSSE extends PKCS11Test {
 

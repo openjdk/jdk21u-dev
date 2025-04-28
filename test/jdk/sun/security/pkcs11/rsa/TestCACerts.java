@@ -27,7 +27,6 @@
  * @summary Test the new RSA provider can verify all the RSA certs in the cacerts file
  * @author Andreas Sterbenz
  * @library /test/lib ..
- * @library ../../../../java/security/testlibrary
  * @modules jdk.crypto.cryptoki
  * @run main/othervm TestCACerts
  * @run main/othervm -Djava.security.manager=allow TestCACerts sm TestCACerts.policy
@@ -43,6 +42,7 @@ import java.security.PublicKey;
 import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
+import jdk.test.lib.security.Providers;
 
 public class TestCACerts extends PKCS11Test {
 

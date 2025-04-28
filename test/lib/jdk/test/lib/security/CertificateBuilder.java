@@ -23,7 +23,7 @@
  * questions.
  */
 
-package sun.security.testlibrary;
+package jdk.test.lib.security;
 
 import java.io.*;
 import java.util.*;

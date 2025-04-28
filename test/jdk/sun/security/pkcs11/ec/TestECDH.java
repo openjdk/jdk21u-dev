@@ -27,7 +27,6 @@
  * @summary Basic known answer test for ECDH
  * @author Andreas Sterbenz
  * @library /test/lib ..
- * @library ../../../../java/security/testlibrary
  * @modules jdk.crypto.cryptoki
  * @run main/othervm TestECDH
  * @run main/othervm -Djava.security.manager=allow TestECDH sm policy
@@ -44,6 +43,8 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import javax.crypto.KeyAgreement;
+import jdk.test.lib.security.Providers;
+
 
 public class TestECDH extends PKCS11Test {
 
