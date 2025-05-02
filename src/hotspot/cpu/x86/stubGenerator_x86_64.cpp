@@ -3947,6 +3947,8 @@ address StubGenerator::generate_lookup_secondary_supers_table_slow_path_stub() {
 void StubGenerator::create_control_words() {
   // Round to nearest, 64-bit mode, exceptions masked
   StubRoutines::x86::_mxcsr_std = 0x1F80;
+  // Round to zero, 64-bit mode, exceptions masked
+  StubRoutines::x86::_mxcsr_rz = 0x7F80;
 }
 
 // Initialization
@@ -4028,6 +4030,8 @@ void StubGenerator::generate_initial_stubs() {
   }
 
   generate_libm_stubs();
+
+  StubRoutines::_fmod = generate_libmFmod(); // from stubGenerator_x86_64_fmod.cpp
 }
 
 void StubGenerator::generate_continuation_stubs() {
