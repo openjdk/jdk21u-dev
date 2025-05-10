@@ -551,7 +551,6 @@ public class Annotate {
 
         if (expectedElementType.hasTag(ARRAY)) {
             return getAnnotationArrayValue(expectedElementType, tree, env);
-
         }
 
         //error recovery
@@ -703,11 +702,15 @@ public class Annotate {
         }
 
         JCNewArray na = (JCNewArray)tree;
+        List<JCExpression> elems = na.elems;
         if (na.elemtype != null) {
             log.error(na.elemtype.pos(), Errors.NewNotAllowedInAnnotation);
+            if (elems == null) {
+                elems = List.nil();
+            }
         }
         ListBuffer<Attribute> buf = new ListBuffer<>();
-        for (List<JCExpression> l = na.elems; l.nonEmpty(); l=l.tail) {
+        for (List<JCExpression> l = elems; l.nonEmpty(); l = l.tail) {
             buf.append(attributeAnnotationValue(types.elemtype(expectedElementType),
                     l.head,
                     env));
