@@ -34,7 +34,7 @@ typedef struct {
 void call(void* arg) {
     Context* context = (Context*)arg;
     JNIEnv* env;
-    context->jvm->AttachCurrentThread((void**)&env, NULL);
+    context->jvm->AttachCurrentThread((void**)&env, nullptr);
     jclass linkerClass = env->FindClass("java/lang/foreign/Linker");
     jmethodID nativeLinkerMethod = env->GetMethodID(linkerClass, "downcallHandle",
             "(Ljava/lang/foreign/FunctionDescriptor;[Ljava/lang/foreign/Linker$Option;)Ljava/lang/invoke/MethodHandle;");
