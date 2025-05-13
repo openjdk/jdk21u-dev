@@ -654,13 +654,13 @@ class G1EvacuateRegionsTask : public G1EvacuateRegionsBaseTask {
     _g1h->rem_set()->scan_collection_set_code_roots(pss, worker_id, G1GCPhaseTimes::CodeRoots, G1GCPhaseTimes::ObjCopy);
     // There are no optional roots to scan right now.
 #ifdef ASSERT
-    class VerifyOptionalCollectionSetRootsEmptyClosure : public G1HeapRegionClosure {
+    class VerifyOptionalCollectionSetRootsEmptyClosure : public HeapRegionClosure {
       G1ParScanThreadState* _pss;
 
     public:
       VerifyOptionalCollectionSetRootsEmptyClosure(G1ParScanThreadState* pss) : _pss(pss) { }
 
-      bool do_heap_region(G1HeapRegion* r) override {
+      bool do_heap_region(HeapRegion* r) override {
         assert(!r->has_index_in_opt_cset(), "must be");
         return false;
       }
