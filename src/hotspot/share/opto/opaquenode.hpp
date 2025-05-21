@@ -130,6 +130,7 @@ class Opaque4Node : public Node {
   virtual const Type* Value(PhaseGVN* phase) const;
 };
 
+
 //------------------------------ProfileBooleanNode-------------------------------
 // A node represents value profile for a boolean during parsing.
 // Once parsing is over, the node goes away (during IGVN).
