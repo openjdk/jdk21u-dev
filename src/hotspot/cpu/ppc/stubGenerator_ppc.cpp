@@ -335,7 +335,7 @@ class StubGenerator: public StubCodeGenerator {
 
       // Store result depending on type. Everything that is not
       // T_OBJECT, T_LONG, T_FLOAT, or T_DOUBLE is treated as T_INT.
-      __ cmpwi(CCR0, r_arg_result_type, T_OBJECT);
+      __ cmpwi(C, r_arg_result_type, T_OBJECT);
       __ cmpwi(CCR1, r_arg_result_type, T_LONG);
       __ cmpwi(CCR5, r_arg_result_type, T_FLOAT);
       __ cmpwi(CCR6, r_arg_result_type, T_DOUBLE);
@@ -835,7 +835,7 @@ class StubGenerator: public StubCodeGenerator {
     __ vsldoi(vLowerH, vZero, vSwappedH, 8);            // H.L
     __ vsldoi(vHigherH, vSwappedH, vZero, 8);           // H.H
 #ifdef ASSERT
-    __ cmpwi(CR0, blocks, 0);                           // Compare 'blocks' (R6_ARG4) with zero
+    __ cmpwi(CCR0, blocks, 0);                           // Compare 'blocks' (R6_ARG4) with zero
     __ asm_assert_ne("blocks should NOT be zero");
 #endif
     __ clrldi(blocks, blocks, 32);
@@ -870,8 +870,8 @@ class StubGenerator: public StubCodeGenerator {
     //
     Label L_aligned_loop, L_store, L_unaligned_loop, L_initialize_unaligned_loop;
     __ andi(temp1, data, 15);
-    __ cmpwi(CR0, temp1, 0);
-    __ bne(CR0, L_initialize_unaligned_loop);
+    __ cmpwi(CCR0, temp1, 0);
+    __ bne(CCR0, L_initialize_unaligned_loop);
 
     __ bind(L_aligned_loop);
       __ lvx(vH, temp1, data);
