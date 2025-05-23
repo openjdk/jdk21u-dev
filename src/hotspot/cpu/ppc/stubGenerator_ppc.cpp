@@ -335,7 +335,7 @@ class StubGenerator: public StubCodeGenerator {
 
       // Store result depending on type. Everything that is not
       // T_OBJECT, T_LONG, T_FLOAT, or T_DOUBLE is treated as T_INT.
-      __ cmpwi(C, r_arg_result_type, T_OBJECT);
+      __ cmpwi(CCR0, r_arg_result_type, T_OBJECT);
       __ cmpwi(CCR1, r_arg_result_type, T_LONG);
       __ cmpwi(CCR5, r_arg_result_type, T_FLOAT);
       __ cmpwi(CCR6, r_arg_result_type, T_DOUBLE);
