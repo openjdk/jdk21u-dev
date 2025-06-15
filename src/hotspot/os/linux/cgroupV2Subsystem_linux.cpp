@@ -145,6 +145,18 @@ jlong CgroupV2Subsystem::memory_max_usage_in_bytes() {
   return OSCONTAINER_ERROR; // not supported
 }
 
+jlong CgroupV2Subsystem::rss_usage_in_bytes() {
+  GET_CONTAINER_INFO_LINE(julong, _memory->controller(), "/memory.stat",
+                          "anon", JULONG_FORMAT, JULONG_FORMAT, rss);
+  return rss;
+}
+
+jlong CgroupV2Subsystem::cache_usage_in_bytes() {
+  GET_CONTAINER_INFO_LINE(julong, _memory->controller(), "/memory.stat",
+                          "file", JULONG_FORMAT, JULONG_FORMAT, cache);
+  return cache;
+}
+
 // Note that for cgroups v2 the actual limits set for swap and
 // memory live in two different files, memory.swap.max and memory.max
 // respectively. In order to properly report a cgroup v1 like
