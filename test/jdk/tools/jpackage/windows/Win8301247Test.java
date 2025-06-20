@@ -93,7 +93,7 @@ public class Win8301247Test {
     private static Optional<Long> findMainAppLauncherPID(JPackageCommand cmd,
             int expectedCount) {
         // Get the list of PIDs and PPIDs of app launcher processes. Run setWinRunWithEnglishOutput(true) for JDK-8344275.
-        // powershell -NoLogo -NoProfile -NonInteractive -CommandAdd commentMore actions
+        // powershell -NoLogo -NoProfile -NonInteractive -Command
         //   "Get-CimInstance Win32_Process -Filter \"Name = 'foo.exe'\" | select ProcessID,ParentProcessID"
         String command = "Get-CimInstance Win32_Process -Filter \\\"Name = '"
                 + cmd.appLauncherPath().getFileName().toString()
@@ -121,7 +121,7 @@ public class Win8301247Test {
                     "Unrecognizable output of \'Get-CimInstance Win32_Process\' command");
         }
 
-        List<long[]> processes = output.stream().skip(1).map(line -> {
+        List<long[]> processes = output.stream().skip(3).map(line -> {
             Matcher m = pattern.matcher(line);
             long[] pids = null;
             if (m.matches()) {
