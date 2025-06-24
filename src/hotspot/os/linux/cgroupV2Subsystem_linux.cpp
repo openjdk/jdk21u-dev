@@ -152,10 +152,9 @@ jlong CgroupV2MemoryController::memory_max_usage_in_bytes() {
   return OSCONTAINER_ERROR; // not supported
 }
 
-jlong CgroupV2Subsystem::rss_usage_in_bytes() {
+jlong CgroupV2MemoryController::rss_usage_in_bytes() {
   julong rss;
-  bool is_ok = _memory->controller()->
-                    read_numerical_key_value("/memory.stat", "anon", &rss);
+  bool is_ok = reader()->read_numerical_key_value("/memory.stat", "anon", &rss);
   if (!is_ok) {
     return OSCONTAINER_ERROR;
   }
@@ -163,10 +162,9 @@ jlong CgroupV2Subsystem::rss_usage_in_bytes() {
   return (jlong)rss;
 }
 
-jlong CgroupV2Subsystem::cache_usage_in_bytes() {
+jlong CgroupV2MemoryController::cache_usage_in_bytes() {
   julong cache;
-  bool is_ok = _memory->controller()->
-                    read_numerical_key_value("/memory.stat", "file", &cache);
+  bool is_ok = reader()->read_numerical_key_value("/memory.stat", "file", &cache);
   if (!is_ok) {
     return OSCONTAINER_ERROR;
   }

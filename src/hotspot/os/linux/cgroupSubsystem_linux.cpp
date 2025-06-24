@@ -789,6 +789,14 @@ jlong CgroupSubsystem::memory_max_usage_in_bytes() {
   return memory_controller()->controller()->memory_max_usage_in_bytes();
 }
 
+jlong CgroupSubsystem::rss_usage_in_bytes() {
+  return memory_controller()->controller()->rss_usage_in_bytes();
+}
+
+jlong CgroupSubsystem::cache_usage_in_bytes() {
+  return memory_controller()->controller()->cache_usage_in_bytes();
+}
+
 int CgroupSubsystem::cpu_quota() {
   return cpu_controller()->controller()->cpu_quota();
 }

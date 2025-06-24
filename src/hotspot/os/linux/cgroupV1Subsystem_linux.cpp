@@ -261,9 +261,9 @@ jlong CgroupV1MemoryController::memory_max_usage_in_bytes() {
   return (jlong)memmaxusage;
 }
 
-jlong CgroupV1Subsystem::rss_usage_in_bytes() {
+jlong CgroupV1MemoryController::rss_usage_in_bytes() {
   julong rss;
-  bool is_ok = _memory->controller()->read_numerical_key_value("/memory.stat",
+  bool is_ok = reader()->read_numerical_key_value("/memory.stat",
                                                                "rss",
                                                                &rss);
   if (!is_ok) {
@@ -273,9 +273,9 @@ jlong CgroupV1Subsystem::rss_usage_in_bytes() {
   return (jlong)rss;
 }
 
-jlong CgroupV1Subsystem::cache_usage_in_bytes() {
+jlong CgroupV1MemoryController::cache_usage_in_bytes() {
   julong cache;
-  bool is_ok = _memory->controller()->read_numerical_key_value("/memory.stat",
+  bool is_ok = reader()->read_numerical_key_value("/memory.stat",
                                                                "cache",
                                                                &cache);
   if (!is_ok) {
