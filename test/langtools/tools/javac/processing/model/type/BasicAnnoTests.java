@@ -482,6 +482,9 @@ public class BasicAnnoTests extends JavacTestingAbstractProcessor {
     @Test(posn=1, annoType=TA.class, expect="3")
     public @TA(3) int @TB(33) [] f3;
 
+    @Test(posn=3, annoType=TA.class, expect="777")
+    public BasicAnnoTests() {}
+
     @Test(posn=3, annoType=TA.class, expect="4")
     public int m1(@TA(4) float a) throws Exception { return 0; }
 
