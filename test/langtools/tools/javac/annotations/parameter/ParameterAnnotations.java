@@ -30,21 +30,24 @@
  * @modules jdk.compiler/com.sun.tools.javac.api
  *          jdk.compiler/com.sun.tools.javac.main
  *          jdk.compiler/com.sun.tools.javac.util
+ *          java.base/jdk.internal.classfile
+ *          java.base/jdk.internal.classfile.attribute
+ *          java.base/jdk.internal.classfile.constantpool
  * @build toolbox.ToolBox toolbox.JavacTask
  * @run main ParameterAnnotations
 */
 
 import java.io.OutputStream;
-import java.lang.classfile.ClassFile;
-import java.lang.classfile.ClassModel;
-import java.lang.classfile.ClassTransform;
-import java.lang.classfile.MethodBuilder;
-import java.lang.classfile.MethodElement;
-import java.lang.classfile.MethodTransform;
-import java.lang.classfile.attribute.MethodParametersAttribute;
-import java.lang.classfile.attribute.RuntimeInvisibleParameterAnnotationsAttribute;
-import java.lang.classfile.attribute.RuntimeVisibleParameterAnnotationsAttribute;
-import java.lang.classfile.attribute.SignatureAttribute;
+import jdk.internal.classfile.Classfile;
+import jdk.internal.classfile.ClassModel;
+import jdk.internal.classfile.ClassTransform;
+import jdk.internal.classfile.MethodBuilder;
+import jdk.internal.classfile.MethodElement;
+import jdk.internal.classfile.MethodTransform;
+import jdk.internal.classfile.attribute.MethodParametersAttribute;
+import jdk.internal.classfile.attribute.RuntimeInvisibleParameterAnnotationsAttribute;
+import jdk.internal.classfile.attribute.RuntimeVisibleParameterAnnotationsAttribute;
+import jdk.internal.classfile.attribute.SignatureAttribute;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -627,14 +630,14 @@ public class ParameterAnnotations extends TestRunner {
             .writeAll();
 
         Path classfile = classes.resolve(binaryNameToCheck + ".class");
-        ClassFile cf = ClassFile.of();
 
-        ClassModel model = cf.parse(classfile);
+        ClassModel model = Classfile.parse(classfile);
 
-        byte[] newClassFile = cf.transformClass(model,
+        byte[] newClassFile = model.transform(
                                                 ClassTransform.transformingMethods(m -> m.methodName()
                                                                                          .equalsString("<init>"),
                                                                                   changeConstructor));
+
 
         try (OutputStream out = Files.newOutputStream(classfile)) {
             out.write(newClassFile);
