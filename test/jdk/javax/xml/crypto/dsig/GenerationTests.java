@@ -564,10 +564,10 @@ public class GenerationTests {
         ecdsaSha256 = fac.newSignatureMethod(SignatureMethod.ECDSA_SHA256, null);
         ecdsaSha384 = fac.newSignatureMethod(SignatureMethod.ECDSA_SHA384, null);
         ecdsaSha512 = fac.newSignatureMethod(SignatureMethod.ECDSA_SHA512, null);
-        ecdsaSha3_224 = fac.newSignatureMethod(SignatureMethod.ECDSA_SHA3_224, null);
-        ecdsaSha3_256 = fac.newSignatureMethod(SignatureMethod.ECDSA_SHA3_256, null);
-        ecdsaSha3_384 = fac.newSignatureMethod(SignatureMethod.ECDSA_SHA3_384, null);
-        ecdsaSha3_512 = fac.newSignatureMethod(SignatureMethod.ECDSA_SHA3_512, null);
+        ecdsaSha3_224 = fac.newSignatureMethod("http://www.w3.org/2021/04/xmldsig-more#ecdsa-sha3-224", null);
+        ecdsaSha3_256 = fac.newSignatureMethod("http://www.w3.org/2021/04/xmldsig-more#ecdsa-sha3-256", null);
+        ecdsaSha3_384 = fac.newSignatureMethod("http://www.w3.org/2021/04/xmldsig-more#ecdsa-sha3-384", null);
+        ecdsaSha3_512 = fac.newSignatureMethod("http://www.w3.org/2021/04/xmldsig-more#ecdsa-sha3-512", null);
 
         ed25519 = fac.newSignatureMethod(SignatureMethod.ED25519, null);
         ed448 = fac.newSignatureMethod(SignatureMethod.ED448, null);
