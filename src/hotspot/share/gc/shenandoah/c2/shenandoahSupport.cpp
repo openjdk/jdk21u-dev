@@ -661,7 +661,7 @@ void ShenandoahBarrierC2Support::maybe_push_anti_dependent_loads(PhaseIdealLoop*
 void ShenandoahBarrierC2Support::push_data_inputs_at_control(PhaseIdealLoop* phase, Node* n, Node* ctrl, Unique_Node_List &wq) {
   for (uint i = 0; i < n->req(); i++) {
     Node* in = n->in(i);
-    if (in != nullptr && phase->has_ctrl(in) && phase->get_ctrl(in) == ctrl) {
+    if (in != nullptr && (ShenandoahIUBarrier ? (phase->ctrl_or_self(in) == ctrl) : (phase->has_ctrl(in) && phase->get_ctrl(in) == ctrl))) {
       wq.push(in);
     }
   }
@@ -681,22 +681,9 @@ bool ShenandoahBarrierC2Support::is_dominator_same_ctrl(Node* c, Node* d, Node* 
     if (m->is_Phi() && m->in(0)->is_Loop()) {
       assert(phase->ctrl_or_self(m->in(LoopNode::EntryControl)) != c, "following loop entry should lead to new control");
     } else {
-      if (m->is_Store() || m->is_LoadStore()) {
-        // Take anti-dependencies into account
-        Node* mem = m->in(MemNode::Memory);
-        for (DUIterator_Fast imax, i = mem->fast_outs(imax); i < imax; i++) {
-          Node* u = mem->fast_out(i);
-          if (u->is_Load() && phase->C->can_alias(m->adr_type(), phase->C->get_alias_index(u->adr_type())) &&
-              phase->ctrl_or_self(u) == c) {
-            wq.push(u);
-          }
-        }
-      }
-      for (uint i = 0; i < m->req(); i++) {
-        if (m->in(i) != nullptr && phase->ctrl_or_self(m->in(i)) == c) {
-          wq.push(m->in(i));
-        }
-      }
+      // Take anti-dependencies into account
+      maybe_push_anti_dependent_loads(phase, m, c, wq);
+      push_data_inputs_at_control(phase, m, c, wq);
     }
   }
   return true;
