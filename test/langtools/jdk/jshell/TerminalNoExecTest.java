@@ -28,8 +28,8 @@
  * @library /tools/lib
  * @modules jdk.internal.le/jdk.internal.org.jline.terminal
  *          jdk.internal.le/jdk.internal.org.jline.utils
- * @build toolbox.ToolBox toolbox.JavaTask Test
- * @run main Test
+ * @build toolbox.ToolBox toolbox.JavaTask TerminalNoExecTest
+ * @run main TerminalNoExecTest
  */
 
 import java.util.ArrayList;
