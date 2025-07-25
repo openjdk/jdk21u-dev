@@ -89,7 +89,7 @@ public class TerminalNoExecTest {
                                    "jdk.internal.le/jdk.internal.org.jline.utils=ALL-UNNAMED",
                                    "--add-exports", 
                                    "jdk.internal.le/jdk.internal.org.jline.terminal=ALL-UNNAMED",
-                                   Test.class.getName(),
+                                   TerminalNoExecTest.class.getName(),
                                    "run-test")
                         .redirectError(ProcessBuilder.Redirect.INHERIT)
                         .redirectOutput(ProcessBuilder.Redirect.INHERIT);
