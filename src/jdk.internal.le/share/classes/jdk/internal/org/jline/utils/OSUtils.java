@@ -55,6 +55,19 @@ public class OSUtils {
         return f.canExecute() && !f.isDirectory();
     }
 
+    private static String cygPathToWinPath(String cygPath) {
+        try {
+            Process p = new ProcessBuilder("cygpath", "-w", cygPath).start();
+            String result = ExecHelper.waitAndCapture(p);
+            if (p.exitValue() == 0) {
+                return result.trim();
+            }
+        } catch (Throwable t) {
+            // ignore
+        }
+        return null;
+    }
+
     static {
         boolean cygwinOrMsys = OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM;
         String suffix = cygwinOrMsys ? ".exe" : "";
@@ -63,7 +76,13 @@ public class OSUtils {
         String sttyfopt = null;
         String infocmp = null;
         String test = null;
-        String path = System.getenv("PATH");
+        String path;
+        if (cygwinOrMsys) {
+            path = cygPathToWinPath("/usr/bin") + File.pathSeparator + cygPathToWinPath("/bin");
+        } else {
+            path = "/usr/bin" + File.pathSeparator + "/bin";//was: System.getenv("PATH");
+        }
+
         if (path != null) {
             String[] paths = path.split(File.pathSeparator);
             for (String p : paths) {

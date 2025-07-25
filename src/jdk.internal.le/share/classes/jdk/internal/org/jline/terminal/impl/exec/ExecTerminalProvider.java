@@ -122,7 +122,11 @@ public class ExecTerminalProvider implements TerminalProvider {
     @Override
     public boolean isSystemStream(SystemStream stream) {
         try {
-            return isPosixSystemStream(stream) || isWindowsSystemStream(stream);
+            if (OSUtils.IS_WINDOWS && (!OSUtils.IS_CYGWIN && !OSUtils.IS_MSYSTEM)) {
+                return isWindowsSystemStream(stream);
+            } else {
+                return isPosixSystemStream(stream);
+            }
         } catch (Throwable t) {
             return false;
         }
