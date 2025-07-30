@@ -76,7 +76,7 @@ public class OSUtils {
         String sttyfopt = null;
         String infocmp = null;
         String test = null;
-        String path;
+        String path = null;
         if (cygwinOrMsys) {
             path = cygPathToWinPath("/usr/bin") + File.pathSeparator + cygPathToWinPath("/bin");
         } else {
