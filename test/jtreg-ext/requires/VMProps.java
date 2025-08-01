@@ -67,6 +67,9 @@ public class VMProps implements Callable<Map<String, String>> {
     // value known to jtreg as an indicator of error state
     private static final String ERROR_STATE = "__ERROR__";
 
+    private static final String GC_PREFIX = "-XX:+Use";
+    private static final String GC_SUFFIX = "GC";
+
     private static final WhiteBox WB = WhiteBox.getWhiteBox();
 
     private static class SafeMap {
@@ -126,6 +129,7 @@ public class VMProps implements Callable<Map<String, String>> {
         map.put("vm.compiler1.enabled", this::isCompiler1Enabled);
         map.put("vm.compiler2.enabled", this::isCompiler2Enabled);
         map.put("docker.support", this::dockerSupport);
+        map.put("systemd.support", this::systemdSupport);
         map.put("vm.musl", this::isMusl);
         map.put("release.implementor", this::implementor);
         map.put("jdk.containerized", this::jdkContainerized);
@@ -344,8 +348,6 @@ public class VMProps implements Callable<Map<String, String>> {
             return;
         }
 
-        String GC_PREFIX  = "-XX:+Use";
-        String GC_SUFFIX  = "GC";
         String jtropts = System.getProperty("test.cds.runtime.options");
         if (jtropts != null) {
             for (String opt : jtropts.split(",")) {
@@ -381,6 +383,7 @@ public class VMProps implements Callable<Map<String, String>> {
         vmOptFinalFlag(map, "EliminateAllocations");
         vmOptFinalFlag(map, "UnlockExperimentalVMOptions");
         vmOptFinalFlag(map, "UseCompressedOops");
+        vmOptFinalFlag(map, "UseLargePages");
         vmOptFinalFlag(map, "UseVectorizedMismatchIntrinsic");
         vmOptFinalFlag(map, "UseVtableBasedCHA");
         vmOptFinalFlag(map, "ZGenerational");
@@ -457,7 +460,31 @@ public class VMProps implements Callable<Map<String, String>> {
      * @return true if this VM can write Java heap objects into the CDS archive
      */
     protected String vmCDSCanWriteArchivedJavaHeap() {
-        return "" + ("true".equals(vmCDS()) && WB.canWriteJavaHeapArchive());
+        return "" + ("true".equals(vmCDS()) && WB.canWriteJavaHeapArchive()
+                     && isCDSRuntimeOptionsCompatible());
+    }
+
+    /**
+     * @return true if the VM options specified via the "test.cds.runtime.options"
+     * property is compatible with writing Java heap objects into the CDS archive
+     */
+    protected boolean isCDSRuntimeOptionsCompatible() {
+        String jtropts = System.getProperty("test.cds.runtime.options");
+        if (jtropts == null) {
+            return true;
+        }
+        String CCP_DISABLED = "-XX:-UseCompressedClassPointers";
+        String G1GC_ENABLED = "-XX:+UseG1GC";
+        for (String opt : jtropts.split(",")) {
+            if (opt.equals(CCP_DISABLED)) {
+                return false;
+            }
+            if (opt.startsWith(GC_PREFIX) && opt.endsWith(GC_SUFFIX) &&
+                !opt.equals(G1GC_ENABLED)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -535,13 +562,34 @@ public class VMProps implements Callable<Map<String, String>> {
 
         if (isSupported) {
            try {
-              isSupported = checkDockerSupport();
+              isSupported = checkProgramSupport("checkDockerSupport()", Container.ENGINE_COMMAND);
            } catch (Exception e) {
               isSupported = false;
            }
          }
 
         log("dockerSupport(): returning isSupported = " + isSupported);
+        return "" + isSupported;
+    }
+
+    /**
+     * A simple check for systemd support
+     *
+     * @return true if systemd is supported in a given environment
+     */
+    protected String systemdSupport() {
+        log("Entering systemdSupport()");
+
+        boolean isSupported = Platform.isLinux();
+        if (isSupported) {
+           try {
+              isSupported = checkProgramSupport("checkSystemdSupport()", "systemd-run");
+           } catch (Exception e) {
+              isSupported = false;
+           }
+         }
+
+        log("systemdSupport(): returning isSupported = " + isSupported);
         return "" + isSupported;
     }
 
@@ -579,17 +627,17 @@ public class VMProps implements Callable<Map<String, String>> {
                 });
     }
 
-    private boolean checkDockerSupport() throws IOException, InterruptedException {
-        log("checkDockerSupport(): entering");
-        ProcessBuilder pb = new ProcessBuilder("which", Container.ENGINE_COMMAND);
+    private boolean checkProgramSupport(String logString, String cmd) throws IOException, InterruptedException {
+        log(logString + ": entering");
+        ProcessBuilder pb = new ProcessBuilder("which", cmd);
         Map<String, String> logFileNames =
-            redirectOutputToLogFile("checkDockerSupport(): which <container-engine>",
-                                                      pb, "which-container");
+            redirectOutputToLogFile(logString + ": which " + cmd,
+                                                      pb, "which-cmd");
         Process p = pb.start();
         p.waitFor(10, TimeUnit.SECONDS);
         int exitValue = p.exitValue();
 
-        log(String.format("checkDockerSupport(): exitValue = %s, pid = %s", exitValue, p.pid()));
+        log(String.format("%s: exitValue = %s, pid = %s", logString, exitValue, p.pid()));
         if (exitValue != 0) {
             printLogfileContent(logFileNames);
         }

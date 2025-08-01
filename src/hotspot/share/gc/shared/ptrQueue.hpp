@@ -25,12 +25,10 @@
 #ifndef SHARE_GC_SHARED_PTRQUEUE_HPP
 #define SHARE_GC_SHARED_PTRQUEUE_HPP
 
-#include "gc/shared/freeListAllocator.hpp"
-#include "memory/padded.hpp"
+#include "gc/shared/bufferNode.hpp"
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/globalDefinitions.hpp"
-#include "utilities/lockFreeStack.hpp"
 #include "utilities/sizes.hpp"
 
 // There are various techniques that require threads to be able to log
@@ -38,7 +36,6 @@
 // the addresses of modified old-generation objects.  This type supports
 // this operation.
 
-class BufferNode;
 class PtrQueueSet;
 class PtrQueue {
   friend class VMStructs;
@@ -118,84 +115,6 @@ protected:
   static ByteSize byte_width_of_buf() { return in_ByteSize(_element_size); }
 };
 
-class BufferNode {
-  size_t _index;
-  BufferNode* volatile _next;
-  void* _buffer[1];             // Pseudo flexible array member.
-
-  BufferNode() : _index(0), _next(nullptr) { }
-  ~BufferNode() { }
-
-  NONCOPYABLE(BufferNode);
-
-  static size_t buffer_offset() {
-    return offset_of(BufferNode, _buffer);
-  }
-
-public:
-  static BufferNode* volatile* next_ptr(BufferNode& bn) { return &bn._next; }
-  typedef LockFreeStack<BufferNode, &next_ptr> Stack;
-
-  BufferNode* next() const     { return _next;  }
-  void set_next(BufferNode* n) { _next = n;     }
-  size_t index() const         { return _index; }
-  void set_index(size_t i)     { _index = i; }
-
-  // Return the BufferNode containing the buffer, after setting its index.
-  static BufferNode* make_node_from_buffer(void** buffer, size_t index) {
-    BufferNode* node =
-      reinterpret_cast<BufferNode*>(
-        reinterpret_cast<char*>(buffer) - buffer_offset());
-    node->set_index(index);
-    return node;
-  }
-
-  // Return the buffer for node.
-  static void** make_buffer_from_node(BufferNode *node) {
-    // &_buffer[0] might lead to index out of bounds warnings.
-    return reinterpret_cast<void**>(
-      reinterpret_cast<char*>(node) + buffer_offset());
-  }
-
-  class AllocatorConfig;
-  class Allocator;              // Free-list based allocator.
-  class TestSupport;            // Unit test support.
-};
-
-// We use BufferNode::AllocatorConfig to set the allocation options for the
-// FreeListAllocator.
-class BufferNode::AllocatorConfig : public FreeListConfig {
-  const size_t _buffer_size;
-public:
-  explicit AllocatorConfig(size_t size);
-
-  ~AllocatorConfig() = default;
-
-  void* allocate() override;
-
-  void deallocate(void* node) override;
-
-  size_t buffer_size() const { return _buffer_size; }
-};
-
-class BufferNode::Allocator {
-  friend class TestSupport;
-
-  AllocatorConfig _config;
-  FreeListAllocator _free_list;
-
-  NONCOPYABLE(Allocator);
-
-public:
-  Allocator(const char* name, size_t buffer_size);
-  ~Allocator() = default;
-
-  size_t buffer_size() const { return _config.buffer_size(); }
-  size_t free_count() const;
-  BufferNode* allocate();
-  void release(BufferNode* node);
-};
-
 // A PtrQueueSet represents resources common to a set of pointer queues.
 // In particular, the individual queues allocate buffers from this shared
 // set, and return completed buffers to the set.
@@ -236,11 +155,11 @@ public:
   // Return the associated BufferNode allocator.
   BufferNode::Allocator* allocator() const { return _allocator; }
 
-  // Return the buffer for a BufferNode of size buffer_size().
+  // Return the buffer for a BufferNode of size buffer_capacity().
   void** allocate_buffer();
 
   // Return an empty buffer to the free list.  The node is required
-  // to have been allocated with a size of buffer_size().
+  // to have been allocated with a size of buffer_capacity().
   void deallocate_buffer(BufferNode* node);
 
   // A completed buffer is a buffer the mutator is finished with, and
@@ -249,8 +168,8 @@ public:
   // Adds node to the completed buffer list.
   virtual void enqueue_completed_buffer(BufferNode* node) = 0;
 
-  size_t buffer_size() const {
-    return _allocator->buffer_size();
+  size_t buffer_capacity() const {
+    return _allocator->buffer_capacity();
   }
 };
 

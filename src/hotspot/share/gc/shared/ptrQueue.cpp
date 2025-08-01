@@ -23,14 +23,12 @@
  */
 
 #include "precompiled.hpp"
+#include "gc/shared/bufferNode.hpp"
 #include "gc/shared/ptrQueue.hpp"
-#include "memory/allocation.inline.hpp"
-
-#include <new>
 
 PtrQueue::PtrQueue(PtrQueueSet* qset) :
   _index(0),
-  _capacity_in_bytes(index_to_byte_index(qset->buffer_size())),
+  _capacity_in_bytes(index_to_byte_index(qset->buffer_capacity())),
   _buf(nullptr)
 {}
 
@@ -38,39 +36,6 @@ PtrQueue::~PtrQueue() {
   assert(_buf == nullptr, "queue must be flushed before delete");
 }
 
-BufferNode::AllocatorConfig::AllocatorConfig(size_t size) : _buffer_size(size) {}
-
-void* BufferNode::AllocatorConfig::allocate() {
-  size_t byte_size = _buffer_size * sizeof(void*);
-  return NEW_C_HEAP_ARRAY(char, buffer_offset() + byte_size, mtGC);
-}
-
-void BufferNode::AllocatorConfig::deallocate(void* node) {
-  assert(node != nullptr, "precondition");
-  FREE_C_HEAP_ARRAY(char, node);
-}
-
-BufferNode::Allocator::Allocator(const char* name, size_t buffer_size) :
-  _config(buffer_size),
-  _free_list(name, &_config)
-{
-
-}
-
-size_t BufferNode::Allocator::free_count() const {
-  return _free_list.free_count();
-}
-
-BufferNode* BufferNode::Allocator::allocate() {
-  return ::new (_free_list.allocate()) BufferNode();
-}
-
-void BufferNode::Allocator::release(BufferNode* node) {
-  assert(node != nullptr, "precondition");
-  assert(node->next() == nullptr, "precondition");
-  node->~BufferNode();
-  _free_list.release(node);
-}
 
 PtrQueueSet::PtrQueueSet(BufferNode::Allocator* allocator) :
   _allocator(allocator)
@@ -80,7 +45,7 @@ PtrQueueSet::~PtrQueueSet() {}
 
 void PtrQueueSet::reset_queue(PtrQueue& queue) {
   if (queue.buffer() != nullptr) {
-    queue.set_index(buffer_size());
+    queue.set_index(buffer_capacity());
   }
 }
 
@@ -91,7 +56,7 @@ void PtrQueueSet::flush_queue(PtrQueue& queue) {
     queue.set_buffer(nullptr);
     queue.set_index(0);
     BufferNode* node = BufferNode::make_node_from_buffer(buffer, index);
-    if (index == buffer_size()) {
+    if (index == buffer_capacity()) {
       deallocate_buffer(node);
     } else {
       enqueue_completed_buffer(node);
@@ -129,7 +94,7 @@ BufferNode* PtrQueueSet::exchange_buffer_with_new(PtrQueue& queue) {
 
 void PtrQueueSet::install_new_buffer(PtrQueue& queue) {
   queue.set_buffer(allocate_buffer());
-  queue.set_index(buffer_size());
+  queue.set_index(buffer_capacity());
 }
 
 void** PtrQueueSet::allocate_buffer() {

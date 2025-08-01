@@ -1259,6 +1259,12 @@ void VMError::report(outputStream* st, bool _verbose) {
     os::print_dll_info(st);
     st->cr();
 
+#if INCLUDE_JVMTI
+  STEP_IF("printing jvmti agent info", _verbose)
+    os::print_jvmti_agent_info(st);
+    st->cr();
+#endif
+
   STEP_IF("printing native decoder state", _verbose)
     Decoder::print_state_on(st);
     st->cr();
@@ -1284,6 +1290,10 @@ void VMError::report(outputStream* st, bool _verbose) {
     st->print_cr("Logging:");
     LogConfiguration::describe_current_configuration(st);
     st->cr();
+
+  STEP_IF("printing release file content", _verbose)
+    st->print_cr("Release file:");
+    os::print_image_release_file(st);
 
   STEP_IF("printing all environment variables", _verbose)
     os::print_environment_variables(st, env_list);
@@ -1437,6 +1447,11 @@ void VMError::print_vm_info(outputStream* st) {
   os::print_dll_info(st);
   st->cr();
 
+#if INCLUDE_JVMTI
+  os::print_jvmti_agent_info(st);
+  st->cr();
+#endif
+
   // STEP("printing VM options")
 
   // VM options
@@ -1454,6 +1469,10 @@ void VMError::print_vm_info(outputStream* st) {
   st->print_cr("Logging:");
   LogConfiguration::describe(st);
   st->cr();
+
+  // STEP("printing release file content")
+  st->print_cr("Release file:");
+  os::print_image_release_file(st);
 
   // STEP("printing all environment variables")
 
@@ -1573,6 +1592,14 @@ void VMError::report_and_die(Thread* thread, unsigned int sig, address pc, void*
   va_list detail_args;
   va_start(detail_args, detail_fmt);
   report_and_die(sig, nullptr, detail_fmt, detail_args, thread, pc, siginfo, context, nullptr, 0, 0);
+  va_end(detail_args);
+}
+
+void VMError::report_and_die(Thread* thread, void* context, const char* filename, int lineno, const char* message,
+                             const char* detail_fmt, ...) {
+  va_list detail_args;
+  va_start(detail_args, detail_fmt);
+  report_and_die(thread, context, filename, lineno, message, detail_fmt, detail_args);
   va_end(detail_args);
 }
 

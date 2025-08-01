@@ -35,6 +35,7 @@
 #include "gc/g1/g1ParScanThreadState.hpp"
 #include "gc/g1/g1RemSet.hpp"
 #include "gc/g1/g1YoungGCPostEvacuateTasks.hpp"
+#include "gc/shared/bufferNode.hpp"
 #include "gc/shared/preservedMarks.inline.hpp"
 #include "jfr/jfrEvents.hpp"
 #include "runtime/threads.hpp"
@@ -397,13 +398,13 @@ public:
 
   void do_work(uint worker_id) override {
     RedirtyLoggedCardTableEntryClosure cl(G1CollectedHeap::heap(), _evac_failure_regions);
-    const size_t buffer_size = _rdcqs->buffer_size();
+    const size_t buffer_capacity = _rdcqs->buffer_capacity();
     BufferNode* next = Atomic::load(&_nodes);
     while (next != nullptr) {
       BufferNode* node = next;
       next = Atomic::cmpxchg(&_nodes, node, node->next());
       if (next == node) {
-        cl.apply_to_buffer(node, buffer_size, worker_id);
+        cl.apply_to_buffer(node, buffer_capacity, worker_id);
         next = node->next();
       }
     }
