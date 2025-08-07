@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,50 +23,33 @@
  * questions.
  */
 
-#ifndef _AWT_GRAPHICSENV_H_
-#define _AWT_GRAPHICSENV_H_
+package sun.security.ssl;
 
-#include <jni_util.h>
+/*
+ * Scopes defining different parts of TLS protocol.
+ */
 
-#ifndef HEADLESS
-#define MITSHM
-#endif /* !HEADLESS */
+public enum SSLScope {
+    // Handshake signature scope as in signature_algorithms extension.
+    HANDSHAKE_SIGNATURE("HandshakeSignature"),
 
-#define UNSET_MITSHM (-2)
-#define NOEXT_MITSHM (-1)
-#define CANT_USE_MITSHM (0)
-#define CAN_USE_MITSHM (1)
+    // Certificate signature scope as in signature_algorithms_cert extension.
+    CERTIFICATE_SIGNATURE("CertificateSignature");
 
-#ifdef MITSHM
+    private final String name;
 
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <X11/extensions/XShm.h>
-#ifndef X_ShmAttach
-#include <X11/Xmd.h>
-#include <X11/extensions/shmproto.h>
-#endif
+    SSLScope(String name) {
+        this.name = name;
+    }
 
-#define MITSHM_PERM_COMMON (0666)
-#define MITSHM_PERM_OWNER  (0600)
+    // Note: the SSLScope name is case-insensitive.
+    public static SSLScope nameOf(String scopeName) {
+        for (SSLScope scope : SSLScope.values()) {
+            if (scope.name.equalsIgnoreCase(scopeName)) {
+                return scope;
+            }
+        }
 
-void TryInitMITShm(JNIEnv *env, jint *shmExt, jint *shmPixmaps);
-void resetXShmAttachFailed();
-jboolean isXShmAttachFailed();
-
-#endif /* MITSHM */
-
-/* fieldIDs for X11GraphicsConfig fields that may be accessed from C */
-struct X11GraphicsConfigIDs {
-    jfieldID aData;
-    jfieldID bitsPerPixel;
-};
-
-#define MAX_DISPLAY_MODES 256
-typedef struct {
-    unsigned int width;
-    unsigned int height;
-    jint refresh;
-} DisplayMode;
-
-#endif /* _AWT_GRAPHICSENV_H_ */
+        return null;
+    }
+}
