@@ -2749,10 +2749,11 @@ public class ClassReader {
         int nameIndexLvt = firstParamLvt;
         int nameIndexMp = 0;
         int annotationIndex = 0;
+        boolean badClassFile = parameterAnnotations != null && parameterAnnotations.length != annotationIndex;
         for (Type t: sym.type.getParameterTypes()) {
             VarSymbol param = parameter(nameIndexMp, nameIndexLvt, t, sym, paramNames);
             params.append(param);
-            if (parameterAnnotations != null) {
+            if (parameterAnnotations != null && !badClassFile) {
                 ParameterAnnotations annotations = parameterAnnotations[annotationIndex];
                 if (annotations != null && annotations.proxies != null
                         && !annotations.proxies.isEmpty()) {
@@ -2763,15 +2764,15 @@ public class ClassReader {
             nameIndexMp++;
             annotationIndex++;
         }
-        if (parameterAnnotations != null && parameterAnnotations.length != annotationIndex) {
-            throw badClassFile("bad.runtime.invisible.param.annotations", sym);
-        }
         Assert.checkNull(sym.params);
         sym.params = params.toList();
         parameterAnnotations = null;
         parameterNameIndicesLvt = null;
         parameterNameIndicesMp = null;
         parameterAccessFlags = null;
+        if (badClassFile) {
+            throw badClassFile("bad.runtime.invisible.param.annotations", sym);
+        }
     }
 
     /**
