@@ -44,6 +44,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import jdk.jfr.EventType;
@@ -72,12 +73,13 @@ class JfrEvents {
 
             // execute 100 tasks, each in their own virtual thread
             recording.start();
-            ThreadFactory factory = Thread.ofVirtual().factory();
-            try (var executor = Executors.newThreadPerTaskExecutor(factory)) {
-                for (int i = 0; i < 100; i++) {
-                    executor.submit(() -> { });
+            try {
+                List<Thread> threads = IntStream.range(0, 100)
+                        .mapToObj(_ -> Thread.startVirtualThread(() -> { }))
+                        .toList();
+                for (Thread t : threads) {
+                    t.join();
                 }
-                Thread.sleep(1000); // give time for thread end events to be recorded
             } finally {
                 recording.stop();
             }
