@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1995, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -56,6 +56,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
 
+import jdk.internal.util.Exceptions;
 import jdk.internal.access.JavaNetInetAddressAccess;
 import jdk.internal.access.SharedSecrets;
 import jdk.internal.misc.Blocker;
@@ -71,6 +72,8 @@ import static java.net.spi.InetAddressResolver.LookupPolicy.IPV4;
 import static java.net.spi.InetAddressResolver.LookupPolicy.IPV4_FIRST;
 import static java.net.spi.InetAddressResolver.LookupPolicy.IPV6;
 import static java.net.spi.InetAddressResolver.LookupPolicy.IPV6_FIRST;
+import static jdk.internal.util.Exceptions.filterNonSocketInfo;
+import static jdk.internal.util.Exceptions.formatMsg;
 
 /**
  * This class represents an Internet Protocol (IP) address.
@@ -389,6 +392,7 @@ public sealed class InetAddress implements Serializable permits Inet4Address, In
                     }
                 }
         );
+        Exceptions.setup(); // needed for native exceptions
         init();
     }
 
@@ -985,7 +989,7 @@ public sealed class InetAddress implements Serializable permits Inet4Address, In
         @Override
         public InetAddress[] get() throws UnknownHostException {
             if (inetAddresses == null) {
-                throw new UnknownHostException(host);
+                throw new UnknownHostException(formatMsg("%s", filterNonSocketInfo(host)));
             }
             return inetAddresses;
         }
@@ -1178,7 +1182,9 @@ public sealed class InetAddress implements Serializable permits Inet4Address, In
                         }
                     }
                     if (inetAddresses == null || inetAddresses.length == 0) {
-                        throw ex == null ? new UnknownHostException(host) : ex;
+                        throw ex == null
+                            ? new UnknownHostException(formatMsg("%s", filterNonSocketInfo(host)))
+                            : ex;
                     }
                     return inetAddresses;
                 }
@@ -1286,16 +1292,19 @@ public sealed class InetAddress implements Serializable permits Inet4Address, In
                     }
                 }
             } catch (IOException e) {
-                throw new UnknownHostException("Unable to resolve address "
-                        + Arrays.toString(addr) + " as hosts file " + hostsFile
-                        + " not found ");
+                throw new UnknownHostException(
+                    formatMsg("Unable to resolve address %s as hosts file %s not found",
+                              filterNonSocketInfo(Arrays.toString(addr)),
+                              filterNonSocketInfo(hostsFile)
+                                   .replaceWith("from ${jdk.net.hosts.file} system property")));
             }
 
             if ((host == null) || (host.isEmpty()) || (host.equals(" "))) {
-                throw new UnknownHostException("Requested address "
-                        + Arrays.toString(addr)
-                        + " resolves to an invalid entry in hosts file "
-                        + hostsFile);
+                throw new UnknownHostException(
+                    formatMsg("Requested address %s resolves to an invalid entry in hosts file %s",
+                              filterNonSocketInfo(Arrays.toString(addr)),
+                              filterNonSocketInfo(hostsFile)
+                                   .replaceWith("from ${jdk.net.hosts.file} system property")));
             }
             return host;
         }
@@ -1356,8 +1365,11 @@ public sealed class InetAddress implements Serializable permits Inet4Address, In
                     }
                 }
             } catch (IOException e) {
-                throw new UnknownHostException("Unable to resolve host " + host
-                        + " as hosts file " + hostsFile + " not found ");
+                throw new UnknownHostException(
+                    formatMsg("Unable to resolve host %s as hosts file %s not found",
+                              filterNonSocketInfo(host), filterNonSocketInfo(hostsFile)
+                                   .replaceWith("from ${jdk.net.hosts.file} system property")));
+
             }
             // Check if only IPv4 addresses are requested
             if (needIPv4 && !needIPv6) {
@@ -1388,8 +1400,10 @@ public sealed class InetAddress implements Serializable permits Inet4Address, In
         private void checkResultsList(List<InetAddress> addressesList, String hostName)
                 throws UnknownHostException {
             if (addressesList.isEmpty()) {
-                throw new UnknownHostException("Unable to resolve host " + hostName
-                        + " in hosts file " + hostsFile);
+                throw new UnknownHostException(
+                    formatMsg("Unable to resolve host %s in hosts file %s",
+                              filterNonSocketInfo(hostName), filterNonSocketInfo(hostsFile)
+                                   .replaceWith("from ${jdk.net.hosts.file} system property")));
             }
         }
 
@@ -1643,7 +1657,7 @@ public sealed class InetAddress implements Serializable permits Inet4Address, In
                 try {
                     addr = IPAddressUtil.validateNumericFormatV4(host);
                 } catch (IllegalArgumentException iae) {
-                    var uhe = new UnknownHostException(host);
+                    var uhe = new UnknownHostException(formatMsg("%s", filterNonSocketInfo(host)));
                     uhe.initCause(iae);
                     throw uhe;
                 }
@@ -1690,7 +1704,8 @@ public sealed class InetAddress implements Serializable permits Inet4Address, In
 
     private static UnknownHostException invalidIPv6LiteralException(String host, boolean wrapInBrackets) {
         String hostString = wrapInBrackets ? "[" + host + "]" : host;
-        return new UnknownHostException(hostString + ": invalid IPv6 address literal");
+        return new UnknownHostException(formatMsg("%sinvalid IPv6 address literal",
+                                                  filterNonSocketInfo(hostString).suffixWith(": ")));
     }
 
     /**
@@ -1839,7 +1854,8 @@ public sealed class InetAddress implements Serializable permits Inet4Address, In
         InetAddress[] result = addresses == null ? null
                 : addresses.toArray(InetAddress[]::new);
         if (result == null || result.length == 0) {
-            throw ex == null ? new UnknownHostException(host) : ex;
+            throw ex == null ? new UnknownHostException(formatMsg("%s", filterNonSocketInfo(host)))
+                             : ex;
         }
         return result;
     }
@@ -1932,8 +1948,8 @@ public sealed class InetAddress implements Serializable permits Inet4Address, In
                 } catch (UnknownHostException uhe) {
                     // Rethrow with a more informative error message.
                     UnknownHostException uhe2 =
-                        new UnknownHostException(local + ": " +
-                                                 uhe.getMessage());
+                            new UnknownHostException(formatMsg(filterNonSocketInfo(local)
+                                                               .suffixWith(": ") + uhe.getMessage()));
                     uhe2.initCause(uhe);
                     throw uhe2;
                 }
