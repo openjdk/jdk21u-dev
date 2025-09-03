@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -239,6 +239,7 @@ static int ParseLocale(JNIEnv* env, int cat, char ** std_language, char ** std_s
         if (language != NULL && mapLookup(language_names, language, std_language) == 0) {
             *std_language = malloc(strlen(language)+1);
             if (*std_language == NULL) {
+                free(temp);
                 free(encoding_variant);
                 JNU_ThrowOutOfMemoryError(env, NULL);
                 return 0;
@@ -252,6 +253,7 @@ static int ParseLocale(JNIEnv* env, int cat, char ** std_language, char ** std_s
         if (mapLookup(country_names, country, std_country) == 0) {
             *std_country = malloc(strlen(country)+1);
             if (*std_country == NULL) {
+                free(temp);
                 free(encoding_variant);
                 JNU_ThrowOutOfMemoryError(env, NULL);
                 return 0;
@@ -521,11 +523,14 @@ GetJavaProperties(JNIEnv *env)
     {
         char buf[MAXPATHLEN];
         errno = 0;
-        if (getcwd(buf, sizeof(buf))  == NULL)
+        if (getcwd(buf, sizeof(buf)) == NULL) {
             JNU_ThrowByName(env, "java/lang/Error",
-             "Properties init: Could not determine current working directory.");
-        else
+            "Properties init: Could not determine current working directory.");
+            return NULL;
+        }
+        else {
             sprops.user_dir = strdup(buf);
+        }
     }
 
     sprops.file_separator = "/";
