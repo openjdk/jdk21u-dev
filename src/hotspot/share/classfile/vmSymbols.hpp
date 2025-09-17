@@ -127,7 +127,6 @@
   template(java_security_ProtectionDomain,            "java/security/ProtectionDomain")           \
   template(java_security_SecureClassLoader,           "java/security/SecureClassLoader")          \
   template(java_net_URL,                              "java/net/URL")                             \
-  template(java_net_URLClassLoader,                   "java/net/URLClassLoader")                  \
   template(java_util_jar_Manifest,                    "java/util/jar/Manifest")                   \
   template(java_io_OutputStream,                      "java/io/OutputStream")                     \
   template(java_io_Reader,                            "java/io/Reader")                           \
@@ -341,11 +340,9 @@
   template(java_lang_invoke_MemberName,               "java/lang/invoke/MemberName")              \
   template(java_lang_invoke_ResolvedMethodName,       "java/lang/invoke/ResolvedMethodName")      \
   template(java_lang_invoke_MethodHandleNatives,      "java/lang/invoke/MethodHandleNatives")     \
-  template(java_lang_invoke_MethodHandleNatives_CallSiteContext, "java/lang/invoke/MethodHandleNatives$CallSiteContext") \
   template(java_lang_invoke_LambdaForm,               "java/lang/invoke/LambdaForm")              \
   template(java_lang_invoke_InjectedProfile_signature, "Ljava/lang/invoke/InjectedProfile;")      \
   template(java_lang_invoke_LambdaForm_Compiled_signature, "Ljava/lang/invoke/LambdaForm$Compiled;") \
-  template(java_lang_invoke_MethodHandleNatives_CallSiteContext_signature, "Ljava/lang/invoke/MethodHandleNatives$CallSiteContext;") \
   /* internal up-calls made only by the JVM, via class sun.invoke.MethodHandleNatives: */         \
   template(findMethodHandleType_name,                 "findMethodHandleType")                     \
   template(findMethodHandleType_signature,       "(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;") \
@@ -788,7 +785,6 @@
   template(toFileURL_name,                                  "toFileURL")                                          \
   template(toFileURL_signature,                             "(Ljava/lang/String;)Ljava/net/URL;")                 \
   template(url_void_signature,                              "(Ljava/net/URL;)V")                                  \
-  template(url_array_classloader_void_signature,            "([Ljava/net/URL;Ljava/lang/ClassLoader;)V")          \
                                                                                                                   \
   /* Thread.dump_to_file jcmd */                                                                                  \
   template(jdk_internal_vm_ThreadDumper,           "jdk/internal/vm/ThreadDumper")                                \
