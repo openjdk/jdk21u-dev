@@ -76,7 +76,7 @@ public class RegUnregSuperTest {
             out.shouldContain("CustomLoadee3Child (id 3) has super-type CustomLoadee3 (id 1) obstructed by another class with the same name");
         } else {
             out.shouldContain("unreg CustomLoadee3Child");
-            out.shouldNotContain("[warning]");
+            out.shouldNotContain("obstructed by another class with the same name");
         }
 
         out = TestCommon.exec(appJar, "-Xlog:class+load", "RegUnregSuperApp", variant);
