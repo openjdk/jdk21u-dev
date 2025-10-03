@@ -53,28 +53,17 @@ public class TerminalExecTest {
                 rs.stop();
             }
 
-            // remove cygpath command executed by OSUtils.cygPathToWinPath()
+            String unexpected;
             if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
-                commands.removeIf(cmd -> cmd.contains("cygpath"));
-            }
-
-            String expectedRegex;
-            if (OSUtils.IS_CYGWIN) {
-                expectedRegex = "cygwin.*\\\\bin\\\\test\\.exe";
-            } else if (OSUtils.IS_MSYSTEM) {
-                expectedRegex = "msys.*\\\\usr\\\\bin\\\\test\\.exe";
+                unexpected = "tmp\\bin\\test.exe";
             } else {
-                expectedRegex = "bin/test";
+                unexpected = "tmp/bin/test";
             }
-
-            Pattern pattern = Pattern.compile(expectedRegex);
 
             for (String cmd : commands) {
-                Matcher matcher = pattern.matcher(cmd);
-                if (!matcher.find()) {
-                    System.err.println("Command did not match expected pattern.");
-                    System.err.println("  Expected Regex: \"" + expectedRegex + "\"");
-                    System.err.println("  Actual Command:   \"" + cmd + "\"");
+                if (cmd.contains(unexpected)) {
+                    System.err.println("Unintended executable file 'test' is executed.");
+                    System.err.println("Executed Command:   \"" + cmd + "\"");
                     System.exit(1);
                 }
             }
