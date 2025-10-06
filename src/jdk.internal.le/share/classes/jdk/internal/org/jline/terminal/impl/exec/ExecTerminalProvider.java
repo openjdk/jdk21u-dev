@@ -125,7 +125,7 @@ public class ExecTerminalProvider implements TerminalProvider {
             if (OSUtils.IS_WINDOWS && (!OSUtils.IS_CYGWIN && !OSUtils.IS_MSYSTEM)) {
                 return isWindowsSystemStream(stream);
             } else {
-                return isPosixSystemStream(stream);
+                return isPosixSystemStream(stream) || isWindowsSystemStream(stream);
             }
         } catch (Throwable t) {
             return false;
