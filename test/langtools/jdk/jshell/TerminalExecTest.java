@@ -53,18 +53,23 @@ public class TerminalExecTest {
                 rs.stop();
             }
 
-            // remove cygpath command executed by OSUtils.cygPathToWinPath()
+            String cygwinRootPathRegex = null;
             if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
+                // remove cygpath command executed by OSUtils.cygPathToWinPath()
                 commands.removeIf(cmd -> cmd.contains("cygpath"));
+
+                Process p = new ProcessBuilder("cygpath", "-w", "/").start();
+                cygwinRootPathRegex = ExecHelper.waitAndCapture(p).trim().replace("\\", "\\\\");
+                System.out.println("regular expression of Cygwin/MSYS root path: " + cygwinRootPathRegex);
             }
 
             String expectedRegex;
             if (OSUtils.IS_CYGWIN) {
-                expectedRegex = "cygwin.*\\\\bin\\\\test\\.exe";
+                expectedRegex = "^(" + cygwinRootPathRegex + "\\\\usr\\\\bin|" + cygwinRootPathRegex + "\\\\bin)\\\\test\\.exe";
             } else if (OSUtils.IS_MSYSTEM) {
-                expectedRegex = "msys.*\\\\usr\\\\bin\\\\test\\.exe";
+                expectedRegex = "^(" + cygwinRootPathRegex + "usr\\\\bin|" + cygwinRootPathRegex + "bin)\\\\test\\.exe";
             } else {
-                expectedRegex = "bin/test";
+                expectedRegex = "^(/usr/bin|/bin)/test";
             }
 
             Pattern pattern = Pattern.compile(expectedRegex);
