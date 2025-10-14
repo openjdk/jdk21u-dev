@@ -83,23 +83,23 @@ public class TerminalExecTest {
                     System.exit(1);
                 }
             }
-            
+
             System.exit(0);
         } else {
             ToolBox tb = new ToolBox();
-            
+
             ProcessBuilder pb =
                 new ProcessBuilder(tb.getJDKTool("java").toString(),
                                    "-classpath", System.getProperty("java.class.path"),
-                                   "--add-exports", 
+                                   "--add-exports",
                                    "jdk.internal.le/jdk.internal.org.jline.utils=ALL-UNNAMED",
-                                   "--add-exports", 
+                                   "--add-exports",
                                    "jdk.internal.le/jdk.internal.org.jline.terminal=ALL-UNNAMED",
                                    TerminalExecTest.class.getName(),
                                    "run-test")
                         .redirectError(ProcessBuilder.Redirect.INHERIT)
                         .redirectOutput(ProcessBuilder.Redirect.INHERIT);
-             
+
             String javaExe = ToolBox.isWindows() ? "java.exe" : "java";
             String testExe = ToolBox.isWindows() ? "test.exe" : "test";
 
