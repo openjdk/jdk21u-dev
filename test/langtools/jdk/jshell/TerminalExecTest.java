@@ -62,6 +62,8 @@ public class TerminalExecTest {
                 cygwinRootPathRegex = ExecHelper.waitAndCapture(p).trim().replace("\\", "\\\\");
                 System.out.println("regular expression of Cygwin/MSYS root path: " + cygwinRootPathRegex);
             }
+            // remove tty command executed by ExecTerminalProvider.systemStreamName()
+            commands.removeIf(cmd -> cmd.contains("tty"));
 
             String expectedRegex;
             if (OSUtils.IS_CYGWIN) {
