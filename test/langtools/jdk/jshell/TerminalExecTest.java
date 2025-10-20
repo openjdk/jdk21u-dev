@@ -65,6 +65,11 @@ public class TerminalExecTest {
             // remove tty command executed by ExecTerminalProvider.systemStreamName()
             commands.removeIf(cmd -> cmd.contains("tty"));
 
+            if (commands.isEmpty()) {
+                System.err.println("No commands were found.");
+                System.exit(1);
+            }
+
             String expectedRegex;
             if (OSUtils.IS_CYGWIN) {
                 expectedRegex = "^(" + cygwinRootPathRegex + "\\\\usr\\\\bin|" + cygwinRootPathRegex + "\\\\bin)\\\\test\\.exe";
