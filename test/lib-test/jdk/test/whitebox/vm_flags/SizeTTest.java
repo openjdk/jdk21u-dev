@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -7,7 +7,7 @@
  * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILTY or
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * version 2 for more details (a copy is included in the LICENSE file that
  * accompanied this code).
@@ -35,7 +35,7 @@
 import jdk.test.lib.Platform;
 
 public class SizeTTest {
-    private static final String FLAG_NAME = "ArrayAllocatorMallocLimit";
+    private static final String FLAG_NAME = "LargePageHeapSizeThreshold";
     private static final Long[] TESTS = {0L, 100L, (long) Integer.MAX_VALUE,
         (1L << 32L) - 1L, 1L << 32L};
     private static final Long[] EXPECTED_64 = TESTS;
