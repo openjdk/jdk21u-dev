@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,6 @@
 
 /* @test
  * @bug 8269481
- * @library /test/lib
  * @summary Tests that file descriptors are closed
  * @requires (os.family == "linux")
  * @run main/othervm CloseDescriptors
@@ -39,8 +38,6 @@ import java.util.Optional;
 import com.sun.nio.sctp.MessageInfo;
 import com.sun.nio.sctp.SctpMultiChannel;
 
-import jtreg.SkippedException;
-
 public class CloseDescriptors {
 
     private static final int NUM      = 5;
@@ -49,7 +46,9 @@ public class CloseDescriptors {
 
     public static void main(String[] args) throws Exception {
         if (!Util.isSCTPSupported()) {
-            throw new SkippedException("SCTP protocol is not supported");
+            System.out.println("SCTP protocol is not supported");
+            System.out.println("Test cannot be run");
+            return;
         }
 
         List<String> lsofDirs = List.of("/usr/bin", "/usr/sbin");
@@ -58,7 +57,9 @@ public class CloseDescriptors {
                 .filter(f -> Files.isExecutable(f))
                 .findFirst();
         if (!lsof.isPresent()) {
-            throw new SkippedException("Cannot locate lsof in " + lsofDirs);
+            System.out.println("Cannot locate lsof in " + lsofDirs);
+            System.out.println("Test cannot be run");
+            return;
         }
 
         try (ServerSocket ss = new ServerSocket(0)) {
