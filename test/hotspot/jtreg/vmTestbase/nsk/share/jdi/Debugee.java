@@ -680,9 +680,9 @@ public class Debugee extends DebugeeProcess {
     /*
      * Print information about all threads in debuggee VM
      */
-    protected void printThreadsInfo(VirtualMachine vm)  {
+    public void printThreadsInfo(VirtualMachine vm) {
         try {
-            log.display("------------ Try to print debuggee threads before killing process ------------");
+            log.display("------------ Print debuggee threads ------------");
             if (vm == null) {
                 log.display("Can't print threads info because 'vm' is null");
                 return;
@@ -716,7 +716,7 @@ public class Debugee extends DebugeeProcess {
                     }
                 }
             }
-            log.display("----------------------------------------------------------------------");
+            log.display("------------------------------------------------");
         } catch (Throwable t) {
             log.complain("");
             t.printStackTrace(log.getOutStream());
