@@ -399,6 +399,7 @@ java/awt/Modal/MultipleDialogs/MultipleDialogs2Test.java 8198665 macosx-all
 java/awt/Modal/MultipleDialogs/MultipleDialogs3Test.java 8198665 macosx-all
 java/awt/Modal/MultipleDialogs/MultipleDialogs4Test.java 8198665 macosx-all
 java/awt/Modal/MultipleDialogs/MultipleDialogs5Test.java 8198665 macosx-all
+java/awt/Modal/NativeDialogToFrontBackTest.java 7188049 windows-all,linux-all
 java/awt/Mouse/EnterExitEvents/DragWindowOutOfFrameTest.java 8177326 macosx-all
 java/awt/Mouse/EnterExitEvents/ResizingFrameTest.java 8005021 macosx-all
 java/awt/Mouse/EnterExitEvents/FullscreenEnterEventTest.java 8051455 macosx-all
@@ -609,8 +610,6 @@ java/rmi/server/Unreferenced/finiteGCLatency/FiniteGCLatency.java 7140992 generi
 
 java/rmi/transport/rapidExportUnexport/RapidExportUnexport.java 7146541 linux-all
 
-java/rmi/transport/checkLeaseInfoLeak/CheckLeaseLeak.java       7191877 generic-all
-
 java/rmi/registry/readTest/CodebaseTest.java                    8173324 windows-all
 java/rmi/registry/multipleRegistries/MultipleRegistries.java    8268182 macosx-all
 
@@ -817,7 +816,6 @@ java/awt/Modal/WsDisabledStyle/CloseBlocker/CloseBlocker.java 7187741 linux-all,
 java/awt/xembed/server/TestXEmbedServerJava.java 8001150,8004031 generic-all
 java/awt/Modal/PrintDialogsTest/PrintDialogsTest.java 8068378 generic-all
 java/awt/dnd/DnDFileGroupDescriptor/DnDFileGroupDescriptor.html 8080185 macosx-all,linux-all
-java/awt/event/MouseEvent/AltGraphModifierTest/AltGraphModifierTest.java 8162380 generic-all
 java/awt/image/VolatileImage/VolatileImageConfigurationTest.java 8171069 macosx-all,linux-all
 java/awt/Modal/InvisibleParentTest/InvisibleParentTest.java 8172245 linux-all
 java/awt/Frame/FrameStateTest/FrameStateTest.java 8203920 macosx-all,linux-all
