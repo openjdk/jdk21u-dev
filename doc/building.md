@@ -289,7 +289,7 @@ will most likely need to install developer packages.
 
 For apt-based distributions (Debian, Ubuntu, etc), try this:
 ```
-sudo apt-get install build-essential
+sudo apt-get install build-essential autoconf
 ```
 
 For rpm-based distributions (Fedora, Red Hat, etc), try this:
@@ -336,7 +336,7 @@ issues.
 
 | Operating system   | Toolchain version                          |
 | ------------------ | ------------------------------------------ |
-| Linux              | gcc 11.2.0                                 |
+| Linux              | gcc 13.2.0                                 |
 | macOS              | Apple Xcode 10.1 (using clang 10.0.0)      |
 | Windows            | Microsoft Visual Studio 2022 update 17.1.0 |
 
@@ -350,7 +350,7 @@ features that it does support.
 The minimum accepted version of gcc is 5.0. Older versions will generate a warning
 by `configure` and are unlikely to work.
 
-The JDK is currently known to be able to compile with at least version 11.2 of
+The JDK is currently known to be able to compile with at least version 13.2 of
 gcc.
 
 In general, any version between these two should be usable.
@@ -881,11 +881,11 @@ Download the latest `.tar.gz` file, unpack it, and point `--with-jtreg` to the
 Building of Hotspot Gtest suite requires the source code of Google
 Test framework.  The top directory, which contains both `googletest`
 and `googlemock` directories, should be specified via `--with-gtest`.
-The minimum supported version of Google Test is 1.13.0, whose source
+The minimum supported version of Google Test is 1.14.0, whose source
 code can be obtained:
 
- * by downloading and unpacking the source bundle from [here](https://github.com/google/googletest/releases/tag/v1.13.0)
- * or by checking out `v1.13.0` tag of `googletest` project: `git clone -b v1.13.0 https://github.com/google/googletest`
+ * by downloading and unpacking the source bundle from [here](https://github.com/google/googletest/releases/tag/v1.14.0)
+ * or by checking out `v1.14.0` tag of `googletest` project: `git clone -b v1.14.0 https://github.com/google/googletest`
 
 To execute the most basic tests (tier 1), use:
 ```
