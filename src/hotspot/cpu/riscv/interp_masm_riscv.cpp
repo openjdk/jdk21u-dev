@@ -2014,7 +2014,7 @@ void InterpreterMacroAssembler::get_method_counters(Register method,
 void InterpreterMacroAssembler::verify_field_offset(Register reg) {
   // Verify the field offset is not in the header, implicitly checks for 0
   Label L;
-  mv(t0, oopDesc::base_offset_in_bytes());
+  mv(t0, static_cast<int>(sizeof(markWord) + (UseCompressedClassPointers ? sizeof(narrowKlass) : sizeof(Klass*))));
   bge(reg, t0, L);
   stop("bad field offset");
   bind(L);
