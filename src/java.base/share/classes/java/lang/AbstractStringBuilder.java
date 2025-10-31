@@ -130,9 +130,6 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence
      * as the specified {@code CharSequence}. The initial capacity of
      * the string builder is {@code 16} plus the length of the
      * {@code CharSequence} argument.
-     * <p>
-     * The contents are unspecified if the {@code CharSequence}
-     * is modified during string construction.
      *
      * @param      seq   the sequence to copy.
      */
@@ -669,10 +666,6 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence
      * If {@code s} is {@code null}, then this method appends
      * characters as if the s parameter was a sequence containing the four
      * characters {@code "null"}.
-     * <p>
-     * The contents are unspecified if the {@code CharSequence}
-     * is modified during the method call or an exception is thrown
-     * when accessing the {@code CharSequence}.
      *
      * @param   s the sequence to append.
      * @param   start   the starting index of the subsequence to be appended.
@@ -1248,10 +1241,6 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence
      * invocation of this object's
      * {@link #insert(int,CharSequence,int,int) insert}(dstOffset, s, 0, s.length())
      * method.
-     * <p>
-     * The contents are unspecified if the {@code CharSequence}
-     * is modified during the method call or an exception is thrown
-     * when accessing the {@code CharSequence}.
      *
      * <p>If {@code s} is {@code null}, then the four characters
      * {@code "null"} are inserted into this sequence.
@@ -1300,10 +1289,6 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence
      * <p>If {@code s} is {@code null}, then this method inserts
      * characters as if the s parameter was a sequence containing the four
      * characters {@code "null"}.
-     * <p>
-     * The contents are unspecified if the {@code CharSequence}
-     * is modified during the method call or an exception is thrown
-     * when accessing the {@code CharSequence}.
      *
      * @param      dstOffset   the offset in this sequence.
      * @param      s       the sequence to be inserted.

@@ -271,9 +271,6 @@ public final class String
      * contents of the character array are copied; subsequent modification of
      * the character array does not affect the newly created string.
      *
-     * <p> The contents of the string are unspecified if the character array
-     * is modified during string construction.
-     *
      * @param  value
      *         The initial value of the string
      */
@@ -288,9 +285,6 @@ public final class String
      * argument specifies the length of the subarray. The contents of the
      * subarray are copied; subsequent modification of the character array does
      * not affect the newly created string.
-     *
-     * <p> The contents of the string are unspecified if the character array
-     * is modified during string construction.
      *
      * @param  value
      *         Array that is the source of characters
@@ -322,9 +316,6 @@ public final class String
      * length of the subarray.  The contents of the subarray are converted to
      * {@code char}s; subsequent modification of the {@code int} array does not
      * affect the newly created string.
-     *
-     * <p> The contents of the string are unspecified if the codepoints array
-     * is modified during string construction.
      *
      * @param  codePoints
      *         Array that is the source of Unicode code points
@@ -372,9 +363,6 @@ public final class String
      *
      * <p> Each {@code byte} in the subarray is converted to a {@code char} as
      * specified in the {@link #String(byte[],int) String(byte[],int)} constructor.
-     *
-     * <p> The contents of the string are unspecified if the byte array
-     * is modified during string construction.
      *
      * @deprecated This method does not properly convert bytes into characters.
      * As of JDK&nbsp;1.1, the preferred way to do this is via the
@@ -437,9 +425,6 @@ public final class String
      *                         | (<b><i>b</i></b> &amp; 0xff))
      * </pre></blockquote>
      *
-     * <p> The contents of the string are unspecified if the byte array
-     * is modified during string construction.
-     *
      * @deprecated  This method does not properly convert bytes into
      * characters.  As of JDK&nbsp;1.1, the preferred way to do this is via the
      * {@code String} constructors that take a {@link Charset}, charset name,
@@ -473,9 +458,6 @@ public final class String
      * in the given charset is unspecified.  The {@link
      * java.nio.charset.CharsetDecoder} class should be used when more control
      * over the decoding process is required.
-     *
-     * <p> The contents of the string are unspecified if the byte array
-     * is modified during string construction.
      *
      * @param  bytes
      *         The bytes to be decoded into characters
@@ -514,9 +496,6 @@ public final class String
      * sequences with this charset's default replacement string.  The {@link
      * java.nio.charset.CharsetDecoder} class should be used when more control
      * over the decoding process is required.
-     *
-     * <p> The contents of the string are unspecified if the byte array
-     * is modified during string construction.
      *
      * @param  bytes
      *         The bytes to be decoded into characters
@@ -1394,9 +1373,6 @@ public final class String
      * java.nio.charset.CharsetDecoder} class should be used when more control
      * over the decoding process is required.
      *
-     * <p> The contents of the string are unspecified if the byte array
-     * is modified during string construction.
-     *
      * @param  bytes
      *         The bytes to be decoded into characters
      *
@@ -1425,9 +1401,6 @@ public final class String
      * java.nio.charset.CharsetDecoder} class should be used when more control
      * over the decoding process is required.
      *
-     * <p> The contents of the string are unspecified if the byte array
-     * is modified during string construction.
-     *
      * @param  bytes
      *         The bytes to be decoded into characters
      *
@@ -1451,9 +1424,6 @@ public final class String
      * in the default charset is unspecified.  The {@link
      * java.nio.charset.CharsetDecoder} class should be used when more control
      * over the decoding process is required.
-     *
-     * <p> The contents of the string are unspecified if the byte array
-     * is modified during string construction.
      *
      * @param  bytes
      *         The bytes to be decoded into characters
@@ -1485,9 +1455,6 @@ public final class String
      * java.nio.charset.CharsetDecoder} class should be used when more control
      * over the decoding process is required.
      *
-     * <p> The contents of the string are unspecified if the byte array
-     * is modified during string construction.
-     *
      * @param  bytes
      *         The bytes to be decoded into characters
      *
@@ -1515,9 +1482,6 @@ public final class String
      * currently contained in the string builder argument. The contents of the
      * string builder are copied; subsequent modification of the string builder
      * does not affect the newly created string.
-     *
-     * <p> The contents of the string are unspecified if the {@code StringBuilder}
-     * is modified during string construction.
      *
      * <p> This constructor is provided to ease migration to {@code
      * StringBuilder}. Obtaining a string from a string builder via the {@code
@@ -4496,9 +4460,6 @@ public final class String
      * modification of the character array does not affect the returned
      * string.
      *
-     * <p> The contents of the string are unspecified if the character array
-     * is modified during string construction.
-     *
      * @param   data     the character array.
      * @return  a {@code String} that contains the characters of the
      *          character array.
@@ -4516,9 +4477,6 @@ public final class String
      * specifies the length of the subarray. The contents of the subarray
      * are copied; subsequent modification of the character array does not
      * affect the returned string.
-     *
-     * <p> The contents of the string are unspecified if the character array
-     * is modified during string construction.
      *
      * @param   data     the character array.
      * @param   offset   initial offset of the subarray.
