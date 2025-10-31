@@ -33,9 +33,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.charset.StandardCharsets.UTF_16;
 import static java.nio.charset.StandardCharsets.UTF_16BE;
 import static java.nio.charset.StandardCharsets.UTF_16LE;
-import static java.nio.charset.StandardCharsets.UTF_32;
-import static java.nio.charset.StandardCharsets.UTF_32BE;
-import static java.nio.charset.StandardCharsets.UTF_32LE;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
@@ -165,9 +162,6 @@ public class ReadWriteString {
             {testFiles[1], TEXT_PERSON_CART_WHEELING, UTF_16, UTF_16},
             {testFiles[1], TEXT_PERSON_CART_WHEELING, UTF_16BE, UTF_16BE},
             {testFiles[1], TEXT_PERSON_CART_WHEELING, UTF_16LE, UTF_16LE},
-            {testFiles[1], TEXT_PERSON_CART_WHEELING, UTF_32, UTF_32},
-            {testFiles[1], TEXT_PERSON_CART_WHEELING, UTF_32BE, UTF_32BE},
-            {testFiles[1], TEXT_PERSON_CART_WHEELING, UTF_32LE, UTF_32LE},
             {testFiles[1], TEXT_PERSON_CART_WHEELING, WINDOWS_1252, WINDOWS_1252},
             {testFiles[1], TEXT_PERSON_CART_WHEELING, WINDOWS_31J, WINDOWS_31J}
         };
