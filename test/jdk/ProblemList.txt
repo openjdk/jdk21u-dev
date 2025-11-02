@@ -254,7 +254,7 @@ java/awt/FullScreen/DisplayChangeVITest/DisplayChangeVITest.java 8169469,8273617
 java/awt/FullScreen/UninitializedDisplayModeChangeTest/UninitializedDisplayModeChangeTest.java 8273617 macosx-all
 java/awt/print/PrinterJob/PSQuestionMark.java 7003378 generic-all
 java/awt/print/PrinterJob/GlyphPositions.java 7003378 generic-all
-java/awt/Choice/ChoiceMouseWheelTest/ChoiceMouseWheelTest.java 6849371 macosx-all,linux-all
+java/awt/Choice/ChoiceMouseWheelTest/ChoiceMouseWheelTest.java 8366852 generic-all
 java/awt/Component/GetScreenLocTest/GetScreenLocTest.java 4753654 generic-all
 java/awt/Component/SetEnabledPerformance/SetEnabledPerformance.java 8165863 macosx-all
 java/awt/Clipboard/PasteNullToTextComponentsTest.java 8234140 macosx-all,windows-all
@@ -449,7 +449,6 @@ java/awt/Focus/TranserFocusToWindow/TranserFocusToWindow.java 6848810 macosx-all
 java/awt/FileDialog/ModalFocus/FileDialogModalFocusTest.java 8194751 linux-all
 java/awt/image/VolatileImage/BitmaskVolatileImage.java 8133102 linux-all
 java/awt/SplashScreen/MultiResolutionSplash/unix/UnixMultiResolutionSplashTest.java 8203004 linux-all
-java/awt/ScrollPane/ScrollPositionTest.java 8040070 linux-all
 java/awt/ScrollPane/ScrollPaneEventType.java 8296516 macosx-all
 java/awt/Robot/AcceptExtraMouseButtons/AcceptExtraMouseButtons.java 7107528 linux-all,macosx-all
 java/awt/Mouse/MouseDragEvent/MouseDraggedTest.java 8080676 linux-all
@@ -609,8 +608,6 @@ java/nio/file/Files/probeContentType/Basic.java                 8320943 windows-
 java/rmi/server/Unreferenced/finiteGCLatency/FiniteGCLatency.java 7140992 generic-all
 
 java/rmi/transport/rapidExportUnexport/RapidExportUnexport.java 7146541 linux-all
-
-java/rmi/transport/checkLeaseInfoLeak/CheckLeaseLeak.java       7191877 generic-all
 
 java/rmi/registry/readTest/CodebaseTest.java                    8173324 windows-all
 java/rmi/registry/multipleRegistries/MultipleRegistries.java    8268182 macosx-all
@@ -818,7 +815,6 @@ java/awt/Modal/WsDisabledStyle/CloseBlocker/CloseBlocker.java 7187741 linux-all,
 java/awt/xembed/server/TestXEmbedServerJava.java 8001150,8004031 generic-all
 java/awt/Modal/PrintDialogsTest/PrintDialogsTest.java 8068378 generic-all
 java/awt/dnd/DnDFileGroupDescriptor/DnDFileGroupDescriptor.html 8080185 macosx-all,linux-all
-java/awt/event/MouseEvent/AltGraphModifierTest/AltGraphModifierTest.java 8162380 generic-all
 java/awt/image/VolatileImage/VolatileImageConfigurationTest.java 8171069 macosx-all,linux-all
 java/awt/Modal/InvisibleParentTest/InvisibleParentTest.java 8172245 linux-all
 java/awt/Frame/FrameStateTest/FrameStateTest.java 8203920 macosx-all,linux-all
@@ -846,4 +842,5 @@ java/awt/Checkbox/CheckboxNullLabelTest.java 8340870 windows-all
 java/awt/dnd/WinMoveFileToShellTest.java 8341665 windows-all
 java/awt/Focus/MinimizeNonfocusableWindowTest.java 8024487 windows-all
 java/awt/Menu/MenuVisibilityTest.java 8161110 macosx-all
+java/awt/Modal/NativeDialogToFrontBackTest.java 7188049 windows-all,linux-all
 java/awt/Cursor/CursorDragTest/ListDragCursor.java 7177297 macosx-all
