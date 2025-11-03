@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2023, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2025, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -94,9 +94,16 @@ gc/TestAllocHumongousFragment.java#g1 8298781 generic-all
 gc/TestAllocHumongousFragment.java#static 8298781 generic-all
 gc/shenandoah/TestAllocIntArrays.java#aggressive 8309622 generic-all
 gc/shenandoah/TestAllocIntArrays.java#iu-aggressive 8309622 generic-all
+gc/shenandoah/TestAllocObjectArrays.java#aggressive 8309622 generic-all
+gc/shenandoah/TestAllocObjectArrays.java#iu-aggressive 8309622 generic-all
+gc/shenandoah/TestJcmdHeapDump.java#aggressive 8309622 generic-all
+gc/shenandoah/TestJcmdHeapDump.java#iu-aggressive 8309622 generic-all
+gc/shenandoah/TestSieveObjects.java#aggressive 8309622 generic-all
+gc/shenandoah/TestSieveObjects.java#iu-aggressive 8309622 generic-all
 gc/stress/gclocker/TestExcessGCLockerCollections.java 8229120 generic-all
 gc/stress/gclocker/TestGCLockerWithParallel.java 8180622 generic-all
 gc/stress/gclocker/TestGCLockerWithG1.java 8180622 generic-all
+gc/stress/gcold/TestGCOldWithShenandoah.java#aggressive 8309622 generic-all
 gc/stress/gcold/TestGCOldWithShenandoah.java#iu-aggressive 8309622 generic-all
 gc/stress/TestJNIBlockFullGC/TestJNIBlockFullGC.java 8192647 generic-all
 gc/stress/TestStressG1Humongous.java 8286554 windows-x64
@@ -143,8 +150,6 @@ serviceability/sa/ClhsdbPmap.java#core 8267433 macosx-x64
 serviceability/sa/ClhsdbPstack.java#core 8267433 macosx-x64
 serviceability/sa/TestJmapCore.java 8267433 macosx-x64
 serviceability/sa/TestJmapCoreMetaspace.java 8267433 macosx-x64
-
-serviceability/attach/ConcAttachTest.java 8290043 linux-all
 
 serviceability/jvmti/stress/StackTrace/NotSuspended/GetStackTraceNotSuspendedStressTest.java 8315980 linux-all,windows-x64
 
