@@ -175,6 +175,7 @@ vmTestbase/nsk/jvmti/AttachOnDemand/attach002a/TestDescription.java 8307462 gene
 vmTestbase/nsk/jvmti/AttachOnDemand/attach045/TestDescription.java 8202971 generic-all
 vmTestbase/nsk/jvmti/scenarios/capability/CM03/cm03t001/TestDescription.java 8073470 linux-all
 vmTestbase/nsk/jvmti/InterruptThread/intrpthrd003/TestDescription.java 8288911 macosx-x64
+vmTestbase/nsk/jvmti/scenarios/events/EM02/em02t006/TestDescription.java 8371103 generic-all
 
 vmTestbase/gc/lock/jni/jnilock002/TestDescription.java 8192647 generic-all
 
