@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 2005, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -23,12 +21,23 @@
  * questions.
  */
 
-package sun.net.httpserver;
+/**
+ * @test
+ * @bug 7200264
+ * @summary 7192963 changes disabled shift vectors
+ * @requires vm.cpu.features ~= ".*sse4\\.1.*" & vm.debug & vm.flavor == "server"
+ * @requires !vm.emulatedClient & !vm.graal.enabled
+ * @library /test/lib /
+ * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -XX:StressLongCountedLoop=0
+ *                   compiler.c2.cr7200264.TestSSE4IntVect
+ */
 
-class WriteFinishedEvent extends Event {
-    WriteFinishedEvent (ExchangeImpl t) {
-        super (t);
-        assert !t.writefinished;
-        t.writefinished = true;
+package compiler.c2.cr7200264;
+
+public class TestSSE4IntVect {
+    public static void main(String[] args) throws Throwable {
+        TestDriver test = new TestDriver();
+        test.addExpectedVectorization("MulVI", 2);
+        test.run();
     }
 }
