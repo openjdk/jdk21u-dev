@@ -506,6 +506,8 @@ java/awt/event/SequencedEvent/MultipleContextsFunctionalTest.java 8305061 macosx
 sun/java2d/DirectX/OnScreenRenderingResizeTest/OnScreenRenderingResizeTest.java 8301177 linux-x64
 
 # Several tests which fail on some hidpi systems/macosx12-aarch64 system
+java/awt/Window/8159168/SetShapeTest.java 8274106 macosx-aarch64
+java/awt/image/multiresolution/MultiResolutionJOptionPaneIconTest.java 8274106 macosx-aarch64
 
 ############################################################################
 
@@ -699,8 +701,6 @@ javax/swing/JEditorPane/6917744/bug6917744.java 8213124 macosx-all
 javax/swing/JRadioButton/4314194/bug4314194.java 8298153 linux-all
 
 # Several tests which fail on some hidpi systems/macosx12-aarch64 system
-java/awt/Window/8159168/SetShapeTest.java 8274106 macosx-aarch64
-java/awt/image/multiresolution/MultiResolutionJOptionPaneIconTest.java 8274106 macosx-aarch64
 javax/swing/JFrame/8175301/ScaledFrameBackgroundTest.java 8274106 macosx-aarch64
 
 java/awt/Mixing/AWT_Mixing/ViewportOverlapping.java 8253184,8295813 windows-x64
