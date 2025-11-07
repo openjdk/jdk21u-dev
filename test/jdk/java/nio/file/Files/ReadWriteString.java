@@ -68,6 +68,10 @@ public class ReadWriteString {
     private static final Charset WINDOWS_1252 = Charset.forName("windows-1252");
     private static final Charset WINDOWS_31J = Charset.forName("windows-31j");
 
+    private static final Charset UTF_32   = Charset.forName("utf-32");
+    private static final Charset UTF_32BE = Charset.forName("utf-32be");
+    private static final Charset UTF_32LE = Charset.forName("utf-32le");
+
     static byte[] data = getData();
 
     static byte[] getData() {
@@ -162,6 +166,9 @@ public class ReadWriteString {
             {testFiles[1], TEXT_PERSON_CART_WHEELING, UTF_16, UTF_16},
             {testFiles[1], TEXT_PERSON_CART_WHEELING, UTF_16BE, UTF_16BE},
             {testFiles[1], TEXT_PERSON_CART_WHEELING, UTF_16LE, UTF_16LE},
+            {testFiles[1], TEXT_PERSON_CART_WHEELING, UTF_32, UTF_32},
+            {testFiles[1], TEXT_PERSON_CART_WHEELING, UTF_32BE, UTF_32BE},
+            {testFiles[1], TEXT_PERSON_CART_WHEELING, UTF_32LE, UTF_32LE},
             {testFiles[1], TEXT_PERSON_CART_WHEELING, WINDOWS_1252, WINDOWS_1252},
             {testFiles[1], TEXT_PERSON_CART_WHEELING, WINDOWS_31J, WINDOWS_31J}
         };
