@@ -24,19 +24,46 @@
 /* @test
    @bug 4899022
    @summary Look for erroneous representation of drive letter
+   @run junit GetCanonicalPath
  */
 
 import java.io.*;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class GetCanonicalPath {
-    public static void main(String[] args) throws Exception {
-        if (File.separatorChar == '\\') {
-            testDriveLetter();
-        }
-    }
-    private static void testDriveLetter() throws Exception {
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    void driveLetter() throws IOException {
         String path = new File("c:/").getCanonicalPath();
-        if (path.length() > 3)
-            throw new RuntimeException("Drive letter incorrectly represented");
+        assertFalse(path.length() > 3, "Drive letter incorrectly represented");
+    }
+
+    private static Stream<Arguments> pathProviderUnix() {
+        return Stream.of(
+                Arguments.of("/../../../../../a/b/c", "/a/b/c"),
+                Arguments.of("/../../../../../a/../b/c", "/b/c"),
+                Arguments.of("/../../../../../a/../../b/c", "/b/c"),
+                Arguments.of("/../../../../../a/../../../b/c", "/b/c"),
+                Arguments.of("/../../../../../a/../../../../b/c", "/b/c")
+        );
+    }
+
+    @ParameterizedTest
+    @EnabledOnOs({OS.AIX, OS.LINUX, OS.MAC})
+    @MethodSource("pathProviderUnix")
+    void goodPathsUnix(String pathname, String expected) throws IOException {
+        File file = new File(pathname);
+        String canonicalPath = file.getCanonicalPath();
+        assertEquals(expected, canonicalPath);
     }
 }
