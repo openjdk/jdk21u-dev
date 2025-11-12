@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,7 +22,6 @@
  */
 package jdk.jpackage.test;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,15 +56,10 @@ public final class HelloApp {
 
     private JarBuilder prepareSources(Path srcDir) throws IOException {
         final String srcClassName = appDesc.srcClassName();
-
-        final String qualifiedClassName = appDesc.className();
-
-        final String className = qualifiedClassName.substring(
-                qualifiedClassName.lastIndexOf('.') + 1);
+        final String className = appDesc.shortClassName();
         final String packageName = appDesc.packageName();
 
-        final Path srcFile = srcDir.resolve(Path.of(String.join(
-                File.separator, qualifiedClassName.split("\\.")) + ".java"));
+        final Path srcFile = srcDir.resolve(appDesc.classNameAsPath(".java"));
         Files.createDirectories(srcFile.getParent());
 
         JarBuilder jarBuilder = createJarBuilder().addSourceFile(srcFile);
@@ -351,7 +345,7 @@ public final class HelloApp {
     }
 
 
-    public final static class AppOutputVerifier {
+    public static final class AppOutputVerifier {
         AppOutputVerifier(Path helloAppLauncher) {
             this.launcherPath = helloAppLauncher;
             this.outputFilePath = TKit.workDir().resolve(OUTPUT_FILENAME);
@@ -470,13 +464,14 @@ public final class HelloApp {
             }
 
             final List<String> launcherArgs = List.of(args);
-            return new Executor()
+            final var executor = new Executor()
                     .setDirectory(outputFile.getParent())
                     .saveOutput(saveOutput)
                     .dumpOutput()
-                    .setRemovePath(removePath)
                     .setExecutable(executablePath)
-                    .addArguments(launcherArgs);
+                    .addArguments(List.of(args));
+
+            return configureEnvironment(executor);
         }
 
         private boolean launcherNoExit;
@@ -493,13 +488,24 @@ public final class HelloApp {
         return new AppOutputVerifier(helloAppLauncher);
     }
 
-    final static String OUTPUT_FILENAME = "appOutput.txt";
+    public static Executor configureEnvironment(Executor executor) {
+        if (CLEAR_JAVA_ENV_VARS) {
+            executor.removeEnvVar("JAVA_TOOL_OPTIONS");
+            executor.removeEnvVar("_JAVA_OPTIONS");
+        }
+        return executor;
+    }
+
+    static final String OUTPUT_FILENAME = "appOutput.txt";
 
     private final JavaAppDesc appDesc;
 
     private static final Path HELLO_JAVA = TKit.TEST_SRC_ROOT.resolve(
             "apps/Hello.java");
 
-    private final static String CLASS_NAME = HELLO_JAVA.getFileName().toString().split(
+    private static final String CLASS_NAME = HELLO_JAVA.getFileName().toString().split(
             "\\.", 2)[0];
+
+    private static final boolean CLEAR_JAVA_ENV_VARS = Optional.ofNullable(
+            TKit.getConfigProperty("clear-app-launcher-java-env-vars")).map(Boolean::parseBoolean).orElse(false);
 }
