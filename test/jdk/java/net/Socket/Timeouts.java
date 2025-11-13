@@ -49,6 +49,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
@@ -240,7 +241,7 @@ class Timeouts {
     @Test
     void testTimedRead10() throws Exception {
         var futures = new ArrayList<Future<?>>();
-        withConnection((_, s) -> {
+        withConnection((connection, s) -> {
             s.setSoTimeout(2000);
             Callable<?> timedReadTask = () -> {
                 long startMillis = millisTime();
@@ -676,7 +677,12 @@ class Timeouts {
     }
 
     static Future<?> schedule(Runnable task, long delay) {
-        return ForkJoinPool.commonPool().schedule(task, delay, TimeUnit.MILLISECONDS);
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        try {
+            return executor.schedule(task, delay, TimeUnit.MILLISECONDS);
+        } finally {
+            executor.shutdown();
+        }
     }
 
     /**
