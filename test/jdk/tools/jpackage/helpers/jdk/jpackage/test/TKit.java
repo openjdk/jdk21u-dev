@@ -551,7 +551,8 @@ final public class TKit {
 
             var waitUntil = Instant.now().plus(timeout);
             for (;;) {
-                var remainderTimeout = Instant.now().until(waitUntil);
+                Instant n = Instant.now();
+                Duration remainderTimeout = Duration.between(n, waitUntil);
                 assertTrue(remainderTimeout.isPositive(), String.format(
                         "Check timeout value %dms is positive", remainderTimeout.toMillis()));
 
