@@ -37,6 +37,8 @@ public class JWebServer {
     private static final String SYS_PROP_MAX_CONNECTIONS = "jdk.httpserver.maxConnections";
     private static final String DEFAULT_JWEBSERVER_MAX_CONNECTIONS = "200";
 
+    private static final String SYS_PROP_ENHANCED_EXCEP = "jdk.includeInExceptions";
+    private static final String DEFAULT_ENHANCED_EXCEP = "net";
     /**
      * This constructor should never be called.
      */
@@ -63,6 +65,7 @@ public class JWebServer {
      */
     public static void main(String... args) {
         setMaxReqTime();
+        setEnhancedExceptions();
         setMaxConnectionsIfNotSet();
 
         int ec = SimpleFileServerImpl.start(new PrintWriter(System.out, true), "jwebserver", args);
@@ -80,6 +83,14 @@ public class JWebServer {
         if (System.getProperty(MAXREQTIME_KEY) == null) {
             System.setProperty(MAXREQTIME_KEY, MAXREQTIME_VAL);
         }
+    }
+
+    static void setEnhancedExceptions() {
+        if (System.getProperty(SYS_PROP_ENHANCED_EXCEP) != null) {
+            // an explicit value has already been set, so we don't override it
+            return;
+        }
+        System.setProperty(SYS_PROP_ENHANCED_EXCEP, DEFAULT_ENHANCED_EXCEP);
     }
 
     @SuppressWarnings("removal")
