@@ -2885,16 +2885,6 @@ void os::pd_commit_memory_or_exit(char* addr, size_t size, bool exec,
   STATIC_ASSERT(MAP_FIXED_NOREPLACE == MAP_FIXED_NOREPLACE_value);
 #endif
 
-// Note that the value for MAP_FIXED_NOREPLACE differs between architectures, but all architectures
-// supported by OpenJDK share the same flag value.
-#define MAP_FIXED_NOREPLACE_value 0x100000
-#ifndef MAP_FIXED_NOREPLACE
-  #define MAP_FIXED_NOREPLACE MAP_FIXED_NOREPLACE_value
-#else
-  // Sanity-check our assumed default value if we build with a new enough libc.
-  static_assert(MAP_FIXED_NOREPLACE == MAP_FIXED_NOREPLACE_value);
-#endif
-
 int os::Linux::commit_memory_impl(char* addr, size_t size,
                                   size_t alignment_hint, bool exec) {
   int err = os::Linux::commit_memory_impl(addr, size, exec);
