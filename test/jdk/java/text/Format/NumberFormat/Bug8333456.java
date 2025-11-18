@@ -28,6 +28,7 @@
  * when there is no suffix.
  * @run junit Bug8333456
  */
+
 import java.text.CompactNumberFormat;
 import java.text.NumberFormat;
 import java.text.ParsePosition;
@@ -52,15 +53,15 @@ public class Bug8333456 {
     // No compact suffixes
     private static final Stream<Arguments> compactValidNoSuffixParseStrings() {
         return Stream.of(
-            Arguments.of("5", 5),
-            Arguments.of("50", 50),
-            Arguments.of("50.", 50),
-            Arguments.of("5,000", 5000),
-            Arguments.of("5,000.", 5000),
-            Arguments.of("5,000.00", 5000)
+                Arguments.of("5", 5),
+                Arguments.of("50", 50),
+                Arguments.of("50.", 50),
+                Arguments.of("5,000", 5000),
+                Arguments.of("5,000.", 5000),
+                Arguments.of("5,000.00", 5000)
         );
     }
-                    
+
     // 8333456: Parse values with no compact suffix -> which allows parsing to iterate
     // position to the same value as string length which throws
     // StringIndexOutOfBoundsException upon charAt invocation
@@ -73,7 +74,7 @@ public class Bug8333456 {
         assertEquals(expectedValue, successParse(cmpctFmt, toParse, toParse.length()));
         cmpctFmt.setParseIntegerOnly(false);
     }
-    
+
     // Method is used when a String should parse successfully. This does not indicate
     // that the entire String was used, however. The index and errorIndex values
     // should be as expected.
