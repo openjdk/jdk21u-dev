@@ -1313,8 +1313,8 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence
         ensureCapacityInternal(count + len);
         shift(dstOffset, len);
         count += len;
-        if (s instanceof String) {
-            putStringAt(dstOffset, (String) s, start, end);
+        if (s instanceof String str && str.length() == len) {
+            putStringAt(dstOffset, str);
         } else {
             putCharsAt(dstOffset, s, start, end);
         }
@@ -1675,11 +1675,10 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence
     /* for readObject() */
     void initBytes(char[] value, int off, int len) {
         if (String.COMPACT_STRINGS) {
-            this.value = StringUTF16.compress(value, off, len);
-            if (this.value != null) {
-                this.coder = LATIN1;
-                return;
-            }
+            byte[] val = StringUTF16.compress(value, off, len);
+            this.coder = StringUTF16.coderFromArrayLen(val, len);
+            this.value = val;
+            return;
         }
         this.coder = UTF16;
         this.value = StringUTF16.toBytes(value, off, len);
@@ -1720,6 +1719,9 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence
                     val[j++] = (byte)c;
                 } else {
                     inflate();
+                    // store c to make sure it has a UTF16 char
+                    StringUTF16.putChar(this.value, j++, c);
+                    i++;
                     StringUTF16.putCharsSB(this.value, j, s, i, end);
                     return;
                 }
@@ -1739,11 +1741,6 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence
         if (COMPACT_STRINGS && (coder != input.getCoder())) {
             inflate();
         }
-    }
-
-    private void putStringAt(int index, String str, int off, int end) {
-        inflateIfNeededFor(str);
-        str.getBytes(value, off, index, coder, end - off);
     }
 
     private void putStringAt(int index, String str) {
@@ -1812,6 +1809,10 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence
                 } else {
                     count = j;
                     inflate();
+                    // Store c to make sure sb has a UTF16 char
+                    StringUTF16.putChar(this.value, j++, c);
+                    count = j;
+                    i++;
                     StringUTF16.putCharsSB(this.value, j, s, i, end);
                     count += end - i;
                     return;
@@ -1923,6 +1924,10 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence
      * <p>
      * If {@code cs} is {@code null}, then the four characters
      * {@code "null"} are repeated into this sequence.
+     * <p>
+     * The contents are unspecified if the {@code CharSequence}
+     * is modified during the method call or an exception is thrown
+     * when accessing the {@code CharSequence}.
      *
      * @param cs     a {@code CharSequence}
      * @param count  number of times to copy
