@@ -305,9 +305,7 @@ public class ZipFile implements ZipConstants, Closeable {
     }
 
     /**
-     * Returns the zip file comment. If a comment does not exist or an error is
-     * encountered decoding the comment using the charset specified
-     * when opening the Zip file, then {@code null} is returned.
+     * Returns the zip file comment, or null if none.
      *
      * @return the comment string for the zip file, or null if none
      *
