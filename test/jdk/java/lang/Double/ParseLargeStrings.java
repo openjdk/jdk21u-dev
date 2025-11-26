@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,34 +23,29 @@
 
 /*
  * @test
- * @bug 4428022
- * @summary Tests for Double.toString
- * @run main/othervm -Xmx8G ParseBigString
+ * @bug 8371652
+ * @summary Double.parseDouble with large strings should return Double Infinity
+ * @run main/othervm -Xmx6G ParseLargeStrings
  */
 
-public class ParseBigString {
+public class ParseLargeStrings {
 
     public static void main(String args[]) {
-        System.out.println("Testing ParseBigString");
         String s = "9999999999e10000";
-
-        if (!Double.isInfinite(Double.parseDouble(s))) {
-            throw new RuntimeException("parseDouble(" + s + "): " + Double.parseDouble(s) + " (expected: Infinity)");
-        }
+        checkParseResult(s);
 
         s = "9".repeat(Integer.MAX_VALUE - 100) + "e10000";
-        if (!Double.isInfinite(Double.parseDouble(s))) {
-            System.out.println("parseDouble(999<...>99e10000): " + Double.parseDouble(s) + " (expected: Infinity)");
-        }
+        checkParseResult(s);
 
         int x = 1 + Integer.MAX_VALUE / 2;
         s = "9".repeat(x) + "e" + x;
-        try {
-            if (!Double.isInfinite(Double.parseDouble(s))) {
-                throw new RuntimeException("parseDouble(" + s + "): " + Double.parseDouble(s) + " (expected: Infinity)");
-            }
-        } catch (ArrayIndexOutOfBoundsException e) {
-            throw new RuntimeException("parseDouble(" + s + "): " + Double.parseDouble(s) + " (expected: Infinity)");
+        checkParseResult(s);
+    }
+
+    private static void checkParseResult(String s) {
+        double d = Double.parseDouble(s);
+        if (!Double.isInfinite(d)) {
+            throw new Error("parseDouble(" + s + "): " + d + " (expected: Infinity)");
         }
     }
 }
