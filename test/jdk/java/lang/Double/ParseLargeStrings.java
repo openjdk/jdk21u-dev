@@ -24,7 +24,9 @@
 /*
  * @test
  * @bug 8371652
- * @summary Double.parseDouble with large strings should return Double Infinity
+ * @summary When using Double.parseDouble to parse a long string,
+ * it should return Double Infinity if the value represented by the
+ * string is greater than Double.MAX_VALUE.
  * @run main/othervm -Xmx6G ParseLargeStrings
  */
 
