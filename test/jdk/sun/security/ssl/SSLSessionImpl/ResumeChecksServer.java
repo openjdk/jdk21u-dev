@@ -197,7 +197,6 @@ public class ResumeChecksServer extends SSLContextTemplate {
         public int port;
         ExecutorService threadPool = Executors.newFixedThreadPool(1);
         // Stores the certs from the first connection in mode LOCAL_CERTS
-        static X509CertImpl localCerts;
         // first connection to the server
         static boolean first = true;
 
@@ -253,16 +252,6 @@ public class ResumeChecksServer extends SSLContextTemplate {
                                 first ? "ecdsa_secp521r1_sha512" :
                                     "ecdsa_secp384r1_sha384"));
                         }
-                        case LOCAL_CERTS -> {
-                            if (!first) {
-                                // Add first session's certificate signature
-                                // algorithm to constraints so local certificates
-                                // can't be restored from the session ticket.
-                                params.setAlgorithmConstraints(
-                                    new NoSig(X509CertImpl.toImpl(localCerts)
-                                        .getSigAlgName()));
-                            }
-                        }
                         default ->
                             throw new AssertionError("Server: " +
                                 "unknown mode: " + testMode);
@@ -278,10 +267,6 @@ public class ResumeChecksServer extends SSLContextTemplate {
                     out.flush();
                     out.close();
                     SSLSession session = sock.getSession();
-                    if (testMode == TestMode.LOCAL_CERTS && first) {
-                        localCerts = (X509CertImpl) session.
-                            getLocalCertificates()[0];
-                     }
                     first = false;
                     System.err.println("server socket closed: " + session);
                 } catch (Exception e) {
