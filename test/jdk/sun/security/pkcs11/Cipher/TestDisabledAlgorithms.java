@@ -26,10 +26,10 @@
  * @bug 8244336
  * @summary Test JCE layer algorithm restriction
  * @library /test/lib ..
- * @run main/othervm TestDisabledAlgorithms CiPhEr.RSA/ECB/PKCS1Padding true
- * @run main/othervm TestDisabledAlgorithms cIpHeR.rsA true
- * @run main/othervm TestDisabledAlgorithms Cipher.what false
- * @run main/othervm TestDisabledAlgorithms CiPhER.RSA/ECB/PKCS1Padding2 false
+ * @run main/othervm TestDisabledAlgorithms sm CiPhEr.RSA/ECB/PKCS1Padding true
+ * @run main/othervm TestDisabledAlgorithms sm cIpHeR.rsA true
+ * @run main/othervm TestDisabledAlgorithms sm Cipher.what false
+ * @run main/othervm TestDisabledAlgorithms sm CiPhER.RSA/ECB/PKCS1Padding2 false
  */
 import java.util.List;
 import java.security.NoSuchAlgorithmException;
@@ -71,11 +71,11 @@ public class TestDisabledAlgorithms extends PKCS11Test {
     }
 
     public static void main(String[] args) throws Exception {
-        String propValue = args[0];
+        String propValue = args[1];
         System.out.println("Setting Security Prop " + PROP_NAME + " = " +
                 propValue);
         Security.setProperty(PROP_NAME, propValue);
-        boolean shouldThrow = Boolean.valueOf(args[1]);
+        boolean shouldThrow = Boolean.valueOf(args[2]);
         main(new TestDisabledAlgorithms(shouldThrow), args);
     }
 }
