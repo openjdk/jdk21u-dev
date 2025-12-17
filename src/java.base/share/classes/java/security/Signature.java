@@ -251,6 +251,7 @@ public abstract class Signature extends SignatureSpi {
     public static Signature getInstance(String algorithm)
             throws NoSuchAlgorithmException {
         Objects.requireNonNull(algorithm, "null algorithm name");
+
         if (!CryptoAlgorithmConstraints.permits("Signature", algorithm)) {
             throw new NoSuchAlgorithmException(algorithm + " is disabled");
         }
