@@ -67,11 +67,11 @@ public class TestButtonGroupFocusTraversal {
                 checkBox1 = new JCheckBox("1");
                 checkBox2 = new JCheckBox("2");
 
-                toggleButton1.addActionListener((_) -> toggleButtonActionPerformed = true);
-                toggleButton2.addActionListener((_) -> toggleButtonActionPerformed = true);
+                toggleButton1.addActionListener((x) -> toggleButtonActionPerformed = true);
+                toggleButton2.addActionListener((x) -> toggleButtonActionPerformed = true);
 
-                checkBox1.addActionListener((_) -> checkboxActionPerformed = true);
-                checkBox2.addActionListener((_) -> checkboxActionPerformed = true);
+                checkBox1.addActionListener((x) -> checkboxActionPerformed = true);
+                checkBox2.addActionListener((x) -> checkboxActionPerformed = true);
 
                 ButtonGroup toggleGroup = new ButtonGroup();
                 toggleGroup.add(toggleButton1);
