@@ -29,6 +29,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.Socket;
 import java.rmi.server.RMIClientSocketFactory;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.StringTokenizer;
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocket;
@@ -121,8 +123,10 @@ public class SslRMIClientSocketFactory
             sslSocketFactory.createSocket(host, port);
         // Set the SSLSocket Enabled Cipher Suites
         //
+        @SuppressWarnings("removal")
         final String enabledCipherSuites =
-            System.getProperty("javax.rmi.ssl.client.enabledCipherSuites");
+            AccessController.doPrivileged((PrivilegedAction<String>) () ->
+                System.getProperty("javax.rmi.ssl.client.enabledCipherSuites"));
         if (enabledCipherSuites != null) {
             StringTokenizer st = new StringTokenizer(enabledCipherSuites, ",");
             int tokens = st.countTokens();
@@ -138,8 +142,10 @@ public class SslRMIClientSocketFactory
         }
         // Set the SSLSocket Enabled Protocols
         //
+        @SuppressWarnings("removal")
         final String enabledProtocols =
-            System.getProperty("javax.rmi.ssl.client.enabledProtocols");
+            AccessController.doPrivileged((PrivilegedAction<String>) () ->
+                System.getProperty("javax.rmi.ssl.client.enabledProtocols"));
         if (enabledProtocols != null) {
             StringTokenizer st = new StringTokenizer(enabledProtocols, ",");
             int tokens = st.countTokens();
