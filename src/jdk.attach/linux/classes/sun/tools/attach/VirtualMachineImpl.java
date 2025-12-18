@@ -63,7 +63,7 @@ public class VirtualMachineImpl extends HotSpotVirtualMachine {
 
         try {
             nsPath = Files.readSymbolicLink(SELF.resolve(NS_MNT));
-        } catch (IOException _) {
+        } catch (IOException e) {
             // do nothing
         } finally {
             SELF_MNT_NS = Optional.ofNullable(nsPath);
@@ -248,7 +248,7 @@ public class VirtualMachineImpl extends HotSpotVirtualMachine {
         try {
             // Do not canonicalize the file path, or we will fail to attach to a VM in a container.
             f.createNewFile();
-        } catch (IOException _) {
+        } catch (IOException e) {
             f = new File(findTargetProcessTmpDirectory(pid, ns_pid), fn.toString());
             f.createNewFile();
         }
@@ -277,7 +277,7 @@ public class VirtualMachineImpl extends HotSpotVirtualMachine {
             try {
                 // attempt to read the target's mnt ns id
                 targetMountNS = Optional.ofNullable(Files.readSymbolicLink(procPidPath.resolve(NS_MNT)));
-            } catch (IOException _) {
+            } catch (IOException e) {
                 // if we fail to read the target's mnt ns id then we either don't have access or it no longer exists!
                 if (!Files.exists(procPidPath)) {
                     throw new IOException(String.format("unable to attach, %s non-existent! process: %d terminated", procPidPath, pid));
@@ -303,7 +303,7 @@ public class VirtualMachineImpl extends HotSpotVirtualMachine {
             try {
                 // attempt to read the target's pid ns id
                 curPidNS = Optional.ofNullable(Files.readSymbolicLink(procPidPath.resolve(NS_PID)));
-            } catch (IOException _) {
+            } catch (IOException e) {
                 // if we fail to read the target's pid ns id then we either don't have access or it no longer exists!
                 if (!Files.exists(procPidPath)) {
                     throw new IOException(String.format("unable to attach, %s non-existent! process: %d terminated", procPidPath, pid));
