@@ -808,7 +808,7 @@ TEST_VM(os, dll_address_to_function_and_library_name) {
     LOG("shorten_paths=%d, demangle=%d, strip_arguments=%d, provide_scratch_buffer=%d",
         shorten_paths, demangle, strip_arguments, provide_scratch_buffer);
 
-    // Should show os::min_page_size in libjvm
+    // Should show Threads::create_vm in libjvm
     addr = CAST_FROM_FN_PTR(address, Threads::create_vm);
     st.reset();
     EXPECT_TRUE(os::print_function_and_library_name(&st, addr,
@@ -816,8 +816,16 @@ TEST_VM(os, dll_address_to_function_and_library_name) {
                                                     sizeof(tmp),
                                                     shorten_paths, demangle,
                                                     strip_arguments));
+
+#ifdef _WINDOWS
+    // On Windows, if no full .pdb file is available, the output can be something like "0x... in ..."
+    if (strncmp(output, "0x", 2) != 0) {
+#endif
     EXPECT_CONTAINS(output, "Threads");
     EXPECT_CONTAINS(output, "create_vm");
+#ifdef _WINDOWS
+    }
+#endif
     EXPECT_CONTAINS(output, "jvm"); // "jvm.dll" or "libjvm.so" or similar
     LOG("%s", output);
 
@@ -930,4 +938,25 @@ TEST_VM(os, open_O_CLOEXEC) {
   EXPECT_TRUE((flags & FD_CLOEXEC) != 0); // if O_CLOEXEC worked, then FD_CLOEXEC should be ON
   ::close(fd);
 #endif
+}
+
+TEST_VM(os, reserve_at_wish_address_shall_not_replace_mappings_smallpages) {
+  char* p1 = os::reserve_memory(M, false, mtTest);
+  ASSERT_NE(p1, nullptr);
+  char* p2 = os::attempt_reserve_memory_at(p1, M);
+  ASSERT_EQ(p2, nullptr); // should have failed
+  os::release_memory(p1, M);
+}
+
+TEST_VM(os, reserve_at_wish_address_shall_not_replace_mappings_largepages) {
+  if (UseLargePages && !os::can_commit_large_page_memory()) { // aka special
+    const size_t lpsz = os::large_page_size();
+    char* p1 = os::reserve_memory_aligned(lpsz, lpsz, false);
+    ASSERT_NE(p1, nullptr);
+    char* p2 = os::reserve_memory_special(lpsz, lpsz, lpsz, p1, false);
+    ASSERT_EQ(p2, nullptr); // should have failed
+    os::release_memory(p1, M);
+  } else {
+    tty->print_cr("Skipped.");
+  }
 }
