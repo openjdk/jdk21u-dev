@@ -21,13 +21,13 @@
  * questions.
  */
 
-/**
+/*
  * @test
  * @bug 4313887 7006126 8142968 8178380 8183320 8210112 8266345 8263940
- * @modules jdk.jartool
+ * @modules jdk.jartool jdk.jlink
  * @library /test/lib
- * @build SetDefaultProvider TestProvider m/* jdk.test.lib.process.ProcessTools
- * @run testng/othervm SetDefaultProvider
+ * @build testfsp/* testapp/*
+ * @run junit SetDefaultProvider
  * @summary Runs tests with -Djava.nio.file.spi.DefaultFileSystemProvider set on
  *          the command line to override the default file system provider
  */
