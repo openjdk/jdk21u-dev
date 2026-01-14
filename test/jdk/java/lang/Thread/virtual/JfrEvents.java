@@ -27,7 +27,8 @@
  * @requires vm.continuations & vm.hasJFR
  * @modules jdk.jfr java.base/java.lang:+open
  * @library /test/lib
- * @run junit/othervm --enable-native-access=ALL-UNNAMED JfrEvents
+ * @compile --enable-preview -source ${jdk.version} JfrEvents.java
+ * @run junit/othervm --enable-preview --enable-native-access=ALL-UNNAMED JfrEvents
  */
 
 import java.io.IOException;
