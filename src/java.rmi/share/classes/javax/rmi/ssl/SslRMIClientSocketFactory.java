@@ -123,8 +123,12 @@ public class SslRMIClientSocketFactory
         final SSLSocket sslSocket = (SSLSocket)
             sslSocketFactory.createSocket(host, port);
 
-        if (Boolean.parseBoolean(
-                System.getProperty("jdk.rmi.ssl.client.enableEndpointIdentification", "true"))) {
+        @SuppressWarnings("removal")
+        final String enableEndpointIdentification =
+            AccessController.doPrivileged((PrivilegedAction<String>) () ->
+                    System.getProperty("jdk.rmi.ssl.client.enableEndpointIdentification", "true"));
+
+        if (Boolean.parseBoolean(enableEndpointIdentification)) {
             SSLParameters params = sslSocket.getSSLParameters();
             if (params == null) {
                 params = new SSLParameters();
