@@ -33,6 +33,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.StringTokenizer;
 import javax.net.SocketFactory;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
@@ -121,6 +122,16 @@ public class SslRMIClientSocketFactory
         //
         final SSLSocket sslSocket = (SSLSocket)
             sslSocketFactory.createSocket(host, port);
+
+        if (Boolean.parseBoolean(
+                System.getProperty("jdk.rmi.ssl.client.enableEndpointIdentification", "true"))) {
+            SSLParameters params = sslSocket.getSSLParameters();
+            if (params == null) {
+                params = new SSLParameters();
+            }
+            params.setEndpointIdentificationAlgorithm("HTTPS");
+            sslSocket.setSSLParameters(params);
+        }
         // Set the SSLSocket Enabled Cipher Suites
         //
         @SuppressWarnings("removal")
