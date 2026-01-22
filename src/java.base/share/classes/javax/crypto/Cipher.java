@@ -310,10 +310,10 @@ public class Cipher {
 
     private static final String SHA512TRUNCATED = "SHA512/2";
 
-+    // Parse the specified cipher transformation for algorithm and the
-+    // optional mode and padding. If the transformation contains only
-+    // algorithm, then only algorithm is returned. Otherwise, the
-+    // transformation must contain all 3 and they must be non-empty.
+    // Parse the specified cipher transformation for algorithm and the
+    // optional mode and padding. If the transformation contains only
+    // algorithm, then only algorithm is returned. Otherwise, the
+    // transformation must contain all 3 and they must be non-empty.
     private static String[] tokenizeTransformation(String transformation)
             throws NoSuchAlgorithmException {
         if (transformation == null) {
