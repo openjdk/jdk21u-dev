@@ -77,7 +77,6 @@ public final class PlatformEventType extends Type {
         this.stackTraceOffset = stackTraceOffset(name, isJDK);
     }
 
-
     private boolean determineBackToBackSensitive() {
         if (getName().equals(Type.EVENT_NAME_PREFIX + "ThreadDump")) {
             return true;
