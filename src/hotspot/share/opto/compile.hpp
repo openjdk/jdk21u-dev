@@ -1232,7 +1232,7 @@ class Compile : public Phase {
   int random();
   bool randomized_select(int count);
 
-  // seed random number generation and log the seed for repeatability
+  // seed random number generation and log the seed for repeatability.
   void initialize_stress_seed(const DirectiveSet* directive);
 
   // supporting clone_map
