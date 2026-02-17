@@ -109,7 +109,7 @@ public final class JdkConsoleImpl implements JdkConsole {
         return INSTANCE.orElseSet(() -> {
             // If there's already a proper console, throw an exception
             if (System.console() != null) {
-                throw new IllegalStateException("Can’t create a dedicated password " +
+                throw new IllegalStateException("Can't create a dedicated password " +
                     "console since a real console already exists");
             }
 
@@ -118,7 +118,6 @@ public final class JdkConsoleImpl implements JdkConsole {
             return SharedSecrets.getJavaIOAccess().isStdinTty() ?
                 Optional.of(
                     new JdkConsoleImpl(
-                        UTF_8.INSTANCE,
                         UTF_8.INSTANCE)) :
                 Optional.empty();
         });
@@ -128,7 +127,7 @@ public final class JdkConsoleImpl implements JdkConsole {
     // This method strictly avoids producing any output by using noNewLine = true
     // and an empty format string.
     public char[] readPasswordNoNewLine() {
-        return readPassword0(true, Locale.getDefault(Locale.Category.FORMAT), "");
+        return readPassword0(true, "");
     }
 
     private char[] readPassword0(boolean noNewLine, String fmt, Object ... args) {
