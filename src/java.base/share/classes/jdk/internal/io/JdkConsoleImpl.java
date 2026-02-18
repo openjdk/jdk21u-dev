@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.Formatter;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import jdk.internal.access.SharedSecrets;
 import jdk.internal.util.StaticProperty;
@@ -104,9 +105,19 @@ public final class JdkConsoleImpl implements JdkConsole {
     // check if `System.console()` returns a Console instance and use it if available. Otherwise,
     // it should call this method to obtain a JdkConsoleImpl. This ensures only one Console
     // instance exists in the Java runtime.
-    private static final StableValue<Optional<JdkConsoleImpl>> INSTANCE = StableValue.of();
+    private static final AtomicReference<Optional<JdkConsoleImpl>> INSTANCE = new AtomicReference<>();
     public static Optional<JdkConsoleImpl> passwordConsole() {
-        return INSTANCE.orElseSet(() -> {
+         Optional<JdkConsoleImpl> result = INSTANCE.get();
+         if (result != null) {
+             return result;
+         }
+
+         synchronized (JdkConsoleImpl.class) {
+             result = INSTANCE.get();
+             if (result != null) {
+                 return result;
+             }
+
             // If there's already a proper console, throw an exception
             if (System.console() != null) {
                 throw new IllegalStateException("Can't create a dedicated password " +
@@ -115,12 +126,15 @@ public final class JdkConsoleImpl implements JdkConsole {
 
             // If stdin is NOT redirected, return an Optional containing a JdkConsoleImpl
             // instance, otherwise an empty Optional.
-            return SharedSecrets.getJavaIOAccess().isStdinTty() ?
+            result = SharedSecrets.getJavaIOAccess().isStdinTty() ?
                 Optional.of(
                     new JdkConsoleImpl(
                         UTF_8.INSTANCE)) :
                 Optional.empty();
-        });
+
+            INSTANCE.set(result);
+            return result;
+        }
     }
 
     // Dedicated entry for sun.security.util.Password when stdout is redirected.
