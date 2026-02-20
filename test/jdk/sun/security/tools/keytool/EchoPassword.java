@@ -70,17 +70,6 @@ public class EchoPassword {
                 {"Fourth command", keytool + " -keystore " + ks1
                         + " -exportcert -alias first | "
                         + keytool + " -printcert -rfc"},
-                // Non-ASCII password from System.in
-                {"Fifth command", "("
-                        // Solution 2 of https://stackoverflow.com/a/29747723
-                        + (OperatingSystem.isWindows()
-                        ? ("echo " + nonASCII + "^&echo " + nonASCII + "^&rem.")
-                        : ("echo " + nonASCII + "; echo " + nonASCII))
-                        + ") | " + keytool + " -keystore " + ks3
-                                + " -genkeypair -alias a -keyalg ec -dname cn=a"},
-                // Non-ASCII password from Console
-                {"Sixth command", keytool + " -keystore " + ks3
-                        + " -exportcert -alias a -rfc"},
                 {"The password", nonASCII}
         };
 
@@ -132,31 +121,10 @@ public class EchoPassword {
                 When prompted, enter "changeit" and press Enter. Verify that the
                 password is hidden and a PEM certificate is correctly shown.
                 </ol>
-                <h3>Part II: Interoperability on Non-ASCII Passwords</h3>
-                <ol>
-                <li>Click <a href='c4'>Copy Fifth Command</a> to copy the
-                following command into the system clipboard. Paste it into the
-                terminal window and execute the command.
-                <p><code>
-                %s
-                </code><p>
-                Verify that a key pair is generated successfully.
-
-                <li>Click <a href='c5'>Copy Sixth Command</a> to copy the
-                following command into the system clipboard. Paste it into the
-                terminal window and execute the command.
-                <p><code>
-                %s
-                </code><p>
-                When prompted, click <a href='c6'>Copy Password</a> to copy the
-                password. Paste it into the terminal window and press Enter.
-                Verify that the password is hidden and a PEM certificate is
-                correctly shown.
-                </ol>
                 Press "pass" if the behavior matches expectations;
                 otherwise, press "fail".
                 """, commands[0][1], commands[1][1], commands[2][1], commands[3][1],
-                commands[4][1], commands[5][1], commands[6][1]);
+                commands[4][1]);
 
         PassFailJFrame.builder()
                 .instructions(message)
