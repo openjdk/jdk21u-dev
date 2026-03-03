@@ -122,7 +122,7 @@ public class OpensslArtifactFetcher {
         try {
             return ArtifactResolver.fetchOne(clazz)
                 .resolve("openssl").resolve("bin").resolve("openssl")
-                    .toString();
+                .toString();
         } catch (IOException exc) {
             throw new SkippedException("Could not find openssl", exc);
         }
