@@ -161,7 +161,7 @@ enum CoredumpFilterBit {
 
 ////////////////////////////////////////////////////////////////////////////////
 // global variables
-julong os::Linux::_physical_memory = 0;
+size_t os::Linux::_physical_memory = 0;
 
 address   os::Linux::_initial_thread_stack_bottom = nullptr;
 uintptr_t os::Linux::_initial_thread_stack_size   = 0;
@@ -236,15 +236,16 @@ julong os::Linux::available_memory_in_container() {
   return avail_mem;
 }
 
-julong os::available_memory() {
-  return Linux::available_memory();
+bool os::available_memory(size_t& value) {
+  return Linux::available_memory(value);
 }
 
-julong os::Linux::available_memory() {
+bool os::Linux::available_memory(size_t& value) {
   julong avail_mem = available_memory_in_container();
   if (avail_mem != static_cast<julong>(-1L)) {
     log_trace(os)("available container memory: " JULONG_FORMAT, avail_mem);
-    return avail_mem;
+    value = static_cast<size_t>(avail_mem);
+    return true;
   }
 
   FILE *fp = os::fopen("/proc/meminfo", "r");
@@ -452,7 +453,7 @@ void os::Linux::initialize_system_info() {
       fclose(fp);
     }
   }
-  _physical_memory = (julong)sysconf(_SC_PHYS_PAGES) * (julong)sysconf(_SC_PAGESIZE);
+  _physical_memory = static_cast<size_t>(sysconf(_SC_PHYS_PAGES)) * static_cast<size_t>(sysconf(_SC_PAGESIZE));
   assert(processor_count() > 0, "linux error");
 }
 
@@ -2432,11 +2433,13 @@ void os::print_memory_info(outputStream* st) {
   // values in struct sysinfo are "unsigned long"
   struct sysinfo si;
   sysinfo(&si);
-
-  st->print(", physical " UINT64_FORMAT "k",
-            os::physical_memory() >> 10);
-  st->print("(" UINT64_FORMAT "k free)",
-            os::available_memory() >> 10);
+  size_t phys_mem = physical_memory();
+  st->print(", physical %zuk",
+            phys_mem >> 10);
+  size_t avail_mem = 0;
+  (void)os::available_memory(avail_mem);
+  st->print("(%zuk free)",
+            avail_mem >> 10);
   st->print(", swap " UINT64_FORMAT "k",
             ((jlong)si.totalswap * si.mem_unit) >> 10);
   st->print("(" UINT64_FORMAT "k free)",
