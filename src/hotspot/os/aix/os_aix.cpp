@@ -265,28 +265,29 @@ static bool is_close_to_brk(address a) {
   return false;
 }
 
-julong os::free_memory() {
-  return Aix::available_memory();
+bool os::free_memory(size_t& value) {
+  return Aix::available_memory(value);
 }
 
-julong os::available_memory() {
-  return Aix::available_memory();
+bool os::available_memory(size_t& value) {
+  return Aix::available_memory(value);
 }
 
-julong os::Aix::available_memory() {
+bool os::Aix::available_memory(size_t& value) {
   // Avoid expensive API call here, as returned value will always be null.
   if (os::Aix::on_pase()) {
     return 0x0LL;
   }
   os::Aix::meminfo_t mi;
   if (os::Aix::get_meminfo(&mi)) {
-    return mi.real_free;
+    value = static_cast<size_t>(mi.real_free);
+    return true;
   } else {
-    return ULONG_MAX;
+    return false;
   }
 }
 
-julong os::physical_memory() {
+size_t os::physical_memory() {
   return Aix::physical_memory();
 }
 

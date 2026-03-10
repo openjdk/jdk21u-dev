@@ -139,17 +139,17 @@ static volatile int processor_id_next = 0;
 ////////////////////////////////////////////////////////////////////////////////
 // utility functions
 
-julong os::available_memory() {
-  return Bsd::available_memory();
+bool os::available_memory(size_t& value) {
+  return Bsd::available_memory(value);
 }
 
-julong os::free_memory() {
-  return Bsd::available_memory();
+bool os::free_memory(size_t& value) {
+  return Bsd::available_memory(value);
 }
 
 // available here means free
-julong os::Bsd::available_memory() {
-  uint64_t available = physical_memory() >> 2;
+bool os::Bsd::available_memory(size_t& value) {
+  uint64_t available = static_cast<uint64_t>(physical_memory() >> 2);
 #ifdef __APPLE__
   mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
   vm_statistics64_data_t vmstat;
@@ -159,9 +159,12 @@ julong os::Bsd::available_memory() {
          "host_statistics64 failed - check mach_host_self() and count");
   if (kerr == KERN_SUCCESS) {
     available = vmstat.free_count * os::vm_page_size();
+  } else {
+    return false;
   }
 #endif
-  return available;
+  value = static_cast<size_t>(available);
+  return true;
 }
 
 // for more info see :
@@ -180,7 +183,7 @@ void os::Bsd::print_uptime_info(outputStream* st) {
   }
 }
 
-julong os::physical_memory() {
+size_t os::physical_memory() {
   return Bsd::physical_memory();
 }
 
@@ -1411,10 +1414,13 @@ void os::print_memory_info(outputStream* st) {
   st->print("Memory:");
   st->print(" " SIZE_FORMAT "k page", os::vm_page_size()>>10);
 
-  st->print(", physical " UINT64_FORMAT "k",
-            os::physical_memory() >> 10);
-  st->print("(" UINT64_FORMAT "k free)",
-            os::available_memory() >> 10);
+  size_t phys_mem = os::physical_memory();
+  st->print(", physical %zuk",
+            phys_mem >> 10);
+  size_t avail_mem = 0;
+  (void)os::available_memory(avail_mem);
+  st->print("(%zuk free)",
+            avail_mem >> 10);
 
   if((sysctlbyname("vm.swapusage", &swap_usage, &size, nullptr, 0) == 0) || (errno == ENOMEM)) {
     if (size >= offset_of(xsw_usage, xsu_used)) {
