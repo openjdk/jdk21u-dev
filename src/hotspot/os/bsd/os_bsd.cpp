@@ -120,7 +120,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // global variables
-size_t os::Bsd::_physical_memory = 0;
+physical_memory_size_type os::Bsd::_physical_memory = 0;
 
 #ifdef __APPLE__
 mach_timebase_info_data_t os::Bsd::_timebase_info = {0, 0};
@@ -163,7 +163,7 @@ bool os::Bsd::available_memory(size_t& value) {
     return false;
   }
 #endif
-  value = static_cast<size_t>(available);
+  value = available;
   return true;
 }
 
@@ -257,7 +257,7 @@ void os::Bsd::initialize_system_info() {
   len = sizeof(mem_val);
   if (sysctl(mib, 2, &mem_val, &len, nullptr, 0) != -1) {
     assert(len == sizeof(mem_val), "unexpected data size");
-    _physical_memory = static_cast<size_t>(mem_val);
+    _physical_memory = static_cast<physical_memory_size_type>(mem_val);
   } else {
     _physical_memory = 256 * 1024 * 1024;       // fallback (XXXBSD?)
   }
@@ -268,7 +268,7 @@ void os::Bsd::initialize_system_info() {
     // datasize rlimit restricts us anyway.
     struct rlimit limits;
     getrlimit(RLIMIT_DATA, &limits);
-    _physical_memory = MIN2(_physical_memory, static_cast<size_t>(limits.rlim_cur));
+    _physical_memory = MIN2(_physical_memory, static_cast<physical_memory_size_type>(limits.rlim_cur));
   }
 #endif
 }
