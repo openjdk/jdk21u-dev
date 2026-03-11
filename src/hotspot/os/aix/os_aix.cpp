@@ -265,29 +265,29 @@ static bool is_close_to_brk(address a) {
   return false;
 }
 
-bool os::free_memory(size_t& value) {
+bool os::free_memory(physical_memory_size_type& value) {
   return Aix::available_memory(value);
 }
 
-bool os::available_memory(size_t& value) {
+bool os::available_memory(physical_memory_size_type& value) {
   return Aix::available_memory(value);
 }
 
-bool os::Aix::available_memory(size_t& value) {
+bool os::Aix::available_memory(physical_memory_size_type& value) {
   // Avoid expensive API call here, as returned value will always be null.
   if (os::Aix::on_pase()) {
     return 0x0LL;
   }
   os::Aix::meminfo_t mi;
   if (os::Aix::get_meminfo(&mi)) {
-    value = static_cast<size_t>(mi.real_free);
+    value = static_cast<physical_memory_size_type>(mi.real_free);
     return true;
   } else {
     return false;
   }
 }
 
-size_t os::physical_memory() {
+physical_memory_size_type os::physical_memory() {
   return Aix::physical_memory();
 }
 

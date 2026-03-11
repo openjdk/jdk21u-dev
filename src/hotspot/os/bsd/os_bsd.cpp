@@ -139,17 +139,17 @@ static volatile int processor_id_next = 0;
 ////////////////////////////////////////////////////////////////////////////////
 // utility functions
 
-bool os::available_memory(size_t& value) {
+bool os::available_memory(physical_memory_size_type& value) {
   return Bsd::available_memory(value);
 }
 
-bool os::free_memory(size_t& value) {
+bool os::free_memory(physical_memory_size_type& value) {
   return Bsd::available_memory(value);
 }
 
 // available here means free
-bool os::Bsd::available_memory(size_t& value) {
-  uint64_t available = static_cast<uint64_t>(physical_memory() >> 2);
+bool os::Bsd::available_memory(physical_memory_size_type& value) {
+  physical_memory_size_type available = physical_memory() >> 2;
 #ifdef __APPLE__
   mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
   vm_statistics64_data_t vmstat;
@@ -183,7 +183,7 @@ void os::Bsd::print_uptime_info(outputStream* st) {
   }
 }
 
-size_t os::physical_memory() {
+physical_memory_size_type os::physical_memory() {
   return Bsd::physical_memory();
 }
 
@@ -1414,12 +1414,12 @@ void os::print_memory_info(outputStream* st) {
   st->print("Memory:");
   st->print(" " SIZE_FORMAT "k page", os::vm_page_size()>>10);
 
-  size_t phys_mem = os::physical_memory();
-  st->print(", physical %zuk",
+  physical_memory_size_type phys_mem = os::physical_memory();
+  st->print(", physical " PHYS_MEM_TYPE_FORMAT "k",
             phys_mem >> 10);
-  size_t avail_mem = 0;
+  physical_memory_size_type avail_mem = 0;
   (void)os::available_memory(avail_mem);
-  st->print("(%zuk free)",
+  st->print("(" PHYS_MEM_TYPE_FORMAT "k free)",
             avail_mem >> 10);
 
   if((sysctlbyname("vm.swapusage", &swap_usage, &size, nullptr, 0) == 0) || (errno == ENOMEM)) {
