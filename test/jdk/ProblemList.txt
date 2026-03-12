@@ -177,7 +177,7 @@ java/awt/Mixing/AWT_Mixing/JSliderInGlassPaneOverlapping.java 8158801 windows-al
 java/awt/Mixing/AWT_Mixing/JSliderOverlapping.java 8158801 windows-all
 java/awt/Mixing/AWT_Mixing/JSpinnerInGlassPaneOverlapping.java 8158801 windows-all
 java/awt/Mixing/AWT_Mixing/JSpinnerOverlapping.java 8158801 windows-all
-java/awt/Mixing/AWT_Mixing/JTableInGlassPaneOverlapping.java 8158801 windows-all
+java/awt/Mixing/AWT_Mixing/JTableInGlassPaneOverlapping.java 8158801,8357360 windows-all,linux-all
 java/awt/Mixing/AWT_Mixing/JTableOverlapping.java 8158801 windows-all
 java/awt/Mixing/AWT_Mixing/JTextAreaInGlassPaneOverlapping.java 8158801 windows-all
 java/awt/Mixing/AWT_Mixing/JTextAreaOverlapping.java 8158801 windows-all
@@ -197,6 +197,7 @@ java/awt/LightweightComponent/LightweightEventTest/LightweightEventTest.java 815
 java/awt/EventDispatchThread/HandleExceptionOnEDT/HandleExceptionOnEDT.java 8072110 macosx-all
 java/awt/EventDispatchThread/LoopRobustness/LoopRobustness.java 8073636 macosx-all
 java/awt/FullScreen/FullScreenInsets/FullScreenInsets.java 7019055,8266245 windows-all,linux-all,macosx-all
+java/awt/FullScreen/BufferStrategyExceptionTest/BufferStrategyExceptionTest.java 8246558 windows-all
 java/awt/Focus/8013611/JDK8013611.java 8175366 windows-all,macosx-all
 java/awt/Focus/6981400/Test1.java 8029675 windows-all,macosx-all
 java/awt/Focus/6981400/Test3.java 8173264 generic-all
@@ -245,6 +246,7 @@ sun/awt/datatransfer/SuplementaryCharactersTransferTest.java 8011371 generic-all
 sun/awt/shell/ShellFolderMemoryLeak.java 8197794 windows-all
 sun/java2d/DirectX/OverriddenInsetsTest/OverriddenInsetsTest.java 8196102 generic-all
 sun/java2d/DirectX/RenderingToCachedGraphicsTest/RenderingToCachedGraphicsTest.java 8196180 windows-all,macosx-all
+sun/java2d/OpenGL/OpaqueDest.java#id1 8367574 macosx-all
 sun/java2d/SunGraphics2D/EmptyClipRenderingTest.java 8144029 macosx-all,linux-all
 sun/java2d/SunGraphics2D/DrawImageBilinear.java 8297175 linux-all
 sun/java2d/SunGraphics2D/PolyVertTest.java 6986565 generic-all
@@ -821,7 +823,6 @@ java/awt/TextArea/TextAreaCursorTest/HoveringAndDraggingTest.java 8024986 macosx
 java/awt/TextComponent/CorrectTextComponentSelectionTest.java 8237220 macosx-all
 java/awt/TextComponent/SelectionAndCaretColor.java 7017622 linux-all
 java/awt/event/MouseEvent/SpuriousExitEnter/SpuriousExitEnter.java 8254841 macosx-all
-java/awt/Focus/AppletInitialFocusTest/AppletInitialFocusTest1.java 8256289 windows-x64
 java/awt/FullScreen/TranslucentWindow/TranslucentWindow.java 8258103 linux-all
 java/awt/Focus/FrameMinimizeTest/FrameMinimizeTest.java 8016266 linux-x64
 java/awt/Frame/SizeMinimizedTest.java 8305915 linux-x64
