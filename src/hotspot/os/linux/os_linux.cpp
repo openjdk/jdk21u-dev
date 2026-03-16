@@ -291,21 +291,21 @@ bool os::Linux::free_memory(physical_memory_size_type& value) {
   }
   free_mem = (julong)si.freeram * si.mem_unit;
   log_trace(os)("free memory: " JULONG_FORMAT, free_mem);
-  value = static_cast<size_t>(free_mem);
+  value = static_cast<physical_memory_size_type>(free_mem);
   return true;
 }
 
-size_t os::physical_memory() {
+physical_memory_size_type os::physical_memory() {
   if (OSContainer::is_containerized()) {
     jlong mem_limit;
     if ((mem_limit = OSContainer::memory_limit_in_bytes()) > 0) {
       log_trace(os)("total container memory: " JLONG_FORMAT, mem_limit);
-      return static_cast<size_t>(mem_limit);
+      return static_cast<physical_memory_size_type>(mem_limit);
     }
   }
 
-  size_t phys_mem = Linux::physical_memory();
-  log_trace(os)("total system memory: %zu", phys_mem);
+  physical_memory_size_type phys_mem = Linux::physical_memory();
+  log_trace(os)("total system memory: " PHYS_MEM_TYPE_FORMAT, phys_mem);
   return phys_mem;
 }
 
