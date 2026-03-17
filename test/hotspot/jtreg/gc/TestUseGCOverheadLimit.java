@@ -63,7 +63,6 @@ public class TestUseGCOverheadLimit {
     String[] selectedArgs = args[0].equals("G1") ? g1Args : parallelArgs;
 
     final String[] commonArgs = {
-      "-XX:-UseCompactObjectHeaders", // Object sizes are calculated such that the heap is tight.
       "-XX:ParallelGCThreads=1",      // Make GCs take longer.
       "-XX:+UseGCOverheadLimit",
       "-Xlog:gc=debug",
