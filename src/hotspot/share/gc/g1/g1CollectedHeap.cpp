@@ -1002,7 +1002,7 @@ void G1CollectedHeap::update_gc_overhead_counter() {
   }
 
   bool gc_time_over_limit = (_policy->analytics()->long_term_pause_time_ratio() * 100) >= GCTimeLimit;
-  double free_space_percent = percent_of(num_available_regions() * G1HeapRegion::GrainBytes, max_capacity());
+  double free_space_percent = percent_of(num_free_or_available_regions() * HeapRegion::GrainBytes, max_capacity());
   bool free_space_below_limit = free_space_percent < GCHeapFreeLimit;
 
   log_debug(gc)("GC Overhead Limit: GC Time %f Free Space %f Counter %zu",
