@@ -320,10 +320,10 @@ class os: AllStatic {
   // For example, on Linux, "available" memory (`MemAvailable` in `/proc/meminfo`) is greater
   // than "free" memory (`MemFree` in `/proc/meminfo`) because Linux can free memory
   // aggressively (e.g. clear caches) so that it becomes available.
-  static julong available_memory();
-  static julong free_memory();
+  [[nodiscard]] static bool available_memory(physical_memory_size_type& value);
+  [[nodiscard]] static bool free_memory(physical_memory_size_type& value);
 
-  static julong physical_memory();
+  static physical_memory_size_type physical_memory();
   static bool has_allocatable_memory_limit(size_t* limit);
   static bool is_server_class_machine();
 
@@ -842,10 +842,10 @@ class os: AllStatic {
   // return current frame. pc() and sp() are set to null on failure.
   static frame      current_frame();
 
-  static void print_hex_dump(outputStream* st, address start, address end, int unitsize,
-                             int bytes_per_line, address logical_start);
-  static void print_hex_dump(outputStream* st, address start, address end, int unitsize) {
-    print_hex_dump(st, start, end, unitsize, /*bytes_per_line=*/16, /*logical_start=*/start);
+  static void print_hex_dump(outputStream* st, const_address start, const_address end, int unitsize, bool print_ascii,
+                             int bytes_per_line, const_address logical_start);
+  static void print_hex_dump(outputStream* st, const_address start, const_address end, int unitsize, bool print_ascii = true) {
+    print_hex_dump(st, start, end, unitsize, print_ascii, /*bytes_per_line=*/16, /*logical_start=*/start);
   }
 
   // returns a string to describe the exception/signal;
@@ -925,7 +925,7 @@ class os: AllStatic {
   // provided buffer as a scratch buffer. The status message which will be written
   // into the error log either is file location or a short error message, depending
   // on the checking result.
-  static void check_dump_limit(char* buffer, size_t bufferSize);
+  static void check_core_dump_prerequisites(char* buffer, size_t bufferSize, bool check_only = false);
 
   // Get the default path to the core file
   // Returns the length of the string

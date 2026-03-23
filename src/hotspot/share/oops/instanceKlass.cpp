@@ -290,12 +290,11 @@ InstanceKlass* InstanceKlass::nest_host(TRAPS) {
       ss.print("Nest host resolution of %s with host %s failed: ",
                this->external_name(), target_host_class);
       java_lang_Throwable::print(PENDING_EXCEPTION, &ss);
-      const char* msg = ss.as_string(true /* on C-heap */);
       constantPoolHandle cph(THREAD, constants());
-      SystemDictionary::add_nest_host_error(cph, _nest_host_index, msg);
+      SystemDictionary::add_nest_host_error(cph, _nest_host_index, ss);
       CLEAR_PENDING_EXCEPTION;
 
-      log_trace(class, nestmates)("%s", msg);
+      log_trace(class, nestmates)("%s", ss.base());
     } else {
       // A valid nest-host is an instance class in the current package that lists this
       // class as a nest member. If any of these conditions are not met the class is
@@ -334,10 +333,9 @@ InstanceKlass* InstanceKlass::nest_host(TRAPS) {
                  k->external_name(),
                  k->class_loader_data()->loader_name_and_id(),
                  error);
-        const char* msg = ss.as_string(true /* on C-heap */);
         constantPoolHandle cph(THREAD, constants());
-        SystemDictionary::add_nest_host_error(cph, _nest_host_index, msg);
-        log_trace(class, nestmates)("%s", msg);
+        SystemDictionary::add_nest_host_error(cph, _nest_host_index, ss);
+        log_trace(class, nestmates)("%s", ss.base());
       }
     }
   } else {
@@ -1649,7 +1647,7 @@ bool InstanceKlass::find_local_field(Symbol* name, Symbol* sig, fieldDescriptor*
     Symbol* f_name = fs.name();
     Symbol* f_sig  = fs.signature();
     if (f_name == name && f_sig == sig) {
-      fd->reinitialize(const_cast<InstanceKlass*>(this), fs.index());
+      fd->reinitialize(const_cast<InstanceKlass*>(this), fs.to_FieldInfo());
       return true;
     }
   }
@@ -1718,7 +1716,7 @@ Klass* InstanceKlass::find_field(Symbol* name, Symbol* sig, bool is_static, fiel
 bool InstanceKlass::find_local_field_from_offset(int offset, bool is_static, fieldDescriptor* fd) const {
   for (JavaFieldStream fs(this); !fs.done(); fs.next()) {
     if (fs.offset() == offset) {
-      fd->reinitialize(const_cast<InstanceKlass*>(this), fs.index());
+      fd->reinitialize(const_cast<InstanceKlass*>(this), fs.to_FieldInfo());
       if (fd->is_static() == is_static) return true;
     }
   }
@@ -1779,19 +1777,16 @@ void InstanceKlass::do_nonstatic_fields(FieldClosure* cl) {
   if (super != nullptr) {
     super->do_nonstatic_fields(cl);
   }
-  fieldDescriptor fd;
-  int length = java_fields_count();
-  for (int i = 0; i < length; i += 1) {
-    fd.reinitialize(this, i);
+  for (JavaFieldStream fs(this); !fs.done(); fs.next()) {
+    fieldDescriptor& fd = fs.field_descriptor();
     if (!fd.is_static()) {
       cl->do_field(&fd);
     }
   }
 }
 
-// first in Pair is offset, second is index.
-static int compare_fields_by_offset(Pair<int,int>* a, Pair<int,int>* b) {
-  return a->first - b->first;
+static int compare_fields_by_offset(FieldInfo* a, FieldInfo* b) {
+  return a->offset() - b->offset();
 }
 
 void InstanceKlass::print_nonstatic_fields(FieldClosure* cl) {
@@ -1800,26 +1795,20 @@ void InstanceKlass::print_nonstatic_fields(FieldClosure* cl) {
     super->print_nonstatic_fields(cl);
   }
   ResourceMark rm;
-  fieldDescriptor fd;
   // In DebugInfo nonstatic fields are sorted by offset.
-  GrowableArray<Pair<int,int> > fields_sorted;
-  int i = 0;
+  GrowableArray<FieldInfo> fields_sorted;
   for (AllFieldStream fs(this); !fs.done(); fs.next()) {
     if (!fs.access_flags().is_static()) {
-      fd = fs.field_descriptor();
-      Pair<int,int> f(fs.offset(), fs.index());
-      fields_sorted.push(f);
-      i++;
+      fields_sorted.push(fs.to_FieldInfo());
     }
   }
-  if (i > 0) {
-    int length = i;
-    assert(length == fields_sorted.length(), "duh");
-    // _sort_Fn is defined in growableArray.hpp.
+  int length = fields_sorted.length();
+  if (length > 0) {
     fields_sorted.sort(compare_fields_by_offset);
+    fieldDescriptor fd;
     for (int i = 0; i < length; i++) {
-      fd.reinitialize(this, fields_sorted.at(i).second);
-      assert(!fd.is_static() && fd.offset() == fields_sorted.at(i).first, "only nonstatic fields");
+      fd.reinitialize(this, fields_sorted.at(i));
+      assert(!fd.is_static() && fd.offset() == checked_cast<int>(fields_sorted.at(i).offset()), "only nonstatic fields");
       cl->do_field(&fd);
     }
   }
