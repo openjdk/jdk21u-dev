@@ -840,21 +840,12 @@ public class KeyStore {
      * the {@link Security#getProviders() Security.getProviders()} method.
      *
      * @implNote
-     * The JDK Reference Implementation additionally uses
-     * <ul>
-     * <li>the {@code jdk.security.provider.preferred}
+     * The JDK Reference Implementation additionally uses the
+     * {@code jdk.security.provider.preferred}
      * {@link Security#getProperty(String) Security} property to determine
      * the preferred provider order for the specified keystore type. This
      * may be different from the order of providers returned by
      * {@link Security#getProviders() Security.getProviders()}.
-     * </li>
-     * <li>the {@code jdk.crypto.disabledAlgorithms}
-     * {@link Security#getProperty(String) Security} property to determine
-     * if the specified keystore type is allowed. If the
-     * {@systemProperty jdk.crypto.disabledAlgorithms} is set, it supersedes
-     * the security property value.
-     * </li>
-     * </ul>
      *
      * @param type the type of keystore.
      * See the KeyStore section in the <a href=
@@ -899,14 +890,6 @@ public class KeyStore {
      *
      * <p> Note that the list of registered providers may be retrieved via
      * the {@link Security#getProviders() Security.getProviders()} method.
-     *
-     * @implNote
-     * The JDK Reference Implementation additionally uses
-     * the {@code jdk.crypto.disabledAlgorithms}
-     * {@link Security#getProperty(String) Security} property to determine
-     * if the specified keystore type is allowed. If the
-     * {@systemProperty jdk.crypto.disabledAlgorithms} is set, it supersedes
-     * the security property value.
      *
      * @param type the type of keystore.
      * See the KeyStore section in the <a href=
@@ -960,14 +943,6 @@ public class KeyStore {
      * {@code KeyStoreSpi} implementation from the specified provider
      * object is returned.  Note that the specified provider object
      * does not have to be registered in the provider list.
-     *
-     * @implNote
-     * The JDK Reference Implementation additionally uses
-     * the {@code jdk.crypto.disabledAlgorithms}
-     * {@link Security#getProperty(String) Security} property to determine
-     * if the specified keystore type is allowed. If the
-     * {@systemProperty jdk.crypto.disabledAlgorithms} is set, it supersedes
-     * the security property value.
      *
      * @param type the type of keystore.
      * See the KeyStore section in the <a href=
@@ -1720,14 +1695,6 @@ public class KeyStore {
      * <p> Note that the list of registered providers may be retrieved via
      * the {@link Security#getProviders() Security.getProviders()} method.
      *
-     * @implNote
-     * The JDK Reference Implementation additionally uses
-     * the {@code jdk.crypto.disabledAlgorithms}
-     * {@link Security#getProperty(String) Security} property to determine
-     * if the specified keystore type is allowed. If the
-     * {@systemProperty jdk.crypto.disabledAlgorithms} is set, it supersedes
-     * the security property value. Disallowed type will be skipped.
-     *
      * @param  file the keystore file
      * @param  password the keystore password, which may be {@code null}
      *
@@ -1784,14 +1751,6 @@ public class KeyStore {
      * <p> Note that the list of registered providers may be retrieved via
      * the {@link Security#getProviders() Security.getProviders()} method.
      *
-     * @implNote
-     * The JDK Reference Implementation additionally uses
-     * the {@code jdk.crypto.disabledAlgorithms}
-     * {@link Security#getProperty(String) Security} property to determine
-     * if the specified keystore type is allowed. If the
-     * {@systemProperty jdk.crypto.disabledAlgorithms} is set, it supersedes
-     * the security property value. Disallowed type will be skipped.
-     *
      * @param  file the keystore file
      * @param  param the {@code LoadStoreParameter} that specifies how to load
      *             the keystore, which may be {@code null}
@@ -1844,6 +1803,7 @@ public class KeyStore {
         }
 
         KeyStore keystore = null;
+        String matched = null;
 
         try (DataInputStream dataStream =
             new DataInputStream(
@@ -1867,8 +1827,10 @@ public class KeyStore {
                                 if (CryptoAlgorithmConstraints.permits(
                                         "KEYSTORE", ksAlgo)) {
                                     keystore = new KeyStore(impl, p, ksAlgo);
-                                    break;
+                                } else {
+                                    matched = ksAlgo;
                                 }
+                                break;
                             }
                         } catch (NoSuchAlgorithmException e) {
                             // ignore
@@ -1898,9 +1860,14 @@ public class KeyStore {
                 return keystore;
             }
         }
-
-        throw new KeyStoreException("Unrecognized keystore format. "
-                + "Please load it with a specified type");
+        if (matched == null) {
+            throw new KeyStoreException("Unrecognized keystore format. "
+                    + "Please load it with a specified type");
+        } else {
+            throw new KeyStoreException("Keystore format " +
+                    matched +
+                    " disabled by jdk.crypto.disabledAlgorithms property");
+        }
     }
 
     /**
