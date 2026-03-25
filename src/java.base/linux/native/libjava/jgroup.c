@@ -417,3 +417,5 @@ Java_com_alibaba_tenant_NativeDispatcher_getAliOSPrimaryVersion0(JNIEnv* env,
         }
     }
     return (jint)-1;
+}
+
