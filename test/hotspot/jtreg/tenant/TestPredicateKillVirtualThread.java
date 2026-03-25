@@ -35,8 +35,8 @@
  */
 public class TestPredicateKillVirtualThread extends TestPredicateKillThread {
 
-	public static void main(String[] args) {
-		TestPredicateKillVirtualThread test = new TestPredicateKillVirtualThread();
-		test.testNewThreadNoInheritance(true);
-	}
+    public static void main(String[] args) {
+        TestPredicateKillVirtualThread test = new TestPredicateKillVirtualThread();
+        test.testNewThreadNoInheritance(true);
+    }
 }
