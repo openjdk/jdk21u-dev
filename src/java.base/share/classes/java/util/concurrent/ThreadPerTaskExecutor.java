@@ -82,10 +82,10 @@ class ThreadPerTaskExecutor extends ThreadContainer implements ExecutorService {
         super(/*shared*/ true);
         this.factory = Objects.requireNonNull(factory);
         if (TenantGlobals.isTenantEnabled()) {
-			inheritedTenantContainer = TenantContainer.currentPoolInheritedTenantContainer(null);
+            inheritedTenantContainer = TenantContainer.currentPoolInheritedTenantContainer(null);
         } else {
-			inheritedTenantContainer = null;
-		}
+            inheritedTenantContainer = null;
+        }
     }
 
     /**

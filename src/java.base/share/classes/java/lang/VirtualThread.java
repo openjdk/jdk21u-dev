@@ -1222,9 +1222,9 @@ final class VirtualThread extends BaseVirtualThread {
             ForkJoinPool forkJoinPool = new ForkJoinPool(parallelism, factory, handler, asyncMode,
                          0, maxPoolSize, minRunnable, pool -> true, 30, SECONDS);
             if (TenantGlobals.isTenantEnabled()) {
-				TenantContainer.setThreadPoolAsRootContainer(forkJoinPool);
-			}
-			return forkJoinPool;
+                TenantContainer.setThreadPoolAsRootContainer(forkJoinPool);
+            }
+            return forkJoinPool;
         };
         return AccessController.doPrivileged(pa);
     }
@@ -1253,8 +1253,8 @@ final class VirtualThread extends BaseVirtualThread {
             });
         stpe.setRemoveOnCancelPolicy(true);
         if (TenantGlobals.isTenantEnabled()) {
-			TenantContainer.setThreadPoolAsRootContainer(stpe);
-		}
+            TenantContainer.setThreadPoolAsRootContainer(stpe);
+        }
         return stpe;
     }
 

@@ -167,13 +167,13 @@ detect_cgroup_enabled() {
 static int
 detect_cgroup_mount_points() {
     int res = 0;
-	struct mntent *ent = NULL;
-	char mntent_buffer[4 * MAX_PATH_LEN];
+    struct mntent *ent = NULL;
+    char mntent_buffer[4 * MAX_PATH_LEN];
     int cg_index = 0;
     FILE* proc_mounts = NULL;
     struct mntent* temp_ent = NULL;
 
-	temp_ent = (struct mntent *) malloc(sizeof(struct mntent));
+    temp_ent = (struct mntent *) malloc(sizeof(struct mntent));
     if (temp_ent == NULL) {
         JGROUP_MSG("Failed to allocate temp struct mntent");
         res = -1;

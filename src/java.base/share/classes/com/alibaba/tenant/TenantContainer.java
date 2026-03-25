@@ -248,7 +248,7 @@ public class TenantContainer {
      * tenant name
      */
     private String name;
-    
+
     /*
      * tenant jgroup
      */
@@ -1155,17 +1155,17 @@ public class TenantContainer {
         }
     }
 
-	private static boolean shouldNewThreadInherit(Thread newThread, TenantContainer curTenantContainer) {
-		Thread currentThread = Thread.currentThread();
-		return getTenantInheritance(currentThread) &&
-		        (newThreadTenantInheritancePredicate == null ? true : newThreadTenantInheritancePredicate.test(new NewThreadTenantPredicateTuple(currentThread, newThread, curTenantContainer)));
-	}
+    private static boolean shouldNewThreadInherit(Thread newThread, TenantContainer curTenantContainer) {
+        Thread currentThread = Thread.currentThread();
+        return getTenantInheritance(currentThread) &&
+               (newThreadTenantInheritancePredicate == null ? true : newThreadTenantInheritancePredicate.test(new NewThreadTenantPredicateTuple(currentThread, newThread, curTenantContainer)));
+    }
 
     private static boolean shouldNewPoolInherit(Thread currentThread, AbstractExecutorService abstractExecutorService, TenantContainer curTenantContainer) {
-		assert currentThread != null;
-		return getTenantInheritance(currentThread) &&
-		        (newPoolTenantInheritancePredicate == null ? true : newPoolTenantInheritancePredicate.test(new NewPoolTenantPredicateTuple(currentThread, abstractExecutorService, curTenantContainer)));
-	}
+        assert currentThread != null;
+        return getTenantInheritance(currentThread) &&
+               (newPoolTenantInheritancePredicate == null ? true : newPoolTenantInheritancePredicate.test(new NewPoolTenantPredicateTuple(currentThread, abstractExecutorService, curTenantContainer)));
+    }
 
     /*
      * Initialize the TenantContainer class, called after System.initializeSystemClass by VM.

@@ -65,23 +65,23 @@ import jdk.test.lib.Asserts;
 
 public class TestPoolPredicateKillThread {
 
-	//------------------------- Testing entry ----------------------------------------------
-	public static void main(String[] args) {
-		TestPoolPredicateKillThread test = new TestPoolPredicateKillThread();
-		test.testThreadPoolWithPredicate();
-	}
+    //------------------------- Testing entry ----------------------------------------------
+    public static void main(String[] args) {
+        TestPoolPredicateKillThread test = new TestPoolPredicateKillThread();
+        test.testThreadPoolWithPredicate();
+    }
 
-	public void testThreadPoolWithPredicate() {
-		TenantConfiguration config = new TenantConfiguration();
+    public void testThreadPoolWithPredicate() {
+        TenantConfiguration config = new TenantConfiguration();
         final TenantContainer tenant = TenantContainer.create(config);
-		CountDownLatch cdl = new CountDownLatch(2);
-		SharedSecrets.getTenantAccess().setNewPoolTenantInheritancePredicate(tuple -> {
-			cdl.countDown();
-			if (tuple.executorService() == null) {
-				return true;
-			}
-			return false;
-		});
+        CountDownLatch cdl = new CountDownLatch(2);
+        SharedSecrets.getTenantAccess().setNewPoolTenantInheritancePredicate(tuple -> {
+            cdl.countDown();
+            if (tuple.executorService() == null) {
+                return true;
+            }
+            return false;
+        });
         SharedSecrets.getTenantAccess().setNewThreadTenantInheritancePredicate(tuple -> true);
         SharedSecrets.getTenantAccess().setPoolThreadTenantInheritancePredicate(tuple -> {
             if(tuple.executorService() instanceof ThreadPoolExecutor
@@ -94,30 +94,30 @@ public class TestPoolPredicateKillThread {
             }
             return true;
         });
-		ExecutorService[] executors = new ExecutorService[2];
-		Thread[] threads = new Thread[2];
-		try {
-			tenant.run(() -> {
-				executors[0] = Executors.newVirtualThreadPerTaskExecutor();
-				executors[0].submit(()-> {
-					threads[0] = Thread.currentThread();
-				});
-				executors[1] = Executors.newFixedThreadPool(1);
-				executors[1].submit(()-> {
-					threads[1] = Thread.currentThread();
-				});
-			});
-		} catch (TenantException e) {
-			fail();
-		}
+        ExecutorService[] executors = new ExecutorService[2];
+        Thread[] threads = new Thread[2];
+        try {
+            tenant.run(() -> {
+                executors[0] = Executors.newVirtualThreadPerTaskExecutor();
+                executors[0].submit(()-> {
+                    threads[0] = Thread.currentThread();
+                });
+                executors[1] = Executors.newFixedThreadPool(1);
+                executors[1].submit(()-> {
+                    threads[1] = Thread.currentThread();
+                });
+            });
+        } catch (TenantException e) {
+            fail();
+        }
 
-		try {
-			cdl.await(3, TimeUnit.SECONDS);
-		} catch (InterruptedException interruptedException) {
-			fail();
-		}
-		Asserts.assertEquals(tenant, getAttachedTenantContainer(threads[0]));
-		Asserts.assertEquals(null, getAttachedTenantContainer(threads[1]));
-	}
+        try {
+            cdl.await(3, TimeUnit.SECONDS);
+        } catch (InterruptedException interruptedException) {
+            fail();
+        }
+        Asserts.assertEquals(tenant, getAttachedTenantContainer(threads[0]));
+        Asserts.assertEquals(null, getAttachedTenantContainer(threads[1]));
+    }
 
 }
