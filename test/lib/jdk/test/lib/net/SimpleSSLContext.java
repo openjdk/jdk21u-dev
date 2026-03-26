@@ -156,6 +156,8 @@ public final class SimpleSSLContext {
             var sslContext = SSLContext.getInstance(protocol);
             sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
             return sslContext;
+        } catch (SecurityException e) {
+            throw e;
         } catch (Exception e) {
             var message = "Failed loading 'SSLContext' from key store at location '%s' for protocol '%s'".formatted(
                     keyStoreFilePath, protocol);
