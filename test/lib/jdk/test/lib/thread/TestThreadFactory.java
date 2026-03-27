@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,19 +20,36 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package nsk.jvmti.AttachOnDemand.attach020;
 
-import nsk.share.aod.TargetApplicationWaitingAgents;
-import jdk.test.whitebox.WhiteBox;
+package jdk.test.lib.thread;
 
-public class attach020Target extends TargetApplicationWaitingAgents {
+import java.util.concurrent.ThreadFactory;
 
-    protected void targetApplicationActions() {
-        log.display("Provoking garbage collection");
-        WhiteBox.getWhiteBox().fullGC();
+/*
+    This factory is used to start new threads in tests.
+    It supports creation of virtual threads when jtreg test.thread.factory plugin is enabled.
+*/
+
+public class TestThreadFactory {
+
+    private static ThreadFactory threadFactory = "Virtual".equals(System.getProperty("test.thread.factory"))
+            ? virtualThreadFactory() : platformThreadFactory();
+
+    public static Thread newThread(Runnable task) {
+        return threadFactory.newThread(task);
     }
 
-    public static void main(String[] args) {
-        new attach020Target().runTargetApplication(args);
+    public static Thread newThread(Runnable task, String name) {
+        Thread t = threadFactory.newThread(task);
+        t.setName(name);
+        return t;
+    }
+
+    private static ThreadFactory platformThreadFactory() {
+        return Thread.ofPlatform().factory();
+    }
+
+    private static ThreadFactory virtualThreadFactory() {
+        return Thread.ofVirtual().factory();
     }
 }
