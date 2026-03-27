@@ -54,6 +54,8 @@ public class TestSymmCiphersNoPad extends PKCS11Test {
 
     private record CI (String transformation, String keyAlgo, int dataSize){}  // record for holding Cipher Information
 
+    private static StringBuffer debugBuf;
+
     private static final CI[] TEST_LIST = {
             new CI("ARCFOUR", "ARCFOUR", 400),
             new CI("RC4", "RC4", 401),
@@ -64,8 +66,6 @@ public class TestSymmCiphersNoPad extends PKCS11Test {
             new CI("AES/CTR/NoPadding", "AES", 1600),
             new CI("AES/CTR/NoPadding", "AES", 65)
     };
-
-    private static StringBuffer debugBuf;
 
     @Override
     public void main(Provider p) throws Exception {
