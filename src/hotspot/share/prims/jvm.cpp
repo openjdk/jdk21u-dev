@@ -4088,10 +4088,7 @@ JVM_ENTRY_NO_ENV(jboolean, JVM_IsKilledByTenant(JNIEnv*env, jclass ignored, jobj
     Handle java_thread(THREAD, thread_obj);
     JavaThread *thr = NULL;
     ThreadsListHandle tlh;
-    jvmtiError err = JvmtiExport::cv_oop_to_JavaThread(tlh.list(), java_thread(), &thr);
-
-    if (thr != NULL
-        && err == JVMTI_ERROR_NONE
+    if (tlh.cv_oop_to_JavaThread(java_thread(), &thr)
         && thr->thread_state() == _thread_in_native) {
         // return true only when we TenantDeathException has been set successfully,
         // to ensure TenantContainer.destroy() will try to set TenantDeathException if not found
@@ -4124,9 +4121,7 @@ JVM_ENTRY(void, JVM_WakeUpTenantThread(JNIEnv *env, jclass ignored, jobject jthr
     Handle java_thread(THREAD, thread_obj);
     JavaThread *thr = NULL;
     ThreadsListHandle tlh;
-    jvmtiError err = JvmtiExport::cv_oop_to_JavaThread(tlh.list(), java_thread(), &thr);
-    if (thr != NULL
-        && err == JVMTI_ERROR_NONE
+    if (tlh.cv_oop_to_JavaThread(java_thread(), &thr)
         && thr->thread_state() == _thread_in_native
         && thr->try_start_tenant_shutdown(java_thread())) {
       {
@@ -4168,9 +4163,7 @@ public:
       Handle java_thread = *itr;
       JavaThread *thr = NULL;
       ThreadsListHandle tlh;
-      jvmtiError err = JvmtiExport::cv_oop_to_JavaThread(tlh.list(), java_thread(), &thr);
-      if (thr != NULL
-          && err == JVMTI_ERROR_NONE) {
+      if (tlh.cv_oop_to_JavaThread(java_thread(), &thr)) {
         thr->print_on(st);
         thr->print_stack_on(st);
       }
