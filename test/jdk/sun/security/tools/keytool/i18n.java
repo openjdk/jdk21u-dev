@@ -382,7 +382,7 @@ public class i18n {
         final JTextArea reasonTextArea = new JTextArea(5, 20);
 
         final JButton okButton = new JButton("OK");
-        okButton.addActionListener(_ -> dialogWindow.setVisible(false));
+        okButton.addActionListener(e -> dialogWindow.setVisible(false));
 
         final JPanel okayBtnPanel = new JPanel(
                 new FlowLayout(FlowLayout.CENTER, 4, 0));
