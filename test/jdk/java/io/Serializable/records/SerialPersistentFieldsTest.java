@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,7 +27,7 @@
  * @summary Basic tests for prohibited magic serialPersistentFields
  * @library /test/lib
  * @modules java.base/jdk.internal.org.objectweb.asm
- * @run testng SerialPersistentFieldsTest
+ * @run junit SerialPersistentFieldsTest
  */
 
 import java.io.ByteArrayInputStream;
@@ -49,21 +49,23 @@ import jdk.internal.org.objectweb.asm.MethodVisitor;
 import jdk.internal.org.objectweb.asm.Type;
 import jdk.test.lib.ByteCodeLoader;
 import jdk.test.lib.compiler.InMemoryJavaCompiler;
-import org.testng.annotations.BeforeTest;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import static java.lang.System.out;
 import static jdk.internal.org.objectweb.asm.ClassWriter.*;
 import static jdk.internal.org.objectweb.asm.Opcodes.*;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Checks that the serialPersistentFields declaration is effectively ignored.
  */
 public class SerialPersistentFieldsTest {
 
-    ClassLoader serializableRecordLoader;
+    static ClassLoader serializableRecordLoader;
 
     /**
      * Generates the serializable record classes used by the test. First creates
@@ -78,8 +80,8 @@ public class SerialPersistentFieldsTest {
      *       };
      *   }
      */
-    @BeforeTest
-    public void setup() {
+    @BeforeAll
+    static void setup() {
         {  // R1
             byte[] byteCode = InMemoryJavaCompiler.compile("R1",
                     "public record R1 () implements java.io.Serializable { }");
@@ -137,7 +139,7 @@ public class SerialPersistentFieldsTest {
     }
 
     /** Constructs a new instance of given named record, with the given args. */
-    Object newRecord(String name, Class<?>[] pTypes, Object[] args) {
+    static Object newRecord(String name, Class<?>[] pTypes, Object[] args) {
         try {
             Class<?> c = Class.forName(name, true, serializableRecordLoader);
             assert c.isRecord();
@@ -148,34 +150,34 @@ public class SerialPersistentFieldsTest {
         }
     }
 
-    Object newR1() {
+    static Object newR1() {
         return newRecord("R1", null, null);
     }
-    Object newR2(int x) {
+    static Object newR2(int x) {
         return newRecord("R2", new Class[]{int.class}, new Object[]{x});
     }
-    Object newR3(int x, int y) {
+    static Object newR3(int x, int y) {
         return newRecord("R3", new Class[]{int.class, int.class}, new Object[]{x, y});
     }
-    Object newR4(Serializable u, Serializable v) {
+    static Object newR4(Serializable u, Serializable v) {
         return newRecord("R4", new Class[]{Serializable.class, Serializable.class}, new Object[]{u,v});
     }
-    Object newR5(int x) {
+    static Object newR5(int x) {
         return newRecord("R5", new Class[]{int.class}, new Object[]{x});
     }
 
-    @DataProvider(name = "recordInstances")
-    public Object[][] recordInstances() {
-        return new Object[][] {
-            new Object[] { newR1()                                },
-            new Object[] { newR2(5)                               },
-            new Object[] { newR3(7, 8)                            },
-            new Object[] { newR4("str", BigDecimal.valueOf(4567)) },
-            new Object[] { newR5(9)                               },
+    static Object[] recordInstances() {
+        return new Object[] {
+            newR1(),
+            newR2(5),
+            newR3(7, 8),
+            newR4("str", BigDecimal.valueOf(4567)),
+            newR5(9),
         };
     }
 
-    @Test(dataProvider = "recordInstances")
+    @ParameterizedTest
+    @MethodSource("recordInstances")
     public void roundTrip(Object objToSerialize) throws Exception {
         out.println("\n---");
         out.println("serializing : " + objToSerialize);
@@ -185,7 +187,7 @@ public class SerialPersistentFieldsTest {
         assertEquals(objDeserialized, objToSerialize);
     }
 
-    <T> byte[] serialize(T obj) throws IOException {
+    static <T> byte[] serialize(T obj) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(obj);
@@ -194,7 +196,7 @@ public class SerialPersistentFieldsTest {
     }
 
     @SuppressWarnings("unchecked")
-    <T> T deserialize(byte[] streamBytes)
+    static <T> T deserialize(byte[] streamBytes)
         throws IOException, ClassNotFoundException
     {
         ByteArrayInputStream bais = new ByteArrayInputStream(streamBytes);
@@ -208,7 +210,7 @@ public class SerialPersistentFieldsTest {
         return (T) ois.readObject();
     }
 
-    <T> T serializeDeserialize(T obj)
+    static <T> T serializeDeserialize(T obj)
         throws IOException, ClassNotFoundException
     {
         return deserialize(serialize(obj));
@@ -323,7 +325,8 @@ public class SerialPersistentFieldsTest {
     // -- infra sanity --
 
     /** Checks to ensure correct operation of the test's generation logic. */
-    @Test(dataProvider = "recordInstances")
+    @ParameterizedTest
+    @MethodSource("recordInstances")
     public void wellFormedGeneratedClasses(Object obj) throws Exception {
         out.println("\n---");
         out.println(obj);
@@ -333,7 +336,7 @@ public class SerialPersistentFieldsTest {
         assertTrue((f.getModifiers() & Modifier.FINAL) != 0);
         f.setAccessible(true);
         ObjectStreamField[] fv = (ObjectStreamField[])f.get(obj);
-        assertTrue(fv != null, "Unexpected null value");
+        assertNotNull(fv, "Unexpected null value");
         assertTrue(fv.length >= 0, "Unexpected negative length:" + fv.length);
     }
 }
