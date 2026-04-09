@@ -788,34 +788,22 @@ ThreadsListHandle::~ThreadsListHandle() {
   }
 }
 
-// Convert an internal thread reference to a JavaThread found on the
-// associated ThreadsList. This ThreadsListHandle "protects" the
-// returned JavaThread *.
+// Convert an oop to a JavaThread found on the associated ThreadsList.
+// The ThreadsListHandle "protects" the returned JavaThread *.
 //
-// If thread_oop_p is not null, then the caller wants to use the oop
-// after this call so the oop is returned. On success, *jt_pp is set
-// to the converted JavaThread * and true is returned. On error,
-// returns false.
+// On success, *jt_pp is set to the converted JavaThread * and true is returned.
+// On error, returns false.
 //
-bool ThreadsListHandle::cv_internal_thread_to_JavaThread(jobject jthread,
-                                                         JavaThread ** jt_pp,
-                                                         oop * thread_oop_p) {
+bool ThreadsListHandle::cv_oop_to_JavaThread(oop thread_oop, JavaThread** jt_pp) {
   assert(this->list() != nullptr, "must have a ThreadsList");
+  assert(thread_oop != nullptr, "must have an oop");
   assert(jt_pp != nullptr, "must have a return JavaThread pointer");
-  // thread_oop_p is optional so no assert()
 
-  // The JVM_* interfaces don't allow a null thread parameter; JVM/TI
-  // allows a null thread parameter to signify "current thread" which
-  // allows us to avoid calling cv_external_thread_to_JavaThread().
-  // The JVM_* interfaces have no such leeway.
-
-  oop thread_oop = JNIHandles::resolve_non_null(jthread);
-  // Looks like an oop at this point.
-  if (thread_oop_p != nullptr) {
-    // Return the oop to the caller; the caller may still want
-    // the oop even if this function returns false.
-    *thread_oop_p = thread_oop;
+  if (!thread_oop->is_a(vmClasses::Thread_klass())) {
+    // The oop is not a java.lang.Thread.
+    return false;
   }
+  // Looks like a java.lang.Thread oop at this point.
 
   JavaThread *java_thread = java_lang_Thread::thread_acquire(thread_oop);
   if (java_thread == nullptr) {
@@ -838,7 +826,40 @@ bool ThreadsListHandle::cv_internal_thread_to_JavaThread(jobject jthread,
   // Return a live JavaThread that is "protected" by the
   // ThreadsListHandle in the caller.
   *jt_pp = java_thread;
+
   return true;
+}
+
+// Convert an internal thread reference to a JavaThread found on the
+// associated ThreadsList. This ThreadsListHandle "protects" the
+// returned JavaThread *.
+//
+// If thread_oop_p is not null, then the caller wants to use the oop
+// after this call so the oop is returned. On success, *jt_pp is set
+// to the converted JavaThread * and true is returned. On error,
+// returns false.
+//
+bool ThreadsListHandle::cv_internal_thread_to_JavaThread(jobject jthread,
+                                                         JavaThread** jt_pp,
+                                                         oop* thread_oop_p) {
+  assert(this->list() != nullptr, "must have a ThreadsList");
+  assert(jt_pp != nullptr, "must have a return JavaThread pointer");
+  // thread_oop_p is optional so no assert()
+
+  // The JVM_* interfaces don't allow a null thread parameter; JVM/TI
+  // allows a null thread parameter to signify "current thread" which
+  // allows us to avoid calling cv_external_thread_to_JavaThread().
+  // The JVM_* interfaces have no such leeway.
+
+  oop thread_oop = JNIHandles::resolve_non_null(jthread);
+  // Looks like an oop at this point.
+  if (thread_oop_p != nullptr) {
+    // Return the oop to the caller; the caller may still want
+    // the oop even if this function returns false.
+    *thread_oop_p = thread_oop;
+  }
+
+  return cv_oop_to_JavaThread(thread_oop, jt_pp);
 }
 
 FastThreadsListHandle::FastThreadsListHandle(oop thread_oop, JavaThread* java_thread) : _protected_java_thread(nullptr) {
