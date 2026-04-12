@@ -36,7 +36,8 @@ import java.lang.foreign.*;
  * @bug 8329273
  * @summary Test vectorization of loops over MemorySegment
  * @library /test/lib /
- * @run driver compiler.loopopts.superword.TestMemorySegment ByteArray
+ * @compile --enable-preview -source ${jdk.version} TestMemorySegment.java
+ * @run main/othervm --enable-preview compiler.loopopts.superword.TestMemorySegment ByteArray
  */
 
 /*
@@ -44,7 +45,8 @@ import java.lang.foreign.*;
  * @bug 8329273
  * @summary Test vectorization of loops over MemorySegment
  * @library /test/lib /
- * @run driver compiler.loopopts.superword.TestMemorySegment CharArray
+ * @compile --enable-preview -source ${jdk.version} TestMemorySegment.java
+ * @run main/othervm --enable-preview compiler.loopopts.superword.TestMemorySegment CharArray
  */
 
 /*
@@ -52,7 +54,8 @@ import java.lang.foreign.*;
  * @bug 8329273
  * @summary Test vectorization of loops over MemorySegment
  * @library /test/lib /
- * @run driver compiler.loopopts.superword.TestMemorySegment ShortArray
+ * @compile --enable-preview -source ${jdk.version} TestMemorySegment.java
+ * @run main/othervm --enable-preview compiler.loopopts.superword.TestMemorySegment ShortArray
  */
 
 /*
@@ -60,7 +63,8 @@ import java.lang.foreign.*;
  * @bug 8329273
  * @summary Test vectorization of loops over MemorySegment
  * @library /test/lib /
- * @run driver compiler.loopopts.superword.TestMemorySegment IntArray
+ * @compile --enable-preview -source ${jdk.version} TestMemorySegment.java
+ * @run main/othervm --enable-preview compiler.loopopts.superword.TestMemorySegment IntArray
  */
 
 /*
@@ -68,7 +72,8 @@ import java.lang.foreign.*;
  * @bug 8329273
  * @summary Test vectorization of loops over MemorySegment
  * @library /test/lib /
- * @run driver compiler.loopopts.superword.TestMemorySegment LongArray
+ * @compile --enable-preview -source ${jdk.version} TestMemorySegment.java
+ * @run main/othervm --enable-preview compiler.loopopts.superword.TestMemorySegment LongArray
  */
 
 /*
@@ -76,7 +81,8 @@ import java.lang.foreign.*;
  * @bug 8329273
  * @summary Test vectorization of loops over MemorySegment
  * @library /test/lib /
- * @run driver compiler.loopopts.superword.TestMemorySegment FloatArray
+ * @compile --enable-preview -source ${jdk.version} TestMemorySegment.java
+ * @run main/othervm --enable-preview compiler.loopopts.superword.TestMemorySegment FloatArray
  */
 
 /*
@@ -84,7 +90,8 @@ import java.lang.foreign.*;
  * @bug 8329273
  * @summary Test vectorization of loops over MemorySegment
  * @library /test/lib /
- * @run driver compiler.loopopts.superword.TestMemorySegment DoubleArray
+ * @compile --enable-preview -source ${jdk.version} TestMemorySegment.java
+ * @run main/othervm --enable-preview compiler.loopopts.superword.TestMemorySegment DoubleArray
  */
 
 /*
@@ -92,7 +99,8 @@ import java.lang.foreign.*;
  * @bug 8329273
  * @summary Test vectorization of loops over MemorySegment
  * @library /test/lib /
- * @run driver compiler.loopopts.superword.TestMemorySegment ByteBuffer
+ * @compile --enable-preview -source ${jdk.version} TestMemorySegment.java
+ * @run main/othervm --enable-preview compiler.loopopts.superword.TestMemorySegment ByteBuffer
  */
 
 /*
@@ -100,7 +108,8 @@ import java.lang.foreign.*;
  * @bug 8329273
  * @summary Test vectorization of loops over MemorySegment
  * @library /test/lib /
- * @run driver compiler.loopopts.superword.TestMemorySegment ByteBufferDirect
+ * @compile --enable-preview -source ${jdk.version} TestMemorySegment.java
+ * @run main/othervm --enable-preview compiler.loopopts.superword.TestMemorySegment ByteBufferDirect
  */
 
 /*
@@ -108,7 +117,8 @@ import java.lang.foreign.*;
  * @bug 8329273
  * @summary Test vectorization of loops over MemorySegment
  * @library /test/lib /
- * @run driver compiler.loopopts.superword.TestMemorySegment Native
+ * @compile --enable-preview -source ${jdk.version} TestMemorySegment.java
+ * @run main/othervm --enable-preview compiler.loopopts.superword.TestMemorySegment Native
  */
 
 // FAILS: mixed providers currently do not vectorize. Maybe there is some inlining issue.
@@ -139,7 +149,7 @@ import java.lang.foreign.*;
 public class TestMemorySegment {
     public static void main(String[] args) {
         TestFramework framework = new TestFramework(TestMemorySegmentImpl.class);
-        framework.addFlags("-DmemorySegmentProviderNameForTestVM=" + args[0]);
+        framework.addFlags("--enable-preview", "-DmemorySegmentProviderNameForTestVM=" + args[0]);
         framework.setDefaultWarmup(100);
         framework.start();
     }
