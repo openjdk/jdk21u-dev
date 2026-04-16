@@ -57,6 +57,7 @@ public class ShutdownTest extends KullaTesting {
         assertEquals(1, shutdownCount);
     }
 
+    @Test
     public void testCloseCallback() {
         shutdownCount = 0;
         getState().onShutdown(this::shutdownCounter);
@@ -64,6 +65,7 @@ public class ShutdownTest extends KullaTesting {
         assertEquals(1, shutdownCount);
     }
 
+    @Test
     public void testCloseUnsubscribe() {
         shutdownCount = 0;
         Subscription token = getState().onShutdown(this::shutdownCounter);
@@ -72,6 +74,7 @@ public class ShutdownTest extends KullaTesting {
         assertEquals(0, shutdownCount);
     }
 
+    @Test
     public void testTwoShutdownListeners() {
         ShutdownListener listener1 = new ShutdownListener();
         ShutdownListener listener2 = new ShutdownListener();
