@@ -63,7 +63,7 @@ public class HandlerConnectionClose
 {
     static final int ONEK = 1024;
     static final long POST_SIZE = ONEK * 1L;
-    private static final SSLContext sslContext = SimpleSSLContext.findSSLContext();
+    private static SSLContext sslContext;
     Logger logger;
 
     void test(String[] args) throws Exception {
@@ -424,6 +424,7 @@ public class HandlerConnectionClose
     void check(boolean cond, String failMessage) {if (cond) pass(); else fail(failMessage);}
     void debug(String message) {if(debug) { System.out.println(message); }  }
     public static void main(String[] args) throws Throwable {
+        sslContext = SimpleSSLContext.findSSLContext();
         Class<?> k = new Object(){}.getClass().getEnclosingClass();
         try {k.getMethod("instanceMain",String[].class)
                 .invoke( k.newInstance(), (Object) args);}

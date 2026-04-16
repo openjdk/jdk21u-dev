@@ -66,9 +66,12 @@ public class HttpsServerTest {
     static final boolean ENABLE_LOGGING = true;
     static final Logger LOGGER = Logger.getLogger("com.sun.net.httpserver");
 
-    private static final SSLContext sslContext = SimpleSSLContext.findSSLContext();
+    private static SSLContext sslContext;
 
     static {
+        try {
+            sslContext = SimpleSSLContext.findSSLContext();
+        } catch (IOException e) {}
         SSLContext.setDefault(sslContext);
     }
 

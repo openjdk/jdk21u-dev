@@ -61,7 +61,7 @@ import jdk.httpclient.test.lib.http2.Http2TestServer;
  */
 public class SANTest implements HttpServerAdapters {
 
-    private static final SSLContext ctx = SimpleSSLContext.findSSLContext();
+    private static SSLContext ctx;
 
     static HttpServer getHttpsServer(InetSocketAddress addr, Executor exec, SSLContext ctx) throws Exception {
         HttpsServer server = HttpsServer.create(addr, 0);
@@ -99,6 +99,8 @@ public class SANTest implements HttpServerAdapters {
     }
 
     public static void main (String[] args) throws Exception {
+        ctx = SimpleSSLContext.findSSLContext();
+
         // Http/1.1 servers
         HttpTestServer h1s1 = null;
         HttpTestServer h1s2 = null;

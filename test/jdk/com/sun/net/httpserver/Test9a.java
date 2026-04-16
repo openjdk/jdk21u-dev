@@ -56,11 +56,14 @@ public class Test9a extends Test {
     private static final String TEMP_FILE_PREFIX =
             HttpServer.class.getPackageName() + '-' + Test9a.class.getSimpleName() + '-';
 
-    private static final SSLContext serverCtx = SimpleSSLContext.findSSLContext();
-    private static final SSLContext clientCtx = SimpleSSLContext.findSSLContext();
+    private static SSLContext serverCtx;
+    private static SSLContext clientCtx;
     static volatile boolean error = false;
 
     public static void main (String[] args) throws Exception {
+        serverCtx = SimpleSSLContext.findSSLContext();
+        clientCtx = SimpleSSLContext.findSSLContext();
+
         HttpsServer server = null;
         ExecutorService executor=null;
         Path smallFilePath = createTempFileOfSize(TEMP_FILE_PREFIX, null, 23);

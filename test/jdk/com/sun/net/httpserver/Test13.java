@@ -59,13 +59,15 @@ public class Test13 extends Test {
     private static final String TEMP_FILE_PREFIX =
             HttpServer.class.getPackageName() + '-' + Test13.class.getSimpleName() + '-';
 
-    private static final SSLContext ctx = SimpleSSLContext.findSSLContext();
+    private static SSLContext ctx;
 
     final static int NUM = 32; // was 32
 
     static boolean fail = false;
 
     public static void main (String[] args) throws Exception {
+        ctx = SimpleSSLContext.findSSLContext();
+
         HttpServer s1 = null;
         HttpsServer s2 = null;
         ExecutorService executor=null;
