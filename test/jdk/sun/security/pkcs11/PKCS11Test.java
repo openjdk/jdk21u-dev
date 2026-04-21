@@ -82,7 +82,7 @@ public abstract class PKCS11Test {
 
     // Version of the NSS artifact. This coincides with the version of
     // the NSS version
-    private static final String NSS_BUNDLE_VERSION = "3.111";
+    private static final String NSS_BUNDLE_VERSION = "3.117";
     private static final String NSSLIB = "jpg.tests.jdk.nsslib";
 
     static Version nss_version = null;
@@ -796,7 +796,7 @@ public abstract class PKCS11Test {
 
     private void premain(Provider p) throws Exception {
         if (skipTest(p)) {
-            return;
+            throw new SkippedException("See logs for details");
         }
 
         // set a security manager and policy before a test case runs,
