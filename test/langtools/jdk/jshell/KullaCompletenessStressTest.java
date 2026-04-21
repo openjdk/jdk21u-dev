@@ -37,6 +37,7 @@ import org.junit.jupiter.api.TestInstance;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class KullaCompletenessStressTest extends CompletenessStressTest {
     @Override
+    @Test
     public File[] getDirectoriesToTest() {
         String src = System.getProperty("test.src");
         File file;

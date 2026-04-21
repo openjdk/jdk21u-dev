@@ -44,6 +44,7 @@ import org.junit.jupiter.api.Test;
 
 public class IdGeneratorTest {
 
+    @Test
     public JShell.Builder getBuilder() {
         TestingInputStream inStream = new TestingInputStream();
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();

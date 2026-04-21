@@ -149,6 +149,7 @@ public class ErrorTranslationTest extends ReplToolTesting {
         return sb.toString();
     }
 
+    @Test
     public String getKind(Diagnostic.Kind kind) {
         switch (kind) {
             case WARNING:
