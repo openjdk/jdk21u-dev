@@ -345,14 +345,6 @@ inline FloatRegister AbstractRegSet<FloatRegister>::first() {
   return first ? as_FloatRegister(exact_log2(first)) : fnoreg;
 }
 
-template <>
-inline FloatRegister AbstractRegSet<FloatRegister>::last() {
-  if (_bitset == 0) { return fnoreg; }
-  int last = max_size() - 1 - count_leading_zeros(_bitset);
-  return as_FloatRegister(last);
-}
-
-
 
 class VFPSystemRegister {
  private:
