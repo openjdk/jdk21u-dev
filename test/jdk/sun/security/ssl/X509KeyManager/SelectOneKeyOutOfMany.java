@@ -40,6 +40,7 @@ import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -155,7 +156,7 @@ public class SelectOneKeyOutOfMany {
 
     private static X509Certificate createSelfSignedCert(KeyPair caKeys,
                                                         String keyAlg)
-            throws CertificateException, IOException {
+            throws CertificateException, IOException, NoSuchAlgorithmException {
         return (new CertificateBuilder()
                 .setSubjectName("CN=dummy.example.com, OU=Dummy, " +
                         "O=Dummy, L=Cupertino, ST=CA, C=US")
