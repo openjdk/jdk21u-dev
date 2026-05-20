@@ -107,6 +107,7 @@ public class PreferredKey {
                 .setOneHourValidity()
                 .setSerialNumber(BigInteger.valueOf(
                         new SecureRandom().nextLong(1000000) + 1))
+                .addSubjectKeyIdExt(caKeys.getPublic())
         ).build(null, caKeys.getPrivate(), keyAlg);
     }
 }
