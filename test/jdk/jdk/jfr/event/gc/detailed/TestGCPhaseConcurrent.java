@@ -47,7 +47,7 @@ import jdk.test.lib.jfr.Events;
  */
 
 /**
- * @test TestGCPhaseConcurrent
+ * @test id=Shenandoah
  * @key jfr
  * @library /test/lib /test/jdk /test/hotspot/jtreg
  * @requires vm.hasJFR & vm.gc.Shenandoah
