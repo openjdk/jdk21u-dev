@@ -115,7 +115,7 @@ requires.properties= \
     jdk.foreign.linker
 
 # Minimum jtreg version
-requiredVersion=8+2
+requiredVersion=8.1+1
 
 # Path to libraries in the topmost test directory. This is needed so @library
 # does not need ../../ notation to reach them
