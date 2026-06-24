@@ -387,7 +387,10 @@ public class SignatureUtil {
     public static AlgorithmId fromSignature(Signature sigEngine, PrivateKey key)
             throws SignatureException {
         try {
-            if (key.getParams() instanceof NamedParameterSpec nps) {
+            if (key instanceof EdECKey) {
+                return AlgorithmId.get(((EdECKey) key).getParams().getName());
+            } else if (key instanceof NamedPKCS8Key nk
+                    && nk.getParams() instanceof NamedParameterSpec nps) {
                 return AlgorithmId.get(nps.getName());
             }
 

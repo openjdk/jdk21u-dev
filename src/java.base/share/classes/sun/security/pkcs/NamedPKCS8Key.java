@@ -109,7 +109,6 @@ public final class NamedPKCS8Key extends PKCS8Key {
         return rawBytes;
     }
 
-    @Override
     public NamedParameterSpec getParams() {
         return paramSpec;
     }

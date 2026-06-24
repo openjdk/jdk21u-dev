@@ -198,8 +198,10 @@ public class NamedKeyFactoryTest {
     static void checkKey(Key k, String algName, String pname) {
         Asserts.assertEquals(algName, k.getAlgorithm());
         Asserts.assertTrue(k.toString().contains(pname));
-        if (k instanceof AsymmetricKey ak && ak.getParams() instanceof NamedParameterSpec nps) {
-            Asserts.assertEquals(pname, nps.getName());
+        if (k instanceof NamedX509Key nk) {
+            Asserts.assertEquals(pname, nk.getParams().getName());
+        } else if (k instanceof NamedPKCS8Key nk) {
+            Asserts.assertEquals(pname, nk.getParams().getName());
         }
     }
 

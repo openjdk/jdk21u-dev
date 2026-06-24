@@ -95,7 +95,6 @@ public final class NamedX509Key extends X509Key {
         return rawBytes;
     }
 
-    @Override
     public NamedParameterSpec getParams() {
         return paramSpec;
     }

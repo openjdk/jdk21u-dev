@@ -29,12 +29,12 @@ import sun.security.pkcs.NamedPKCS8Key;
 import sun.security.util.RawKeySpec;
 import sun.security.x509.NamedX509Key;
 
-import java.security.AsymmetricKey;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyFactorySpi;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
@@ -241,14 +241,23 @@ public class NamedKeyFactory extends KeyFactorySpi {
             throw new InvalidKeyException("Unextractable key");
         } else if (format.equalsIgnoreCase("RAW")) {
             var kAlg = key.getAlgorithm();
-            if (key instanceof AsymmetricKey pk) {
+            if (key instanceof NamedX509Key nk) {
+                return new NamedX509Key(fname, checkName(nk.getParams().getName()), key.getEncoded());
+            } else if (key instanceof NamedPKCS8Key nk) {
+                return new NamedPKCS8Key(fname, checkName(nk.getParams().getName()), key.getEncoded());
+            } else if (key instanceof PrivateKey || key instanceof PublicKey) {
                 String name;
                 // Three cases that we can find the parameter set name from a RAW key:
                 // 1. getParams() returns one
                 // 2. getAlgorithm() returns param set name (some provider does this)
                 // 3. getAlgorithm() returns family name but this KF is for param set name
-                if (pk.getParams() instanceof NamedParameterSpec nps) {
+                AlgorithmParameterSpec params = getParamsFromKey(key);
+                if (params instanceof NamedParameterSpec nps) {
                     name = checkName(nps.getName());
+                } else if (!kAlg.equalsIgnoreCase(fname)) {
+                    name = checkName(kAlg);
+                } else if (pnames.length == 1) {
+                    name = pnames[0];
                 } else {
                     if (kAlg.equalsIgnoreCase(fname)) {
                         if (pnames.length == 1) {
@@ -284,5 +293,26 @@ public class NamedKeyFactory extends KeyFactorySpi {
         } else {
             throw new InvalidKeyException("Unsupported key format: " + key.getFormat());
         }
+    }
+
+    @SuppressWarnings("deprecation")
+    private static AlgorithmParameterSpec getParamsFromKey(Key key) {
+        for (Class<?> c = key.getClass(); c != null; c = c.getSuperclass()) {
+            try {
+                var m = c.getDeclaredMethod("getParams");
+                if (!m.isAccessible()) {
+                    m.setAccessible(true);
+                }
+                var result = m.invoke(key);
+                if (result instanceof AlgorithmParameterSpec spec) {
+                    return spec;
+                }
+                return null;
+            } catch (NoSuchMethodException e) {
+            } catch (ReflectiveOperationException e) {
+                return null;
+            }
+        }
+        return null;
     }
 }

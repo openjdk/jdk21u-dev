@@ -40,6 +40,8 @@ import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.DHPublicKeySpec;
 
 import sun.security.jca.JCAUtil;
+import sun.security.pkcs.NamedPKCS8Key;
+import sun.security.x509.NamedX509Key;
 
 /**
  * A utility class to get key length, validate keys, etc.
@@ -186,13 +188,17 @@ public final class KeyUtil {
      */
     public static final String fullDisplayAlgName(Key key) {
         String result = key.getAlgorithm();
-        if (key instanceof AsymmetricKey ak) {
-            AlgorithmParameterSpec paramSpec = ak.getParams();
+        if (key instanceof ECKey) {
+            ECParameterSpec paramSpec = ((ECKey) key).getParams();
             if (paramSpec instanceof NamedCurve nc) {
                 result += " (" + nc.getNameAndAliases()[0] + ")";
-            } else if (paramSpec instanceof NamedParameterSpec nps) {
-                result = nps.getName();
             }
+        } else if (key instanceof EdECKey) {
+            result = ((EdECKey) key).getParams().getName();
+        } else if (key instanceof NamedX509Key nk) {
+            result = nk.getParams().getName();
+        } else if (key instanceof NamedPKCS8Key nk) {
+            result = nk.getParams().getName();
         }
         return result;
     }
