@@ -195,6 +195,9 @@ public final class KeyUtil {
             }
         } else if (key instanceof EdECKey) {
             result = ((EdECKey) key).getParams().getName();
+        } else if (key instanceof XECKey xk
+                && xk.getParams() instanceof NamedParameterSpec nps) {
+            result = nps.getName();
         } else if (key instanceof NamedX509Key nk) {
             result = nk.getParams().getName();
         } else if (key instanceof NamedPKCS8Key nk) {
