@@ -241,11 +241,7 @@ public class NamedKeyFactory extends KeyFactorySpi {
             throw new InvalidKeyException("Unextractable key");
         } else if (format.equalsIgnoreCase("RAW")) {
             var kAlg = key.getAlgorithm();
-            if (key instanceof NamedX509Key nk) {
-                return new NamedX509Key(fname, checkName(nk.getParams().getName()), key.getEncoded());
-            } else if (key instanceof NamedPKCS8Key nk) {
-                return new NamedPKCS8Key(fname, checkName(nk.getParams().getName()), key.getEncoded());
-            } else if (key instanceof PrivateKey || key instanceof PublicKey) {
+            if (key instanceof PrivateKey || key instanceof PublicKey) {
                 String name;
                 // Three cases that we can find the parameter set name from a RAW key:
                 // 1. getParams() returns one
