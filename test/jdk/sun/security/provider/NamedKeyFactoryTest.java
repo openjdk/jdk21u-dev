@@ -171,11 +171,11 @@ public class NamedKeyFactoryTest {
 
         checkKey(kf2.translateKey(pk1), "SHA", "SHA-256");
         checkKey(kf.translateKey(pk2), "SHA", "SHA-256");
-        //checkKey(kf.translateKey(pk3), "SHA", "SHA-256");
+        checkKey(kf.translateKey(pk3), "SHA", "SHA-256");
 
         Utils.runAndCheckException(() -> kf.translateKey(pk1), InvalidKeyException.class);
         Utils.runAndCheckException(() -> kf5.translateKey(pk2), InvalidKeyException.class);
-        //Utils.runAndCheckException(() -> kf5.translateKey(pk3), InvalidKeyException.class);
+        Utils.runAndCheckException(() -> kf5.translateKey(pk3), InvalidKeyException.class);
 
         var sk1 = new PrivateKey() {
             public String getAlgorithm() { return "SHA"; }
@@ -196,11 +196,11 @@ public class NamedKeyFactoryTest {
 
         checkKey(kf2.translateKey(sk1), "SHA", "SHA-256");
         checkKey(kf.translateKey(sk2), "SHA", "SHA-256");
-        //checkKey(kf.translateKey(sk3), "SHA", "SHA-256");
+        checkKey(kf.translateKey(sk3), "SHA", "SHA-256");
 
         Utils.runAndCheckException(() -> kf.translateKey(sk1), InvalidKeyException.class);
         Utils.runAndCheckException(() -> kf5.translateKey(sk2), InvalidKeyException.class);
-        //Utils.runAndCheckException(() -> kf5.translateKey(sk3), InvalidKeyException.class);
+        Utils.runAndCheckException(() -> kf5.translateKey(sk3), InvalidKeyException.class);
     }
 
     static void checkKeyPair(KeyPair kp, String algName, String toString) {

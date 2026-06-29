@@ -26,9 +26,11 @@
 package sun.security.util;
 
 import java.math.BigInteger;
+import java.security.AccessController;
 import java.security.AlgorithmParameters;
 import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.PrivilegedAction;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
@@ -430,10 +432,17 @@ public final class KeyUtil {
         return t;
     }
 
+    @SuppressWarnings({"deprecation", "removal"})
     public static AlgorithmParameterSpec getParams(Key key) {
-
         try {
             var m = key.getClass().getMethod("getParams");
+            if (!m.isAccessible()) {
+                PrivilegedAction<Object> pa = () -> {
+                    m.setAccessible(true);
+                    return null;
+                };
+                AccessController.doPrivileged(pa);
+            }
             var result = m.invoke(key);
             if (result instanceof AlgorithmParameterSpec spec) {
                 return spec;
