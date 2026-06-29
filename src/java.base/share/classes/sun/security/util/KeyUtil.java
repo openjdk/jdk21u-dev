@@ -29,6 +29,8 @@ import java.math.BigInteger;
 import java.security.AlgorithmParameters;
 import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.interfaces.*;
 import java.security.spec.*;
@@ -40,6 +42,8 @@ import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.DHPublicKeySpec;
 
 import sun.security.jca.JCAUtil;
+import sun.security.pkcs.NamedPKCS8Key;
+import sun.security.x509.NamedX509Key;
 
 /**
  * A utility class to get key length, validate keys, etc.
@@ -186,13 +190,13 @@ public final class KeyUtil {
      */
     public static final String fullDisplayAlgName(Key key) {
         String result = key.getAlgorithm();
-        if (key instanceof AsymmetricKey ak) {
-            AlgorithmParameterSpec paramSpec = ak.getParams();
+        if (key instanceof PrivateKey || key instanceof PublicKey)  {
+            AlgorithmParameterSpec paramSpec = getParams(key);
             if (paramSpec instanceof NamedCurve nc) {
                 result += " (" + nc.getNameAndAliases()[0] + ")";
             } else if (paramSpec instanceof NamedParameterSpec nps) {
                 result = nps.getName();
-            }
+             }
         }
         return result;
     }
@@ -426,5 +430,18 @@ public final class KeyUtil {
         return t;
     }
 
+    public static AlgorithmParameterSpec getParams(Key key) {
+
+        try {
+            var m = key.getClass().getMethod("getParams");
+            var result = m.invoke(key);
+            if (result instanceof AlgorithmParameterSpec spec) {
+                return spec;
+            }
+        } catch (NoSuchMethodException e) {
+        } catch (ReflectiveOperationException e) {
+        }
+        return null;
+    }
 }
 

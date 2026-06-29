@@ -35,6 +35,7 @@ import java.util.Locale;
 
 import sun.security.pkcs.NamedPKCS8Key;
 import sun.security.rsa.RSAUtil;
+import sun.security.util.KeyUtil;
 import jdk.internal.access.SharedSecrets;
 import sun.security.x509.AlgorithmId;
 
@@ -387,7 +388,7 @@ public class SignatureUtil {
     public static AlgorithmId fromSignature(Signature sigEngine, PrivateKey key)
             throws SignatureException {
         try {
-            if (key.getParams() instanceof NamedParameterSpec nps) {
+            if (KeyUtil.getParams(key) instanceof NamedParameterSpec nps) {
                 return AlgorithmId.get(nps.getName());
             }
 
