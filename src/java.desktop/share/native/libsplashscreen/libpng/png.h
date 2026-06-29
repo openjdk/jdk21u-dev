@@ -29,7 +29,7 @@
  * However, the following notice accompanied the original version of this
  * file and, per its terms, should not be removed:
  *
- * libpng version 1.6.57
+ * libpng version 1.6.58
  *
  * Copyright (c) 2018-2026 Cosmin Truta
  * Copyright (c) 1998-2002,2004,2006-2018 Glenn Randers-Pehrson
@@ -43,7 +43,7 @@
  *   libpng versions 0.89, June 1996, through 0.96, May 1997: Andreas Dilger
  *   libpng versions 0.97, January 1998, through 1.6.35, July 2018:
  *     Glenn Randers-Pehrson
- *   libpng versions 1.6.36, December 2018, through 1.6.57, April 2026:
+ *   libpng versions 1.6.36, December 2018, through 1.6.58, April 2026:
  *     Cosmin Truta
  *   See also "Contributing Authors", below.
  */
@@ -267,7 +267,11 @@
  *    ...
  *    1.5.30                  15    10530  15.so.15.30[.0]
  *    ...
+<<<<<<< HEAD
  *    1.6.57                  16    10657  16.so.16.57[.0]
+=======
+ *    1.6.58                  16    10658  16.so.16.58[.0]
+>>>>>>> master
  *
  *    Henceforth the source version will match the shared-library major and
  *    minor numbers; the shared-library major version number will be used for
@@ -303,7 +307,11 @@
  */
 
 /* Version information for png.h - this should match the version in png.c */
+<<<<<<< HEAD
 #define PNG_LIBPNG_VER_STRING "1.6.57"
+=======
+#define PNG_LIBPNG_VER_STRING "1.6.58"
+>>>>>>> master
 #define PNG_HEADER_VERSION_STRING " libpng version " PNG_LIBPNG_VER_STRING "\n"
 
 /* The versions of shared library builds should stay in sync, going forward */
@@ -314,7 +322,11 @@
 /* These should match the first 3 components of PNG_LIBPNG_VER_STRING: */
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   6
+<<<<<<< HEAD
 #define PNG_LIBPNG_VER_RELEASE 57
+=======
+#define PNG_LIBPNG_VER_RELEASE 58
+>>>>>>> master
 
 /* This should be zero for a public release, or non-zero for a
  * development version.
@@ -345,7 +357,11 @@
  * From version 1.0.1 it is:
  * XXYYZZ, where XX=major, YY=minor, ZZ=release
  */
+<<<<<<< HEAD
 #define PNG_LIBPNG_VER 10657 /* 1.6.57 */
+=======
+#define PNG_LIBPNG_VER 10658 /* 1.6.58 */
+>>>>>>> master
 
 /* Library configuration: these options cannot be changed after
  * the library has been built.
@@ -455,7 +471,11 @@ extern "C" {
 /* This triggers a compiler error in png.c, if png.c and png.h
  * do not agree upon the version number.
  */
+<<<<<<< HEAD
 typedef char *png_libpng_version_1_6_57;
+=======
+typedef char *png_libpng_version_1_6_58;
+>>>>>>> master
 
 /* Basic control structions.  Read libpng-manual.txt or libpng.3 for more info.
  *

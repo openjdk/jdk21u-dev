@@ -34,6 +34,10 @@ import java.lang.foreign.*;
 /*
  * @test id=byte-array
  * @bug 8329273
+<<<<<<< HEAD
+=======
+ * @key randomness
+>>>>>>> master
  * @summary Test vectorization of loops over MemorySegment
  * @library /test/lib /
  * @compile --enable-preview -source ${jdk.version} TestMemorySegment.java

@@ -455,6 +455,9 @@ class MacroAssembler: public Assembler {
   void sign_extend_short(Register reg);
   void sign_extend_byte(Register reg);
 
+  // Clean up a subword typed value to the representation in compliance with JVMS §2.3
+  void narrow_subword_type(Register reg, BasicType bt);
+
   // Division by power of 2, rounding towards 0
   void division_with_shift(Register reg, int shift_value);
 
@@ -1217,6 +1220,7 @@ public:
   void evmovdqub(XMMRegister dst, KRegister mask, Address        src, bool merge, int vector_len) { Assembler::evmovdqub(dst, mask, src, merge, vector_len); }
   void evmovdqub(XMMRegister dst, KRegister mask, AddressLiteral src, bool merge, int vector_len, Register rscratch = noreg);
 
+  void evmovdquw(XMMRegister dst, XMMRegister src, int vector_len) { Assembler::evmovdquw(dst, src, vector_len); }
   void evmovdquw(Address     dst, XMMRegister src, int vector_len) { Assembler::evmovdquw(dst, src, vector_len); }
   void evmovdquw(XMMRegister dst, Address     src, int vector_len) { Assembler::evmovdquw(dst, src, vector_len); }
 
@@ -1425,6 +1429,8 @@ public:
   void vpmulld(XMMRegister dst, XMMRegister nds, Address        src, int vector_len) { Assembler::vpmulld(dst, nds, src, vector_len); }
   void vpmulld(XMMRegister dst, XMMRegister nds, AddressLiteral src, int vector_len, Register rscratch = noreg);
 
+  void vpmuldq(XMMRegister dst, XMMRegister nds, XMMRegister    src, int vector_len) { Assembler::vpmuldq(dst, nds, src, vector_len); }
+
   void vpsubb(XMMRegister dst, XMMRegister nds, XMMRegister src, int vector_len);
   void vpsubb(XMMRegister dst, XMMRegister nds, Address     src, int vector_len);
 
@@ -1434,9 +1440,13 @@ public:
   void vpsraw(XMMRegister dst, XMMRegister nds, XMMRegister shift, int vector_len);
   void vpsraw(XMMRegister dst, XMMRegister nds, int         shift, int vector_len);
 
+  void evpsrad(XMMRegister dst, XMMRegister nds, XMMRegister shift, int vector_len);
+  void evpsrad(XMMRegister dst, XMMRegister nds, int         shift, int vector_len);
+
   void evpsraq(XMMRegister dst, XMMRegister nds, XMMRegister shift, int vector_len);
   void evpsraq(XMMRegister dst, XMMRegister nds, int         shift, int vector_len);
 
+  using Assembler::evpsllw;
   void evpsllw(XMMRegister dst, KRegister mask, XMMRegister nds, XMMRegister src, bool merge, int vector_len, bool is_varshift) {
     if (!is_varshift) {
       Assembler::evpsllw(dst, mask, nds, src, merge, vector_len);
@@ -1479,6 +1489,7 @@ public:
       Assembler::evpsrlvq(dst, mask, nds, src, merge, vector_len);
     }
   }
+  using Assembler::evpsraw;
   void evpsraw(XMMRegister dst, KRegister mask, XMMRegister nds, XMMRegister src, bool merge, int vector_len, bool is_varshift) {
     if (!is_varshift) {
       Assembler::evpsraw(dst, mask, nds, src, merge, vector_len);
@@ -1486,6 +1497,7 @@ public:
       Assembler::evpsravw(dst, mask, nds, src, merge, vector_len);
     }
   }
+  using Assembler::evpsrad;
   void evpsrad(XMMRegister dst, KRegister mask, XMMRegister nds, XMMRegister src, bool merge, int vector_len, bool is_varshift) {
     if (!is_varshift) {
       Assembler::evpsrad(dst, mask, nds, src, merge, vector_len);
