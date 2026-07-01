@@ -2007,6 +2007,18 @@ const int ObjectAlignmentInBytes = 8;
                                                                             \
   product(bool, StressSecondarySupers, false, DIAGNOSTIC,                   \
           "Use a terrible hash function in order to generate many collisions.") \
+  product(bool, MultiTenant, false,                                         \
+          "Enable the multi-tenant feature.")                               \
+                                                                            \
+  product(bool, TenantThreadStop, false,                                    \
+          "Stop all spawned threads when calling TenantContainer.destroy()")\
+                                                                            \
+  develop(bool, TraceTenantThreadStop, false,                               \
+          "Trace threads killing details from TenantContainer.destroy()")   \
+  product(bool, TenantCpuAccounting, false,                                 \
+          "Enable cpu accounting per tenant")                               \
+  product(bool, TenantCpuThrottling, false,                                 \
+          "Enable cpu throttling per tenant")                               \
                                                                             \
 
 // end of RUNTIME_FLAGS
