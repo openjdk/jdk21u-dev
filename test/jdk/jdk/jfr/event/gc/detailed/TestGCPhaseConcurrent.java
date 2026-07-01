@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,7 +35,7 @@ import jdk.test.lib.jfr.Events;
  * @key jfr
  * @library /test/lib /test/jdk /test/hotspot/jtreg
  * @requires vm.hasJFR & vm.gc.ZGenerational
- * @run main/othervm -XX:+UseZGC -XX:+ZGenerational -Xmx32M jdk.jfr.event.gc.detailed.TestGCPhaseConcurrent Z
+ * @run main/othervm -XX:+UseZGC -XX:+ZGenerational -Xmx64M jdk.jfr.event.gc.detailed.TestGCPhaseConcurrent Z
  */
 
 /**
@@ -47,7 +47,7 @@ import jdk.test.lib.jfr.Events;
  */
 
 /**
- * @test TestGCPhaseConcurrent
+ * @test id=Shenandoah
  * @key jfr
  * @library /test/lib /test/jdk /test/hotspot/jtreg
  * @requires vm.hasJFR & vm.gc.Shenandoah
