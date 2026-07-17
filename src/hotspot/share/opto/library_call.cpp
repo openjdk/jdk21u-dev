@@ -568,7 +568,7 @@ bool LibraryCallKit::try_to_inline(int predicate) {
 
   case vmIntrinsics::_getCallerClass:           return inline_native_Reflection_getCallerClass();
 
-  case vmIntrinsics::_Reference_get:            return inline_reference_get();
+  case vmIntrinsics::_Reference_get0:           return inline_reference_get0();
   case vmIntrinsics::_Reference_refersTo0:      return inline_reference_refersTo0(false);
   case vmIntrinsics::_PhantomReference_refersTo0: return inline_reference_refersTo0(true);
 
@@ -6554,9 +6554,9 @@ bool LibraryCallKit::inline_updateByteBufferAdler32() {
   return true;
 }
 
-//----------------------------inline_reference_get----------------------------
+//----------------------------inline_reference_get0----------------------------
 // public T java.lang.ref.Reference.get();
-bool LibraryCallKit::inline_reference_get() {
+bool LibraryCallKit::inline_reference_get0() {
   const int referent_offset = java_lang_ref_Reference::referent_offset();
 
   // Get the argument:
@@ -7430,7 +7430,7 @@ bool LibraryCallKit::inline_digestBase_implCompress(vmIntrinsics::ID id) {
     break;
   case vmIntrinsics::_sha3_implCompress:
     assert(UseSHA3Intrinsics, "need SHA3 instruction support");
-    state = get_state_from_digest_object(digestBase_obj, T_BYTE);
+    state = get_state_from_digest_object(digestBase_obj, T_LONG);
     stubAddr = StubRoutines::sha3_implCompress();
     stubName = "sha3_implCompress";
     block_size = get_block_size_from_digest_object(digestBase_obj);
@@ -7530,7 +7530,7 @@ bool LibraryCallKit::inline_digestBase_implCompressMB(int predicate) {
       klass_digestBase_name = "sun/security/provider/SHA3";
       stub_name = "sha3_implCompressMB";
       stub_addr = StubRoutines::sha3_implCompressMB();
-      elem_type = T_BYTE;
+      elem_type = T_LONG;
     }
     break;
   default:
