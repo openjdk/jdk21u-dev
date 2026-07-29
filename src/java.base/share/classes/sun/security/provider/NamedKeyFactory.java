@@ -35,7 +35,6 @@ import java.security.Key;
 import java.security.KeyFactorySpi;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
@@ -248,8 +247,7 @@ public class NamedKeyFactory extends KeyFactorySpi {
                 // 1. getParams() returns one
                 // 2. getAlgorithm() returns param set name (some provider does this)
                 // 3. getAlgorithm() returns family name but this KF is for param set name
-                AlgorithmParameterSpec params = KeyUtil.getParams(key);
-                if (params instanceof NamedParameterSpec nps) {
+                if (KeyUtil.getParams(key) instanceof NamedParameterSpec nps) {
                     name = checkName(nps.getName());
                 } else {
                     if (kAlg.equalsIgnoreCase(fname)) {
