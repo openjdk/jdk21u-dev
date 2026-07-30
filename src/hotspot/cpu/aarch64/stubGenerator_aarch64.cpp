@@ -4700,8 +4700,7 @@ class StubGenerator: public StubCodeGenerator {
   address generate_dilithiumAlmostNtt() {
 
     __ align(CodeEntryAlignment);
-    StubGenStubId stub_id = StubGenStubId::dilithiumAlmostNtt_id;
-    StubCodeMark mark(this, stub_id);
+    StubCodeMark mark(this, "StubRoutines", "dilithiumAlmostNtt");
     address start = __ pc();
     __ enter();
 
@@ -4944,8 +4943,7 @@ class StubGenerator: public StubCodeGenerator {
   address generate_dilithiumAlmostInverseNtt() {
 
     __ align(CodeEntryAlignment);
-    StubGenStubId stub_id = StubGenStubId::dilithiumAlmostInverseNtt_id;
-    StubCodeMark mark(this, stub_id);
+    StubCodeMark mark(this, "StubRoutines", "dilithiumAlmostInverseNtt");
     address start = __ pc();
     __ enter();
 
@@ -5068,8 +5066,7 @@ class StubGenerator: public StubCodeGenerator {
   address generate_dilithiumNttMult() {
 
     __ align(CodeEntryAlignment);
-    StubGenStubId stub_id = StubGenStubId::dilithiumNttMult_id;
-    StubCodeMark mark(this, stub_id);
+    StubCodeMark mark(this, "StubRoutines", "dilithiumNttMult");
     address start = __ pc();
     __ enter();
 
@@ -5129,8 +5126,7 @@ class StubGenerator: public StubCodeGenerator {
   address generate_dilithiumMontMulByConstant() {
 
     __ align(CodeEntryAlignment);
-    StubGenStubId stub_id = StubGenStubId::dilithiumMontMulByConstant_id;
-    StubCodeMark mark(this, stub_id);
+    StubCodeMark mark(this, "StubRoutines", "dilithiumMontMulByConstant");
     address start = __ pc();
     __ enter();
 
@@ -5187,8 +5183,7 @@ class StubGenerator: public StubCodeGenerator {
   address generate_dilithiumDecomposePoly() {
 
     __ align(CodeEntryAlignment);
-    StubGenStubId stub_id = StubGenStubId::dilithiumDecomposePoly_id;
-    StubCodeMark mark(this, stub_id);
+    StubCodeMark mark(this, "StubRoutines", "dilithiumDecomposePoly");
     address start = __ pc();
     __ enter();
 

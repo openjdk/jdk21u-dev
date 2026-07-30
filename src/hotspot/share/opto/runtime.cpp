@@ -1082,7 +1082,7 @@ const TypeFunc* OptoRuntime::digestBase_implCompressMB_Type(bool is_sha3) {
 }
 
 // SHAKE128Parallel doubleKeccak function
-const TypeFunc* OptoRuntime::make_double_keccak_Type() {
+const TypeFunc* OptoRuntime::double_keccak_Type() {
     int argcnt = 2;
 
     const Type** fields = TypeTuple::fields(argcnt);
@@ -1290,7 +1290,7 @@ const TypeFunc* OptoRuntime::chacha20Block_Type() {
 }
 
 // Dilithium NTT function except for the final "normalization" to |coeff| < Q
-const TypeFunc* OptoRuntime::make_dilithiumAlmostNtt_Type() {
+const TypeFunc* OptoRuntime::dilithiumAlmostNtt_Type() {
     int argcnt = 2;
 
     const Type** fields = TypeTuple::fields(argcnt);
@@ -1309,7 +1309,7 @@ const TypeFunc* OptoRuntime::make_dilithiumAlmostNtt_Type() {
 }
 
 // Dilithium inverse NTT function except the final mod Q division by 2^256
-const TypeFunc* OptoRuntime::make_dilithiumAlmostInverseNtt_Type() {
+const TypeFunc* OptoRuntime::dilithiumAlmostInverseNtt_Type() {
     int argcnt = 2;
 
     const Type** fields = TypeTuple::fields(argcnt);
@@ -1328,7 +1328,7 @@ const TypeFunc* OptoRuntime::make_dilithiumAlmostInverseNtt_Type() {
 }
 
 // Dilithium NTT multiply function
-const TypeFunc* OptoRuntime::make_dilithiumNttMult_Type() {
+const TypeFunc* OptoRuntime::dilithiumNttMult_Type() {
     int argcnt = 3;
 
     const Type** fields = TypeTuple::fields(argcnt);
@@ -1348,7 +1348,7 @@ const TypeFunc* OptoRuntime::make_dilithiumNttMult_Type() {
 }
 
 // Dilithium Montgomery multiply a polynome coefficient array by a constant
-const TypeFunc* OptoRuntime::make_dilithiumMontMulByConstant_Type() {
+const TypeFunc* OptoRuntime::dilithiumMontMulByConstant_Type() {
     int argcnt = 2;
 
     const Type** fields = TypeTuple::fields(argcnt);
@@ -1367,7 +1367,7 @@ const TypeFunc* OptoRuntime::make_dilithiumMontMulByConstant_Type() {
 }
 
 // Dilithium decompose polynomial
-const TypeFunc* OptoRuntime::make_dilithiumDecomposePoly_Type() {
+const TypeFunc* OptoRuntime::dilithiumDecomposePoly_Type() {
     int argcnt = 5;
 
     const Type** fields = TypeTuple::fields(argcnt);
