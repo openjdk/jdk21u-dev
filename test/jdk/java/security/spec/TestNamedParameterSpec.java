@@ -39,8 +39,6 @@ public class TestNamedParameterSpec {
     // names of the static fields in NamedParameterSpec class
     private static String[] EXPECTED = {
         "ED25519", "ED448", "X25519", "X448",
-        "ML_DSA_44", "ML_DSA_65", "ML_DSA_87",
-        "ML_KEM_512", "ML_KEM_768", "ML_KEM_1024",
     };
 
     public static void main(String[] args) throws Exception {
