@@ -45,9 +45,9 @@ public class ML_KEM_Test {
 
     static NamedParameterSpec genParams(String pname) {
        return switch (pname) {
-            case "ML-KEM-512" -> NamedParameterSpec.ML_KEM_512;
-            case "ML-KEM-768" -> NamedParameterSpec.ML_KEM_768;
-            case "ML-KEM-1024" -> NamedParameterSpec.ML_KEM_1024;
+            case "ML-KEM-512" -> new NamedParameterSpec(pname);
+            case "ML-KEM-768" -> new NamedParameterSpec(pname);
+            case "ML-KEM-1024" -> new NamedParameterSpec(pname);
             default -> throw new RuntimeException("Unknown params: " + pname);
         };
     }

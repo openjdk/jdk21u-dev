@@ -51,9 +51,9 @@ public class ML_DSA_Test {
 
     static NamedParameterSpec genParams(String pname) {
        return switch (pname) {
-            case "ML-DSA-44" -> NamedParameterSpec.ML_DSA_44;
-            case "ML-DSA-65" -> NamedParameterSpec.ML_DSA_65;
-            case "ML-DSA-87" -> NamedParameterSpec.ML_DSA_87;
+            case "ML-DSA-44" -> new NamedParameterSpec(pname);
+            case "ML-DSA-65" -> new NamedParameterSpec(pname);
+            case "ML-DSA-87" -> new NamedParameterSpec(pname);
             default -> throw new RuntimeException("Unknown params: " + pname);
 
         };
