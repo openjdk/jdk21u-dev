@@ -91,7 +91,7 @@ static address permsAndRotsAddr() {
 //   c_rarg3   - int     offset
 //   c_rarg4   - int     limit
 //
-static address StubGenerator::generate_sha3_implCompress(bool multiBlock, const char *name,
+static address generate_sha3_implCompress(bool multiBlock, const char *name,
                                           StubGenerator *stubgen,
                                           MacroAssembler *_masm) {
   __ align(CodeEntryAlignment);
@@ -316,8 +316,7 @@ static address StubGenerator::generate_sha3_implCompress(bool multiBlock, const 
 // two computations are executed interleaved.
 static address generate_double_keccak(StubGenerator *stubgen, MacroAssembler *_masm) {
   __ align(CodeEntryAlignment);
-  StubGenStubId stub_id = double_keccak_id;
-  StubCodeMark mark(stubgen, stub_id);
+  StubCodeMark mark(stubgen, "StubRoutines", "double_keccak");
   address start = __ pc();
 
   const Register state0 = c_rarg0;
@@ -490,10 +489,10 @@ static address generate_double_keccak(StubGenerator *stubgen, MacroAssembler *_m
 void StubGenerator::generate_sha3_stubs() {
   if (UseSHA3Intrinsics) {
     StubRoutines::_sha3_implCompress =
-      generate_sha3_implCompress(StubGenStubId::sha3_implCompress_id, this, _masm);
+      generate_sha3_implCompress(false, "sha3_implCompress", this, _masm);
     StubRoutines::_double_keccak =
       generate_double_keccak(this, _masm);
     StubRoutines::_sha3_implCompressMB =
-      generate_sha3_implCompress(StubGenStubId::sha3_implCompressMB_id, this, _masm);
+      generate_sha3_implCompress(true, "sha3_implCompressMB", this, _masm);
   }
 }

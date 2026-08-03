@@ -274,8 +274,7 @@ static address generate_dilithiumAlmostNtt_avx512(StubGenerator *stubgen,
                                                   MacroAssembler *_masm) {
 
   __ align(CodeEntryAlignment);
-  StubGenStubId stub_id = dilithiumAlmostNtt_id;
-  StubCodeMark mark(stubgen, stub_id);
+  StubCodeMark mark(stubgen, "StubRoutines", "dilithiumAlmostNtt");
   address start = __ pc();
   __ enter();
 
@@ -464,8 +463,7 @@ static address generate_dilithiumAlmostInverseNtt_avx512(StubGenerator *stubgen,
                                                          MacroAssembler *_masm) {
 
   __ align(CodeEntryAlignment);
-  StubGenStubId stub_id = dilithiumAlmostInverseNtt_id;
-  StubCodeMark mark(stubgen, stub_id);
+  StubCodeMark mark(stubgen, "StubRoutines", "dilithiumAlmostInverseNtt");
   address start = __ pc();
   __ enter();
 
@@ -645,8 +643,7 @@ static address generate_dilithiumNttMult_avx512(StubGenerator *stubgen,
                                                 MacroAssembler *_masm) {
 
   __ align(CodeEntryAlignment);
-  StubGenStubId stub_id = dilithiumNttMult_id;
-  StubCodeMark mark(stubgen, stub_id);
+  StubCodeMark mark(stubgen,  "StubRoutines", "dilithiumNttMult");
   address start = __ pc();
   __ enter();
 
@@ -709,8 +706,7 @@ static address generate_dilithiumMontMulByConstant_avx512(StubGenerator *stubgen
                                                           MacroAssembler *_masm) {
 
   __ align(CodeEntryAlignment);
-  StubGenStubId stub_id = dilithiumMontMulByConstant_id;
-  StubCodeMark mark(stubgen, stub_id);
+  StubCodeMark mark(stubgen, "StubRoutines", "dilithiumMontMulByConstant");
   address start = __ pc();
   __ enter();
 
@@ -773,8 +769,7 @@ static address generate_dilithiumDecomposePoly_avx512(StubGenerator *stubgen,
                                                       MacroAssembler *_masm) {
 
   __ align(CodeEntryAlignment);
-  StubGenStubId stub_id = dilithiumDecomposePoly_id;
-  StubCodeMark mark(stubgen, stub_id);
+  StubCodeMark mark(stubgen, "StubRoutines", "dilithiumDecomposePoly");
   address start = __ pc();
   __ enter();
 
