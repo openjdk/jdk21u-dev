@@ -1290,7 +1290,7 @@ const TypeFunc* OptoRuntime::chacha20Block_Type() {
 }
 
 // Kyber NTT function
-static const TypeFunc* make_kyberNtt_Type() {
+const TypeFunc* OptoRuntime::kyberNtt_Type() {
     int argcnt = 2;
 
     const Type** fields = TypeTuple::fields(argcnt);
@@ -1309,7 +1309,7 @@ static const TypeFunc* make_kyberNtt_Type() {
 }
 
 // Kyber inverse NTT function
-static const TypeFunc* make_kyberInverseNtt_Type() {
+const TypeFunc* OptoRuntime::kyberInverseNtt_Type() {
     int argcnt = 2;
 
     const Type** fields = TypeTuple::fields(argcnt);
@@ -1328,7 +1328,7 @@ static const TypeFunc* make_kyberInverseNtt_Type() {
 }
 
 // Kyber NTT multiply function
-static const TypeFunc* make_kyberNttMult_Type() {
+const TypeFunc* OptoRuntime::kyberNttMult_Type() {
     int argcnt = 4;
 
     const Type** fields = TypeTuple::fields(argcnt);
@@ -1348,7 +1348,7 @@ static const TypeFunc* make_kyberNttMult_Type() {
     return TypeFunc::make(domain, range);
 }
 // Kyber add 2 polynomials function
-static const TypeFunc* make_kyberAddPoly_2_Type() {
+const TypeFunc* OptoRuntime::kyberAddPoly_2_Type() {
     int argcnt = 3;
 
     const Type** fields = TypeTuple::fields(argcnt);
@@ -1369,7 +1369,7 @@ static const TypeFunc* make_kyberAddPoly_2_Type() {
 
 
 // Kyber add 3 polynomials function
-static const TypeFunc* make_kyberAddPoly_3_Type() {
+const TypeFunc* OptoRuntime::kyberAddPoly_3_Type() {
     int argcnt = 4;
 
     const Type** fields = TypeTuple::fields(argcnt);
@@ -1392,7 +1392,7 @@ static const TypeFunc* make_kyberAddPoly_3_Type() {
 
 // Kyber XOF output parsing into polynomial coefficients candidates
 // or decompress(12,...) function
-static const TypeFunc* make_kyber12To16_Type() {
+const TypeFunc* OptoRuntime::kyber12To16_Type() {
     int argcnt = 4;
 
     const Type** fields = TypeTuple::fields(argcnt);
@@ -1413,7 +1413,7 @@ static const TypeFunc* make_kyber12To16_Type() {
 }
 
 // Kyber Barrett reduce function
-static const TypeFunc* make_kyberBarrettReduce_Type() {
+const TypeFunc* OptoRuntime::kyberBarrettReduce_Type() {
     int argcnt = 1;
 
     const Type** fields = TypeTuple::fields(argcnt);

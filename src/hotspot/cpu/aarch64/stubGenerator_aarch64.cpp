@@ -4965,8 +4965,7 @@ class StubGenerator: public StubCodeGenerator {
   address generate_kyberNtt() {
 
     __ align(CodeEntryAlignment);
-    StubGenStubId stub_id = StubGenStubId::kyberNtt_id;
-    StubCodeMark mark(this, stub_id);
+    StubCodeMark mark(this, "StubRoutines", "kyberNtt");
     address start = __ pc();
     __ enter();
 
@@ -5203,8 +5202,7 @@ class StubGenerator: public StubCodeGenerator {
   address generate_kyberInverseNtt() {
 
     __ align(CodeEntryAlignment);
-    StubGenStubId stub_id = StubGenStubId::kyberInverseNtt_id;
-    StubCodeMark mark(this, stub_id);
+    StubCodeMark mark(this, "StubRoutines", "kyberInverseNtt");
     address start = __ pc();
     __ enter();
 
@@ -5490,8 +5488,7 @@ class StubGenerator: public StubCodeGenerator {
   address generate_kyberNttMult() {
 
     __ align(CodeEntryAlignment);
-    StubGenStubId stub_id = StubGenStubId::kyberNttMult_id;
-    StubCodeMark mark(this, stub_id);
+    StubCodeMark mark(this, "StubRoutines", "kyberNttMult");
     address start = __ pc();
     __ enter();
 
@@ -5607,8 +5604,7 @@ class StubGenerator: public StubCodeGenerator {
   address generate_kyberAddPoly_2() {
 
     __ align(CodeEntryAlignment);
-    StubGenStubId stub_id = StubGenStubId::kyberAddPoly_2_id;
-    StubCodeMark mark(this, stub_id);
+    StubCodeMark mark(this, "StubRoutines", "kyberAddPoly_2");
     address start = __ pc();
     __ enter();
 
@@ -5692,8 +5688,7 @@ class StubGenerator: public StubCodeGenerator {
   address generate_kyberAddPoly_3() {
 
     __ align(CodeEntryAlignment);
-    StubGenStubId stub_id = StubGenStubId::kyberAddPoly_3_id;
-    StubCodeMark mark(this, stub_id);
+    StubCodeMark mark(this, "StubRoutines", "kyberAddPoly_3");
     address start = __ pc();
     __ enter();
 
@@ -5800,8 +5795,7 @@ class StubGenerator: public StubCodeGenerator {
     __ emit_int64(0x0f000f000f000f00);
 
     __ align(CodeEntryAlignment);
-    StubGenStubId stub_id = StubGenStubId::kyber12To16_id;
-    StubCodeMark mark(this, stub_id);
+    StubCodeMark mark(this, "StubRoutines", "kyber12To16");
     address start = __ pc();
     __ enter();
 
@@ -6003,8 +5997,7 @@ class StubGenerator: public StubCodeGenerator {
   address generate_kyberBarrettReduce() {
 
     __ align(CodeEntryAlignment);
-    StubGenStubId stub_id = StubGenStubId::kyberBarrettReduce_id;
-    StubCodeMark mark(this, stub_id);
+    StubCodeMark mark(this, "StubRoutines", "kyberBarrettReduce");
     address start = __ pc();
     __ enter();
 
