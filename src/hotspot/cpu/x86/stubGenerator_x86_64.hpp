@@ -423,6 +423,11 @@ class StubGenerator: public StubCodeGenerator {
                              const XMMRegister L0, const XMMRegister L1, const XMMRegister L2, bool padMSG,
                              const XMMRegister TMP, const Register rscratch);
 
+  // SHA3 stubs
+  void generate_sha3_stubs();
+
+  // Dilithium stubs and helper functions
+  void generate_dilithium_stubs();
   // BASE64 stubs
 
   address base64_shuffle_addr();

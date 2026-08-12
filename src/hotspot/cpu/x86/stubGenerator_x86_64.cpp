@@ -4206,6 +4206,10 @@ void StubGenerator::generate_compiler_stubs() {
     StubRoutines::_base64_decodeBlock = generate_base64_decodeBlock();
   }
 
+  generate_dilithium_stubs();
+
+  generate_sha3_stubs();
+
 #ifdef COMPILER2
   if (UseMultiplyToLenIntrinsic) {
     StubRoutines::_multiplyToLen = generate_multiplyToLen();
