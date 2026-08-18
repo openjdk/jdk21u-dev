@@ -128,6 +128,79 @@ public class UnnamedTest extends KullaTesting {
         assertStatus(complete, COMPLETE);
     }
 
+    static final String[] definitely_incomplete = new String[]{
+            "int _ = ",
+            "int m(String v, int r) {\n" +
+                    "    try {\n" +
+                    "        return Integer.parseInt(v, r);\n" +
+                    "    } catch (NumberFormatException _) {",
+            "try (final Lock _ = ",
+            "try (Lock _ = null) {\n" +
+                "            try (Lock _ = null) {",
+            "for (var _ : strs",
+            "TwoParams p1 = (_, _) ->",
+            "for (int _ = 0, _ = 1, x = 1;",
+            "if (r instanceof R(_"
+    };
+
+    static final String[] complete = new String[]{
+            "int _ = 42;",
+            "int m(String v, int r) {\n" +
+                    "    try {\n" +
+                    "        return Integer.parseInt(v, r);\n" +
+                    "    } catch (NumberFormatException _) { } }",
+            "try (final Lock _ = TEST) {}",
+            "try (Lock _ = null) {\n" +
+                    "            try (Lock _ = null) { } }",
+            "for (var _ : strs) { }",
+            "TwoParams p1 = (_, _) -> {};",
+            "for (int _ = 0, _ = 1, x = 1; x <= 1 ; x++) {}",
+            "if (r instanceof R(_)) { }"
+    };
+
+    private void assertStatus(String input, SourceCodeAnalysis.Completeness status, String source) {
+        String augSrc;
+        switch (status) {
+            case COMPLETE_WITH_SEMI:
+                augSrc = source + ";";
+                break;
+
+            case DEFINITELY_INCOMPLETE:
+                augSrc = null;
+                break;
+
+            case CONSIDERED_INCOMPLETE:
+                augSrc = source + ";";
+                break;
+
+            case EMPTY:
+            case COMPLETE:
+            case UNKNOWN:
+                augSrc = source;
+                break;
+
+            default:
+                throw new AssertionError();
+        }
+        assertAnalyze(input, status, augSrc);
+    }
+
+    private void assertStatus(String[] ins, SourceCodeAnalysis.Completeness status) {
+        for (String input : ins) {
+            assertStatus(input, status, input);
+        }
+    }
+
+    @Test
+    public void test_definitely_incomplete() {
+        assertStatus(definitely_incomplete, DEFINITELY_INCOMPLETE);
+    }
+
+    @Test
+    public void test_definitely_complete() {
+        assertStatus(complete, COMPLETE);
+    }
+
     @Override
     public void setUp(Consumer<JShell.Builder> bc) {
         super.setUp(bc.andThen(b -> b.compilerOptions("--enable-preview", "--source", System.getProperty("java.specification.version"))));
