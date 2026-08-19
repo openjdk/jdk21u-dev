@@ -646,9 +646,9 @@ public class AlgorithmId implements Serializable, DerEncoder {
 
     /* Set of OIDs that must explicitly encode a NULL parameter in AlgorithmIdentifier.
      * References:
-         - RFC 8017 (PKCS #1) §A.1, §A.2.4: RSA key and signature algorithms
-         - RFC 9879 (HMAC) §4: HMAC algorithm identifiers
-         - RFC 9688 (HMAC with SHA-3) §4.3: HMAC-SHA3 algorithms MUST omit parameters
+         - RFC 8017 (PKCS #1) A.1, A.2.4: RSA key and signature algorithms
+         - RFC 9879 (HMAC) 4: HMAC algorithm identifiers
+         - RFC 9688 (HMAC with SHA-3) 4.3: HMAC-SHA3 algorithms MUST omit parameters
      */
     private static final Set<String> OIDS_REQUIRING_NULL = Set.of(
             // MessageDigest algorithms usually have a NULL parameters even
@@ -667,7 +667,7 @@ public class AlgorithmId implements Serializable, DerEncoder {
             KnownOIDs.SHA3_384.value(),
             KnownOIDs.SHA3_512.value(),
 
-            //--- RSA key and signature algorithms (RFC 8017 §A.1, §A.2.4)
+            //--- RSA key and signature algorithms (RFC 8017 A.1, A.2.4)
             KnownOIDs.RSA.value(),
             KnownOIDs.SHA1withRSA.value(),
             KnownOIDs.SHA224withRSA.value(),
@@ -684,7 +684,7 @@ public class AlgorithmId implements Serializable, DerEncoder {
             KnownOIDs.SHA3_512withRSA.value(),
 
             // HMACs per RFC 9879 (Section 4): these require explicit NULL parameters
-            // Note: HMAC-SHA3 algorithms (RFC 9688 §4.3) MUST omit parameters,
+            // Note: HMAC-SHA3 algorithms (RFC 9688 4.3) MUST omit parameters,
             // so they are intentionally excluded from this list.
             KnownOIDs.HmacSHA1.value(),
             KnownOIDs.HmacSHA224.value(),
