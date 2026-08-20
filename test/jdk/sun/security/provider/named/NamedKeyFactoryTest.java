@@ -23,7 +23,7 @@
 
 /*
  * @test id=plainTest
- * @bug 8340327
+ * @bug 8340327 8347938
  * @modules java.base/sun.security.x509
  *          java.base/sun.security.pkcs
  *          java.base/sun.security.provider

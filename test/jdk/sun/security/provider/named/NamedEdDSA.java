@@ -23,7 +23,7 @@
 
 /*
  * @test
- * @bug 8340327
+ * @bug 8340327 8347938
  * @modules jdk.crypto.ec/sun.security.ec.ed
  *          jdk.crypto.ec/sun.security.ec.point
  *          java.base/sun.security.jca

@@ -265,27 +265,28 @@ public abstract class NamedKeyFactory extends KeyFactorySpi {
         } else if (format.equalsIgnoreCase("RAW")) {
             var kAlg = key.getAlgorithm();
             if (key instanceof PrivateKey || key instanceof PublicKey) {
-                String name;
+                String pname;
                 // Three cases that we can find the parameter set name from a RAW key:
                 // 1. getParams() returns one
                 // 2. getAlgorithm() returns param set name (some provider does this)
                 // 3. getAlgorithm() returns family name but this KF is for param set name
                 if (KeyUtil.getParams(key) instanceof NamedParameterSpec nps) {
-                    name = checkName(nps.getName());
+                    pname = checkName(nps.getName());
                 } else {
                     if (kAlg.equalsIgnoreCase(fname)) {
                         if (pnames.length == 1) {
-                            name = pnames[0];
+                            pname = pnames[0];
                         } else {
                             throw new InvalidKeyException("No parameter set info");
                         }
                     } else {
-                        name = checkName(kAlg);
+                        pname = checkName(kAlg);
                     }
                 }
+                var raw = key.getEncoded();
                 return key instanceof PrivateKey
-                        ? new NamedPKCS8Key(fname, name, key.getEncoded())
-                        : new NamedX509Key(fname, name, key.getEncoded());
+                        ? fromRaw(pname, raw)
+                        : new NamedX509Key(fname, pname, raw);
             } else {
                 throw new InvalidKeyException("Unsupported key type: " + key.getClass());
             }
