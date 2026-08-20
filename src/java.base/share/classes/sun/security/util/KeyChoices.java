@@ -62,7 +62,7 @@ public final class KeyChoices {
      * @return the type
      */
     public static Type getPreferred(String name) {
-        var prop = SecurityProperties.getOverridableProperty(
+        var prop = SecurityProperties.privilegedGetOverridable(
                 "jdk." + name + ".pkcs8.encoding");
         if (prop == null) {
             return Type.SEED;

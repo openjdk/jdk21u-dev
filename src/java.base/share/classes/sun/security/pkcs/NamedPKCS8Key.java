@@ -48,19 +48,19 @@ import java.util.Objects;
 /// identifier in the PKCS #8 encoding of the key is always a single OID derived
 /// from the parameter set name.
 ///
-/// Besides the existing [PKCS8Key#privKeyMaterial] field, this class optionally
-/// supports an expanded format stored in [#expanded]. While `privKeyMaterial`
+/// Besides the existing [PKCS8Key#key] field, this class optionally
+/// supports an expanded format stored in [#expanded]. While `key`
 /// always represents the format used for encoding, `expanded` is always used
 /// in computations. The expanded format must be self-sufficient for
 /// cryptographic computations without requiring the encoding format.
 ///
-/// 1. If only `privKeyMaterial` is present, it's also the expanded format.
-/// 2. If both `privKeyMaterial` and `expanded` are available, `privKeyMaterial`
+/// 1. If only `key` is present, it's also the expanded format.
+/// 2. If both `key` and `expanded` are available, `key`
 ///    is the encoding format, and `expanded` is the expanded format.
 ///
-/// If the two formats are the same, only `privKeyMaterial` is included, and
+/// If the two formats are the same, only `key` is included, and
 /// `expanded` must be `null`. Some implementations might be tempted to put the
-/// same value into `privKeyMaterial` and `expanded`. However, problems can
+/// same value into `key` and `expanded`. However, problems can
 /// arise if they happen to be the same object. To avoid ambiguity, always set
 /// `expanded` to `null`.
 ///
@@ -91,7 +91,7 @@ public final class NamedPKCS8Key extends PKCS8Key {
         this.fname = fname;
         this.paramSpec = new NamedParameterSpec(pname);
         this.expanded = expanded;
-        this.privKeyMaterial = Objects.requireNonNull(encoded);
+        this.key = Objects.requireNonNull(encoded);
         try {
             this.algid = AlgorithmId.get(pname);
         } catch (NoSuchAlgorithmException e) {
@@ -131,7 +131,7 @@ public final class NamedPKCS8Key extends PKCS8Key {
         this.fname = fname;
         this.expanded = expander == null
                 ? null
-                : expander.expand(algid.getName(), this.privKeyMaterial);
+                : expander.expand(algid.getName(), this.key);
         paramSpec = new NamedParameterSpec(algid.getName());
         if (algid.getEncodedParams() != null) {
             throw new InvalidKeyException("algorithm identifier has params");
@@ -148,13 +148,13 @@ public final class NamedPKCS8Key extends PKCS8Key {
     /// Returns the reference to the internal key. Caller must not modify
     /// the content or pass the reference to untrusted application code.
     public byte[] getRawBytes() {
-        return privKeyMaterial;
+        return key;
     }
 
     /// Returns the reference to the key in expanded format. Caller must not
     /// modify the content or pass the reference to untrusted application code.
     public byte[] getExpanded() {
-        return expanded == null ? privKeyMaterial : expanded;
+        return expanded == null ? key : expanded;
     }
 
     public NamedParameterSpec getParams() {

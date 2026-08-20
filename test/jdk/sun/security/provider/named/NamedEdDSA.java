@@ -28,6 +28,7 @@
  *          jdk.crypto.ec/sun.security.ec.point
  *          java.base/sun.security.jca
  *          java.base/sun.security.provider
+ *          java.base/sun.security.util
  * @library /test/lib
  */
 
