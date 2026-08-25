@@ -699,7 +699,6 @@ extern "C" JNIEXPORT void JVM_debug_helpers_keeper(void* p1, void* p2, void* p3,
 #endif
 }
 
-
 // Returns true iff the address p is readable and *(intptr_t*)p != errvalue
 extern "C" bool dbg_is_safe(const void* p, intptr_t errvalue) {
   return p != nullptr && SafeFetchN((intptr_t*)const_cast<void*>(p), errvalue) != errvalue;
