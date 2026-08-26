@@ -115,7 +115,7 @@
                                                                             \
   product(uintx, G1ConfidencePercent, 50,                                   \
           "Confidence level for MMU/pause predictions")                     \
-          range(0, 100)                                                     \
+          range(1, 100)                                                     \
                                                                             \
   product(intx, G1SummarizeRSetStatsPeriod, 0, DIAGNOSTIC,                  \
           "The period (in number of GCs) at which we will generate "        \
