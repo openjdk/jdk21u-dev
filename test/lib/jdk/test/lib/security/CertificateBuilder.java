@@ -48,6 +48,7 @@ import sun.security.x509.IPAddressName;
 import sun.security.x509.NameConstraintsExtension;
 import sun.security.x509.SubjectKeyIdentifierExtension;
 import sun.security.x509.BasicConstraintsExtension;
+import sun.security.x509.CertificateSerialNumber;
 import sun.security.x509.ExtendedKeyUsageExtension;
 import sun.security.x509.DistributionPoint;
 import sun.security.x509.DNSName;
@@ -677,7 +678,9 @@ public class CertificateBuilder {
         }
 
         // Serial Number
-        SerialNumber sn = new SerialNumber(serialNumber);
+        CertificateSerialNumber sn = (serialNumber != null) ?
+            new CertificateSerialNumber(serialNumber) :
+            CertificateSerialNumber.newRandom64bit(new SecureRandom());
         sn.encode(tbsCertItems);
 
         // Algorithm ID
@@ -694,8 +697,12 @@ public class CertificateBuilder {
 
         // Validity period (set as UTCTime)
         DerOutputStream valSeq = new DerOutputStream();
-        valSeq.putUTCTime(notBefore);
-        valSeq.putUTCTime(notAfter);
+        Instant now = Instant.now();
+        Date startDate = (notBefore != null) ? notBefore : Date.from(now);
+        valSeq.putUTCTime(startDate);
+        Date endDate = (notAfter != null) ? notAfter :
+            Date.from(now.plus(90, ChronoUnit.DAYS));
+        valSeq.putUTCTime(endDate);
         tbsCertItems.write(DerValue.tag_Sequence, valSeq);
 
         // Subject Name
@@ -735,6 +742,10 @@ public class CertificateBuilder {
      */
     private void encodeExtensions(DerOutputStream tbsStream)
             throws IOException {
+
+        if (extensions.isEmpty()) {
+            return;
+        }
         DerOutputStream extSequence = new DerOutputStream();
         DerOutputStream extItems = new DerOutputStream();
 
