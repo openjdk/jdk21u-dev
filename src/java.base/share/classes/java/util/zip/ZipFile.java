@@ -1174,7 +1174,7 @@ public class ZipFile implements ZipConstants, Closeable {
         private int refs = 1;
 
         private RandomAccessFile zfile;      // zfile of the underlying zip file
-        private byte[] cen;                  // CEN & ENDHDR
+        private byte[] cen;                  // CEN
         private long locpos;                 // position of first LOC header (usually 0)
         private byte[] comment;              // zip file comment
                                              // list of meta entries in META-INF dir
@@ -1223,7 +1223,7 @@ public class ZipFile implements ZipConstants, Closeable {
             }
             int entryPos = pos + CENHDR;
             int nlen = CENNAM(cen, pos);
-            if (entryPos + nlen > cen.length - ENDHDR) {
+            if (entryPos + nlen > cen.length) {
                 zerror("invalid CEN header (bad header size)");
             }
 
@@ -1674,15 +1674,15 @@ public class ZipFile implements ZipConstants, Closeable {
                 if (locpos < 0) {
                     zerror("invalid END header (bad central directory offset)");
                 }
-                // read in the CEN and END
-                if (end.cenlen + ENDHDR >= Integer.MAX_VALUE) {
+                // read in the CEN
+                if (end.cenlen > MAX_CEN_SIZE) {
                     zerror("invalid END header (central directory size too large)");
                 }
                 if (end.centot < 0 || end.centot > end.cenlen / CENHDR) {
                     zerror("invalid END header (total entries count too large)");
                 }
-                cen = this.cen = new byte[(int)(end.cenlen + ENDHDR)];
-                if (readFullyAt(cen, 0, cen.length, cenpos) != end.cenlen + ENDHDR) {
+                cen = this.cen = new byte[(int)(end.cenlen)];
+                if (readFullyAt(cen, 0, cen.length, cenpos) != end.cenlen) {
                     zerror("read CEN tables failed");
                 }
                 this.total = Math.toIntExact(end.centot);
