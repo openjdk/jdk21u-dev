@@ -43,7 +43,6 @@
  * @run main/othervm CPVAlgTestWithOCSP EC
  * @run main/othervm CPVAlgTestWithOCSP EC:secp521r1
  * @run main/othervm CPVAlgTestWithOCSP Ed25519
- * //@run main/othervm CPVAlgTestWithOCSP ML-DSA-65 // requires JDK-8317431
  */
 
 import java.math.BigInteger;
