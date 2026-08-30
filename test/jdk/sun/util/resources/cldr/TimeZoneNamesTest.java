@@ -178,7 +178,7 @@ public class TimeZoneNamesTest {
 
 
     @ParameterizedTest
-    @MethodSource("noResourceTZs")
+    @MethodSource("data")
     public void test_tzNames(String tzid, Locale locale, String lstd, String sstd, String ldst, String sdst, String lgen, String sgen) {
         // Standard time
         assertEquals(lstd, TimeZone.getTimeZone(tzid).getDisplayName(false, TimeZone.LONG, locale));
