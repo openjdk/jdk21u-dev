@@ -4503,7 +4503,11 @@ public final class DateTimeFormatterBuilder {
                 TemporalAccessor dt = context.getTemporal();
                 int type = GENERIC;
                 if (!isGeneric) {
-                    if (dt.isSupported(ChronoField.INSTANT_SECONDS)) {
+                    // Check if an explicit metazone DST offset exists
+                    String dstOffset = TimeZoneNameUtility.explicitDstOffset(zname);
+                    if (dt.isSupported(OFFSET_SECONDS) && dstOffset != null) {
+                        type = ZoneOffset.from(dt).equals(ZoneOffset.of(dstOffset)) ? DST : STD;
+                    } else if (dt.isSupported(ChronoField.INSTANT_SECONDS)) {
                         type = zone.getRules().isDaylightSavings(Instant.from(dt)) ? DST : STD;
                     } else if (dt.isSupported(ChronoField.EPOCH_DAY) &&
                                dt.isSupported(ChronoField.NANO_OF_DAY)) {

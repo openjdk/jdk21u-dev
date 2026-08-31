@@ -197,7 +197,8 @@ class ResourceBundleGenerator implements BundleGenerator {
                     } else if (value instanceof String) {
                         String valStr = (String)value;
                         if (type == BundleType.TIMEZONE &&
-                            !key.startsWith(CLDRConverter.EXEMPLAR_CITY_PREFIX) ||
+                            !(key.startsWith(CLDRConverter.EXEMPLAR_CITY_PREFIX) ||
+                              key.startsWith(CLDRConverter.METAZONE_DSTOFFSET_PREFIX)) ||
                             valStr.startsWith(META_VALUE_PREFIX)) {
                             out.printf("            { \"%s\", %s },\n", key, CLDRConverter.saveConvert(valStr, useJava));
                         } else {
