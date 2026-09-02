@@ -74,11 +74,10 @@ class ThreadsList;
 //   :
 //   JavaThread *jt = nullptr;
 //   ThreadsListHandle tlh;
-//   jvmtiError err = JvmtiExport::cv_oop_to_JavaThread(tlh.list(), thread_obj, &jt);
-//   if (err != JVMTI_ERROR_NONE) {
-//     return err;
+//   bool is_alive = tlh.cv_oop_to_JavaThread(thread_obj, &jt);
+//   if (is_alive) {
+//     ;  // do stuff with 'jt'...
 //   }
-//   :  // do stuff with 'jt'...
 //
 // A JavaThread * that is included in the ThreadsList that is held by
 // a ThreadsListHandle is protected as long as the ThreadsListHandle
@@ -318,7 +317,8 @@ public:
   inline Iterator begin();
   inline Iterator end();
 
-  bool cv_internal_thread_to_JavaThread(jobject jthread, JavaThread ** jt_pp, oop * thread_oop_p);
+  bool cv_oop_to_JavaThread(oop thread_oop, JavaThread** jt_pp);
+  bool cv_internal_thread_to_JavaThread(jobject jthread, JavaThread** jt_pp, oop* thread_oop_p);
 
   bool includes(JavaThread* p) {
     return list()->includes(p);
