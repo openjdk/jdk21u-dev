@@ -950,6 +950,31 @@ AC_DEFUN([JDKOPT_SETUP_MACOSX_SIGNING],
 
 ################################################################################
 #
+# Setup a hook to invoke a script that runs for file produced by the native
+# compilation steps, after linking.
+# Parameter is the path to the script to be called.
+#
+# DEFAULT: "", leads to a failure, for TYPE: executable
+# TYPE: string, and DEFAULT: [], works
+AC_DEFUN([JDKOPT_SETUP_SIGNING_HOOK],
+[
+  UTIL_ARG_WITH(NAME: signing-hook, TYPE: string,
+      OPTIONAL: true, DEFAULT: [],
+      DESC: [specify path to script used to code sign native binaries]
+  )
+
+  AC_MSG_CHECKING([for signing hook])
+  if test "x$SIGNING_HOOK" != x; then
+    UTIL_FIXUP_EXECUTABLE(SIGNING_HOOK)
+    AC_MSG_RESULT([$SIGNING_HOOK])
+  else
+    AC_MSG_RESULT([none])
+  fi
+  AC_SUBST(SIGNING_HOOK)
+])
+
+################################################################################
+#
 # fallback linker
 #
 AC_DEFUN_ONCE([JDKOPT_SETUP_FALLBACK_LINKER],
