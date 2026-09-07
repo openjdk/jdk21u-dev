@@ -45,7 +45,12 @@ public class SOEDeeplyNestedBlocksTest {
         lines.add("  }");
         lines.add("}");
 
-        var source = SimpleJavaFileObject.forSource(URI.create("mem://Test.java"), String.join("\n", lines));
+        var source = new SimpleJavaFileObject(URI.create("mem://Test.java"), JavaFileObject.Kind.SOURCE) {
+            @Override
+            public CharSequence getCharContent(boolean ignoreEncodingErrors) {
+                return String.join("\n", lines);
+            }
+        };
         var compiler = ToolProvider.getSystemJavaCompiler();
         var task = compiler.getTask(null, null, noErrors, null, null, List.of(source));
         task.call();
