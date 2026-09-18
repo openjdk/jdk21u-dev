@@ -1066,6 +1066,9 @@ class os: AllStatic {
   static bool set_boot_path(char fileSep, char pathSep);
 
   static bool pd_dll_unload(void* libhandle, char* ebuf, int ebuflen);
+
+ public:
+  static void wake_up(Thread *thread);         // Wake up a blocked thread using OS facilities
 };
 
 // Note that "PAUSE" is almost always used with synchronization
