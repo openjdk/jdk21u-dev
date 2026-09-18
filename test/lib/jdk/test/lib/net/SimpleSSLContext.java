@@ -58,7 +58,7 @@ public final class SimpleSSLContext {
      * @throws RuntimeException if no key store file can be found or the found
      * one cannot be loaded
      */
-    public static SSLContext findSSLContext() throws IOException {
+    public static SSLContext findSSLContext() {
         return findSSLContext(DEFAULT_PROTOCOL);
     }
 
@@ -72,7 +72,7 @@ public final class SimpleSSLContext {
      * @throws RuntimeException if no key store file can be found or the found
      * one cannot be loaded
      */
-    public static SSLContext findSSLContext(String protocol) throws IOException {
+    public static SSLContext findSSLContext(String protocol) {
         Objects.requireNonNull(protocol);
         return findSSLContext(DEFAULT_KEY_STORE_FILE_REL_PATH, protocol);
     }
@@ -91,7 +91,7 @@ public final class SimpleSSLContext {
      * one cannot be loaded
      */
     @SuppressWarnings("removal")
-    public static SSLContext findSSLContext(String keyStoreFileRelPath, String protocol) throws IOException {
+    public static SSLContext findSSLContext(String keyStoreFileRelPath, String protocol) {
         Objects.requireNonNull(keyStoreFileRelPath);
         Objects.requireNonNull(protocol);
 
@@ -119,8 +119,6 @@ public final class SimpleSSLContext {
             if (res != null) return res;
         } catch (PrivilegedActionException pae) {
             Throwable t = pae.getCause() != null ? pae.getCause() : pae;
-            if (t instanceof IOException)
-                throw (IOException)t;
             if (t instanceof RuntimeException)
                 throw (RuntimeException)t;
             if (t instanceof Error)
