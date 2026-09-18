@@ -632,7 +632,7 @@ define SetupRunMicroTestBody
 	        $$($1_MICRO_ITER) $$($1_MICRO_FORK) $$($1_MICRO_TIME) \
 	        $$($1_MICRO_WARMUP_ITER) $$($1_MICRO_WARMUP_TIME) \
 	        $$($1_MICRO_VM_OPTIONS) $$($1_MICRO_BASIC_OPTIONS) $$(MICRO_OPTIONS) \
-	        $$($1_TEST_NAME) \
+	        $$(call ShellQuote,$$($1_TEST_NAME)) \
 	        > >($(TEE) $$($1_TEST_RESULTS_DIR)/micro.txt) \
 	    && $$(ECHO) $$$$? > $$($1_EXITCODE) \
 	    || $$(ECHO) $$$$? > $$($1_EXITCODE) \
