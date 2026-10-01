@@ -759,6 +759,7 @@ void InstanceKlass::fence_and_clear_init_lock() {
 // Note: implementation moved to static method to expose the this pointer.
 void InstanceKlass::initialize(TRAPS) {
   if (this->should_be_initialized()) {
+    TenantShutdownMark tsm(THREAD);
     initialize_impl(CHECK);
     // Note: at this point the class may be initialized
     //       OR it may be in the state of being initialized
