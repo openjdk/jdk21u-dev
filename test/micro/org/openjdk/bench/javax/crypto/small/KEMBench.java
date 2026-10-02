@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,29 +20,13 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package org.openjdk.bench.javax.crypto.small;
 
-import java.net.http.HttpClient.Version;
-import java.time.Duration;
-import org.testng.annotations.Test;
+import org.openjdk.jmh.annotations.Param;
 
-/*
- * @test
- * @summary Tests for connection related timeouts
- * @bug 8208391
- * @run testng/othervm ConnectTimeoutWithProxySync
- */
+public class KEMBench extends org.openjdk.bench.javax.crypto.full.KEMBench {
 
-public class ConnectTimeoutWithProxySync extends AbstractConnectTimeout {
+    @Param({"ML-KEM-768"})
+    private String algorithm;
 
-    @Test(dataProvider = "variants")
-    @Override
-    public void timeoutWithProxySync(Version requestVersion,
-                                     String scheme,
-                                     String method,
-                                     Duration connectTimeout,
-                                     Duration requestTimeout)
-        throws Exception
-    {
-        super.timeoutWithProxySync(requestVersion, scheme, method, connectTimeout, requestTimeout);
-    }
 }
