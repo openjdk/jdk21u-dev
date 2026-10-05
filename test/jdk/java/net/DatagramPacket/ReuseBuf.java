@@ -114,7 +114,7 @@ public class ReuseBuf {
         InetSocketAddress loopbackEphemeral = new InetSocketAddress(InetAddress.getLoopbackAddress(), 0);
         Server server;
         Thread serverThread;
-        try (var _ = server = new Server(loopbackEphemeral);
+        try (var notUsed = server = new Server(loopbackEphemeral);
              DatagramSocket ds = new DatagramSocket(loopbackEphemeral)) {
 
             InetSocketAddress destAddr = server.getServerAddress();
