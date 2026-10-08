@@ -1635,8 +1635,8 @@ public class Main {
      */
     private static String fullDisplayKeyName(Key key) {
         var alg = key.getAlgorithm();
-        if (key instanceof AsymmetricKey ak) {
-            var params = ak.getParams();
+        if (key instanceof PrivateKey || key instanceof PublicKey) {
+            var params = KeyUtil.getParams(key);
             if (params instanceof NamedParameterSpec nps) {
                 return nps.getName(); // directly return
             } else if (params instanceof ECParameterSpec eps) {
