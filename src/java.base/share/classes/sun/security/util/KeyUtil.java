@@ -43,6 +43,7 @@ import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.DHPublicKeySpec;
 
+import com.sun.crypto.provider.PBKDF2KeyImpl;
 import sun.security.jca.JCAUtil;
 
 /**
