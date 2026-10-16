@@ -211,9 +211,6 @@ abstract class PBES2Parameters extends AlgorithmParametersSpi {
     protected void engineInit(byte[] encoded)
         throws IOException
     {
-        String kdfAlgo = null;
-        String cipherAlgo = null;
-
         DerValue pBES2_params = new DerValue(encoded);
         if (pBES2_params.tag != DerValue.tag_Sequence) {
             throw new IOException("PBE parameter parsing error: "
