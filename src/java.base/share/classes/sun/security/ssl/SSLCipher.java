@@ -390,7 +390,6 @@ enum SSLCipher {
                 return Security.getProperty("jdk.tls.keyLimits");
             }
         });
-
         if (prop != null) {
             String[] propvalue = prop.split(",");
 
