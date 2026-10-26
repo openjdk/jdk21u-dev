@@ -131,6 +131,7 @@ class oopDesc;
 #define UINT64_FORMAT_X          "0x%"        PRIx64
 #define UINT64_FORMAT_X_0        "0x%016"     PRIx64
 #define UINT64_FORMAT_W(width)   "%"   #width PRIu64
+#define PHYS_MEM_TYPE_FORMAT     "%"          PRIu64
 
 // Format integers which change size between 32- and 64-bit.
 #define SSIZE_FORMAT             "%"          PRIdPTR
@@ -150,6 +151,11 @@ class oopDesc;
 #define INTX_FORMAT_W(width)     "%"   #width PRIdPTR
 #define UINTX_FORMAT             "%"          PRIuPTR
 #define UINTX_FORMAT_X           "0x%"        PRIxPTR
+#ifdef _LP64
+#define UINTX_FORMAT_X_0         "0x%016"     PRIxPTR
+#else
+#define UINTX_FORMAT_X_0         "0x%08"      PRIxPTR
+#endif
 #define UINTX_FORMAT_W(width)    "%"   #width PRIuPTR
 
 // Format jlong, if necessary
@@ -421,6 +427,11 @@ inline size_t byte_size_in_exact_unit(size_t s) {
 #define HEAP_CHANGE_FORMAT_ARGS(_name_, _prev_used_, _prev_capacity_, _used_, _capacity_) \
   (_name_), (_prev_used_) / K, (_prev_capacity_) / K, (_used_) / K, (_capacity_) / K
 
+// This typedef is to address the issue of running a 32-bit VM. In this case the amount
+// of physical memory may not fit in size_t, so we have to have a larger type. Once 32-bit
+// is deprecated, one can use size_t.
+typedef uint64_t physical_memory_size_type;
+
 //----------------------------------------------------------------------------------------------------
 // VM type definitions
 
@@ -467,6 +478,8 @@ inline address       clear_address_bits(address x, int m)     { return address(i
 inline address_word  mask_address_bits(address x, int m)      { return address_word(x) & m; }
 inline address_word  castable_address(address x)              { return address_word(x) ; }
 inline address_word  castable_address(void* x)                { return address_word(x) ; }
+
+typedef const u_char* const_address;
 
 // Pointer subtraction.
 // The idea here is to avoid ptrdiff_t, which is signed and so doesn't have
@@ -1154,12 +1167,12 @@ inline T clamp(T value, T min, T max) {
   return MIN2(MAX2(value, min), max);
 }
 
-inline bool is_odd (intx x) { return x & 1;      }
-inline bool is_even(intx x) { return !is_odd(x); }
+constexpr bool is_odd (intx x) { return x & 1;      }
+constexpr bool is_even(intx x) { return !is_odd(x); }
 
 // abs methods which cannot overflow and so are well-defined across
 // the entire domain of integer types.
-static inline unsigned int uabs(unsigned int n) {
+static inline unsigned int g_uabs(unsigned int n) {
   union {
     unsigned int result;
     int value;
@@ -1168,7 +1181,7 @@ static inline unsigned int uabs(unsigned int n) {
   if (value < 0) result = 0-result;
   return result;
 }
-static inline julong uabs(julong n) {
+static inline julong g_uabs(julong n) {
   union {
     julong result;
     jlong value;
@@ -1177,8 +1190,8 @@ static inline julong uabs(julong n) {
   if (value < 0) result = 0-result;
   return result;
 }
-static inline julong uabs(jlong n) { return uabs((julong)n); }
-static inline unsigned int uabs(int n) { return uabs((unsigned int)n); }
+static inline julong g_uabs(jlong n) { return g_uabs((julong)n); }
+static inline unsigned int g_uabs(int n) { return g_uabs((unsigned int)n); }
 
 // "to" should be greater than "from."
 inline intx byte_size(void* from, void* to) {
@@ -1362,6 +1375,10 @@ template<typename K> unsigned primitive_hash(const K& k) {
 
 template<typename K> bool primitive_equals(const K& k0, const K& k1) {
   return k0 == k1;
+}
+
+template<typename K> int primitive_compare(const K& k0, const K& k1) {
+  return ((k0 < k1) ? -1 : (k0 == k1) ? 0 : 1);
 }
 
 //----------------------------------------------------------------------------------------------------

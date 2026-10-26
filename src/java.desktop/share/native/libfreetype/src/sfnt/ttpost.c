@@ -5,7 +5,7 @@
  *   PostScript name table processing for TrueType and OpenType fonts
  *   (body).
  *
- * Copyright (C) 1996-2023 by
+ * Copyright (C) 1996-2026 by
  * David Turner, Robert Wilhelm, and Werner Lemberg.
  *
  * This file is part of the FreeType project, and may only be used,
@@ -204,8 +204,8 @@
     /* now load the name strings */
     if ( num_names )
     {
-      FT_ULong   p;
-      FT_Byte*   strings;
+      FT_Byte*   p;
+      FT_Byte*   p_end;
 
 
       post_len -= (FT_ULong)num_glyphs * 2;
@@ -214,36 +214,36 @@
                                     post_len + 1 ) )
         goto Fail;
 
-      strings = (FT_Byte*)( name_strings + num_names );
-      if ( FT_STREAM_READ( strings, post_len ) )
+      p = (FT_Byte*)( name_strings + num_names );
+      if ( FT_STREAM_READ( p, post_len ) )
         goto Fail;
 
+      p_end = p + post_len;
+
       /* convert from Pascal- to C-strings and set pointers */
-      for ( p = 0, n = 0; p < post_len && n < num_names; n++ )
+      for ( n = 0; p < p_end && n < num_names; n++ )
       {
-        FT_UInt  len = strings[p];
+        FT_UInt  len = *p;
 
 
-        if ( len > 63U )
-        {
-          error = FT_THROW( Invalid_File_Format );
-          goto Fail;
-        }
+        /* names in the Adobe Glyph List are shorter than 40 characters */
+        if ( len >= 40U )
+          FT_TRACE4(( "load_format_20: unusual %u-char name found\n", len ));
 
-        strings[p]      = 0;
-        name_strings[n] = strings + p + 1;
-        p              += len + 1;
+        *p++            = 0;
+        name_strings[n] = p;
+        p              += len;
       }
-      strings[post_len] = 0;
+      *p_end = 0;
 
       /* deal with missing or insufficient string data */
       if ( n < num_names )
       {
         FT_TRACE4(( "load_format_20: %hu PostScript names are truncated\n",
-                    num_names - n ));
+                    (FT_UShort)( num_names - n ) ));
 
         for ( ; n < num_names; n++ )
-          name_strings[n] = strings + post_len;
+          name_strings[n] = p_end;
       }
     }
 
@@ -337,10 +337,10 @@
 
     /* UNDOCUMENTED!  The number of glyphs in this table can be smaller */
     /* than the value in the maxp table (cf. cyberbit.ttf).             */
-    if ( post_len < 34                            ||
-         FT_STREAM_SKIP( 32 )                     ||
-         FT_READ_USHORT( num_glyphs )             ||
-         num_glyphs > face->max_profile.numGlyphs ||
+    if ( post_len < 34                      ||
+         FT_STREAM_SKIP( 32 )               ||
+         FT_READ_USHORT( num_glyphs )       ||
+         num_glyphs > face->maxp_num_glyphs ||
          num_glyphs == 0 )
       goto Exit;
 
@@ -422,7 +422,7 @@
     if ( !face )
       return FT_THROW( Invalid_Face_Handle );
 
-    if ( idx >= (FT_UInt)face->max_profile.numGlyphs )
+    if ( idx >= face->maxp_num_glyphs )
       return FT_THROW( Invalid_Glyph_Index );
 
 #ifdef FT_CONFIG_OPTION_POSTSCRIPT_NAMES
@@ -436,13 +436,8 @@
 
     format = face->postscript.FormatType;
 
-    if ( format == 0x00010000L )
-    {
-      if ( idx < 258 )                    /* paranoid checking */
-        *PSname = MAC_NAME( idx );
-    }
-    else if ( format == 0x00020000L ||
-              format == 0x00025000L )
+    if ( format == 0x00020000L ||
+         format == 0x00025000L )
     {
       TT_Post_Names  names = &face->postscript_names;
 
@@ -465,6 +460,11 @@
           *PSname = (FT_String*)names->glyph_names[name_index - 258];
       }
     }
+
+    /* version 1.0 is only valid with 258 glyphs */
+    else if ( format == 0x00010000L              &&
+              face->maxp_num_glyphs == 258 )
+      *PSname = MAC_NAME( idx );
 
     /* nothing to do for format == 0x00030000L */
 

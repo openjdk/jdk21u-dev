@@ -158,6 +158,9 @@ void VM_Version::initialize() {
     if (FLAG_IS_DEFAULT(OnSpinWaitInstCount)) {
       FLAG_SET_DEFAULT(OnSpinWaitInstCount, 2);
     }
+    if (FLAG_IS_DEFAULT(UseSignumIntrinsic)) {
+      FLAG_SET_DEFAULT(UseSignumIntrinsic, true);
+    }
   }
 
   // ThunderX
@@ -406,6 +409,28 @@ void VM_Version::initialize() {
           warning("ChaCha20 intrinsic requires ASIMD instructions");
       }
       FLAG_SET_DEFAULT(UseChaCha20Intrinsics, false);
+  }
+
+  if (_features & CPU_ASIMD) {
+      if (FLAG_IS_DEFAULT(UseKyberIntrinsics)) {
+          UseKyberIntrinsics = true;
+      }
+  } else if (UseKyberIntrinsics) {
+      if (!FLAG_IS_DEFAULT(UseKyberIntrinsics)) {
+          warning("Kyber intrinsics require ASIMD instructions");
+      }
+      FLAG_SET_DEFAULT(UseKyberIntrinsics, false);
+  }
+
+  if (_features & CPU_ASIMD) {
+      if (FLAG_IS_DEFAULT(UseDilithiumIntrinsics)) {
+          UseDilithiumIntrinsics = true;
+      }
+  } else if (UseDilithiumIntrinsics) {
+      if (!FLAG_IS_DEFAULT(UseDilithiumIntrinsics)) {
+          warning("Dilithium intrinsics require ASIMD instructions");
+      }
+      FLAG_SET_DEFAULT(UseDilithiumIntrinsics, false);
   }
 
   if (FLAG_IS_DEFAULT(UseBASE64Intrinsics)) {

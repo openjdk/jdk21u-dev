@@ -37,6 +37,7 @@
 
 
 #include "psft.h"
+#include <freetype/internal/ftcalc.h>
 #include <freetype/internal/ftdebug.h>
 #include <freetype/internal/services/svcfftl.h>
 
@@ -414,7 +415,7 @@
   /* Blend numOperands on the stack,                */
   /* store results into the first numBlends values, */
   /* then pop remaining arguments.                  */
-  static void
+  static FT_Error
   cf2_doBlend( const CFF_Blend  blend,
                CF2_Stack        opStack,
                CF2_UInt         numBlends )
@@ -422,11 +423,22 @@
     CF2_UInt  delta;
     CF2_UInt  base;
     CF2_UInt  i, j;
-    CF2_UInt  numOperands = (CF2_UInt)( numBlends * blend->lenBV );
+    CF2_UInt  numOperands;
+    CF2_UInt  count = cf2_stack_count( opStack );
 
 
-    base  = cf2_stack_count( opStack ) - numOperands;
+    if ( blend->lenBV == 0                ||
+         numBlends > count / blend->lenBV )
+      return FT_THROW( Stack_Underflow );
+
+    numOperands = numBlends * blend->lenBV;  /* cannot overflow here */
+    if ( numOperands > count )
+      return FT_THROW( Stack_Underflow );
+
+    base  = count - numOperands;
     delta = base + numBlends;
+
+    FT_TRACE6(( " (" ));
 
     for ( i = 0; i < numBlends; i++ )
     {
@@ -442,12 +454,18 @@
                                     cf2_stack_getReal( opStack,
                                                        delta++ ) ) );
 
+      FT_TRACE6(( "%f ", (double)sum / 65536 ));
+
       /* store blended result  */
       cf2_stack_setReal( opStack, i + base, sum );
     }
 
+    FT_TRACE6(( "blended)\n" ));
+
     /* leave only `numBlends' results on stack */
     cf2_stack_pop( opStack, numOperands - numBlends );
+
+    return FT_Err_Ok;
   }
 
 
@@ -611,7 +629,7 @@
     /*       Our copy of it does not change that requirement.         */
     cf2_arrstack_setCount( &subrStack, CF2_MAX_SUBR + 1 );
 
-    charstring  = (CF2_Buffer)cf2_arrstack_getBuffer( &subrStack );
+    charstring = (CF2_Buffer)cf2_arrstack_getBuffer( &subrStack );
 
     /* catch errors so far */
     if ( *error )
@@ -734,7 +752,7 @@
           FT_UInt  numBlends;
 
 
-          FT_TRACE4(( " blend\n" ));
+          FT_TRACE4(( " blend" ));
 
           if ( !font->isCFF2 )
             break;    /* clear stack & ignore */
@@ -762,13 +780,10 @@
 
           /* do the blend */
           numBlends = (FT_UInt)cf2_stack_popInt( opStack );
-          if ( numBlends > stackSize )
-          {
-            lastError = FT_THROW( Invalid_Glyph_Format );
-            goto exit;
-          }
 
-          cf2_doBlend( &font->blend, opStack, numBlends );
+          lastError = cf2_doBlend( &font->blend, opStack, numBlends );
+          if ( lastError )
+            goto exit;
 
           font->blend.usedBV = TRUE;
         }
@@ -978,8 +993,8 @@
           FT_TRACE4(( "%s", op1 == cf2_cmdCALLGSUBR ? " callgsubr"
                                                     : " callsubr" ));
 
-          if ( ( !font->isT1 && charstringIndex > CF2_MAX_SUBR )       ||
-               (  font->isT1 && charstringIndex > T1_MAX_SUBRS_CALLS ) )
+          if ( ( !font->isT1 && charstringIndex >= CF2_MAX_SUBR )       ||
+               (  font->isT1 && charstringIndex >= T1_MAX_SUBRS_CALLS ) )
           {
             /* max subr plus one for charstring */
             lastError = FT_THROW( Invalid_Glyph_Format );
@@ -2275,23 +2290,7 @@
 
                     arg = cf2_stack_popFixed( opStack );
                     if ( arg > 0 )
-                    {
-                      /* use a start value that doesn't make */
-                      /* the algorithm's addition overflow   */
-                      FT_Fixed  root = arg < 10 ? arg : arg >> 1;
-                      FT_Fixed  new_root;
-
-
-                      /* Babylonian method */
-                      for (;;)
-                      {
-                        new_root = ( root + FT_DivFix( arg, root ) + 1 ) >> 1;
-                        if ( new_root == root )
-                          break;
-                        root = new_root;
-                      }
-                      arg = new_root;
-                    }
+                      arg = (CF2_F16Dot16)FT_SqrtFixed( (FT_UInt32)arg );
                     else
                       arg = 0;
 

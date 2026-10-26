@@ -181,6 +181,9 @@ class ClassLoader: AllStatic {
 
   static PerfCounter* _unsafe_defineClassCallCounter;
 
+  // Count the time taken to hash the scondary superclass arrays.
+  static PerfCounter* _perf_secondary_hash_time;
+
   // The boot class path consists of 3 ordered pieces:
   //  1. the module/path pairs specified to --patch-module
   //    --patch-module=<module>=<file>(<pathsep><file>)*
@@ -289,6 +292,9 @@ class ClassLoader: AllStatic {
   static PerfCounter* perf_class_link_time()          { return _perf_class_link_time; }
   static PerfCounter* perf_class_link_selftime()      { return _perf_class_link_selftime; }
   static PerfCounter* perf_shared_classload_time()    { return _perf_shared_classload_time; }
+  static PerfCounter* perf_secondary_hash_time() {
+    return _perf_secondary_hash_time;
+  }
   static PerfCounter* perf_sys_classload_time()       { return _perf_sys_classload_time; }
   static PerfCounter* perf_app_classload_time()       { return _perf_app_classload_time; }
   static PerfCounter* perf_app_classload_selftime()   { return _perf_app_classload_selftime; }
@@ -364,7 +370,7 @@ class ClassLoader: AllStatic {
   // entries during shared classpath setup time.
   static int num_module_path_entries();
   static void  exit_with_path_failure(const char* error, const char* message);
-  static char* skip_uri_protocol(char* source);
+  static char* uri_to_path(const char* uri);
   static void  record_result(JavaThread* current, InstanceKlass* ik,
                              const ClassFileStream* stream, bool redefined);
 #endif

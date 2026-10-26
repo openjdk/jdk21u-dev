@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,11 +28,13 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/syslimits.h>
+#include <sys/sysctl.h>
 #include <sys/types.h>
 #include <sys/un.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -116,15 +118,54 @@ JNIEXPORT void JNICALL Java_sun_tools_attach_VirtualMachineImpl_connect
 
 /*
  * Class:     sun_tools_attach_VirtualMachineImpl
- * Method:    sendQuitTo
+ * Method:    checkCatchesAndSendQuitTo
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_sun_tools_attach_VirtualMachineImpl_sendQuitTo
-  (JNIEnv *env, jclass cls, jint pid)
+JNIEXPORT jboolean JNICALL Java_sun_tools_attach_VirtualMachineImpl_checkCatchesAndSendQuitTo
+  (JNIEnv *env, jclass cls, jint pid, jboolean throwIfNotReady)
 {
-    if (kill((pid_t)pid, SIGQUIT)) {
-        JNU_ThrowIOExceptionWithLastError(env, "kill");
+    int mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, (int)pid };
+
+    struct kinfo_proc kiproc;
+    size_t            kipsz = sizeof(struct kinfo_proc);
+
+   /*
+    * Early in the lifetime of a JVM it has not yet initialized its signal handlers, in particular the QUIT
+    * handler, note that the default behavior of QUIT is to terminate the receiving process, if unhandled.
+    *
+    * Since we use QUIT to initiate an attach operation, if we signal a JVM during this period early in its
+    * lifetime before it has initialized its QUIT handler, such a signal delivery will terminate the JVM we
+    * are attempting to attach to!
+    *
+    * The following code guards the QUIT delivery by testing the current signal masks. It is okay to send QUIT
+    * if the signal is caught but not ignored, as that implies a handler has been installed.
+    */
+
+    if (sysctl(mib, sizeof(mib) / sizeof(int), &kiproc, &kipsz, NULL, 0) == 0) {
+        const bool ignored = (kiproc.kp_proc.p_sigignore & sigmask(SIGQUIT)) != 0;
+        const bool caught  = (kiproc.kp_proc.p_sigcatch & sigmask(SIGQUIT))  != 0;
+
+        // note: obviously the masks could change between testing and signalling however this is not the
+        // observed behavior of the current JVM implementation.
+
+        if (caught && !ignored) {
+            if (kill((pid_t)pid, SIGQUIT) != 0) {
+                JNU_ThrowIOExceptionWithLastError(env, "kill");
+            } else {
+                return JNI_TRUE;
+            }
+        } else if (throwIfNotReady) {
+            char msg[100];
+
+            snprintf(msg, sizeof(msg), "pid: %d, state is not ready to participate in attach handshake!", (int)pid);
+
+            JNU_ThrowByName(env, "com/sun/tools/attach/AttachNotSupportedException", msg);
+        }
+    } else {
+        JNU_ThrowIOExceptionWithLastError(env, "sysctl");
     }
+
+    return JNI_FALSE;
 }
 
 /*
@@ -145,13 +186,14 @@ JNIEXPORT void JNICALL Java_sun_tools_attach_VirtualMachineImpl_checkPermissions
         memset(&sb, 0, sizeof(struct stat));
 
         /*
-         * Check that the path is owned by the effective uid/gid of this
-         * process. Also check that group/other access is not allowed.
+         * Check that the path itself (not following symbolic links) is
+         * owned by the effective uid/gid of this process and that it is
+         * a socket. Also check that group/other access is not allowed.
          */
         uid = geteuid();
         gid = getegid();
 
-        res = stat(p, &sb);
+        res = lstat(p, &sb);
         if (res != 0) {
             /* save errno */
             res = errno;
@@ -160,7 +202,11 @@ JNIEXPORT void JNICALL Java_sun_tools_attach_VirtualMachineImpl_checkPermissions
         if (res == 0) {
             char msg[100];
             jboolean isError = JNI_FALSE;
-            if (sb.st_uid != uid && uid != ROOT_UID) {
+            if (!S_ISSOCK(sb.st_mode)) {
+                snprintf(msg, sizeof(msg),
+                    "file is expected to be a socket: S_ISSOCK(sb.st_mode): %d", S_ISSOCK(sb.st_mode));
+                isError = JNI_TRUE;
+            } else if (sb.st_uid != uid && uid != ROOT_UID) {
                 snprintf(msg, sizeof(msg),
                     "file should be owned by the current user (which is %d) but is owned by %d", uid, sb.st_uid);
                 isError = JNI_TRUE;

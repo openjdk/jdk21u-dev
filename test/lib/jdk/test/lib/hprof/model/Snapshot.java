@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 1997, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -32,16 +30,12 @@
 
 package jdk.test.lib.hprof.model;
 
+import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.util.*;
 
 import jdk.test.lib.hprof.parser.ReadBuffer;
 import jdk.test.lib.hprof.util.Misc;
-
-/**
- *
- * @author      Bill Foote
- */
 
 /**
  * Represents a snapshot of the Java objects in the VM at one instant.
@@ -628,7 +622,7 @@ public class Snapshot implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() throws IOException {
         readBuf.close();
     }
 

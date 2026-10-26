@@ -30,9 +30,7 @@
 // os::Linux defines the interface to Linux operating systems
 
 class os::Linux {
-  friend class CgroupSubsystem;
   friend class os;
-  friend class OSContainer;
   friend class TestReserveMemorySpecial;
 
   static int (*_pthread_getcpuclockid)(pthread_t, clockid_t *);
@@ -53,13 +51,12 @@ class os::Linux {
 
  protected:
 
-  static julong _physical_memory;
+  static physical_memory_size_type _physical_memory;
   static pthread_t _main_thread;
 
-  static julong available_memory();
-  static julong free_memory();
+  static bool available_memory(physical_memory_size_type& value);
+  static bool free_memory(physical_memory_size_type& value);
 
-  static int active_processor_count();
 
   static void initialize_system_info();
 
@@ -99,6 +96,7 @@ class os::Linux {
   static void print_proc_sys_info(outputStream* st);
   static bool print_ld_preload_file(outputStream* st);
   static void print_uptime_info(outputStream* st);
+  static bool print_numa_info(outputStream* st);
 
  public:
   struct CPUPerfTicks {
@@ -109,6 +107,7 @@ class os::Linux {
     bool     has_steal_ticks;
   };
 
+  static int active_processor_count();
   static void kernel_version(long* major, long* minor);
 
   // which_logical_cpu=-1 returns accumulated ticks for all cpus.
@@ -129,7 +128,7 @@ class os::Linux {
   static address   initial_thread_stack_bottom(void)                { return _initial_thread_stack_bottom; }
   static uintptr_t initial_thread_stack_size(void)                  { return _initial_thread_stack_size; }
 
-  static julong physical_memory() { return _physical_memory; }
+  static physical_memory_size_type physical_memory() { return _physical_memory; }
   static julong host_swap();
 
   static intptr_t* ucontext_get_sp(const ucontext_t* uc);

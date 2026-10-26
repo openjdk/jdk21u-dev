@@ -455,6 +455,9 @@ class MacroAssembler: public Assembler {
   void sign_extend_short(Register reg);
   void sign_extend_byte(Register reg);
 
+  // Clean up a subword typed value to the representation in compliance with JVMS §2.3
+  void narrow_subword_type(Register reg, BasicType bt);
+
   // Division by power of 2, rounding towards 0
   void division_with_shift(Register reg, int shift_value);
 
@@ -594,6 +597,8 @@ public:
   );
   void zero_memory(Register address, Register length_in_bytes, int offset_in_bytes, Register temp);
 
+  void population_count(Register dst, Register src, Register scratch1, Register scratch2);
+
   // interface method calling
   void lookup_interface_method(Register recv_klass,
                                Register intf_klass,
@@ -644,8 +649,46 @@ public:
                                      Label* L_success,
                                      Label* L_failure,
                                      bool set_cond_codes = false);
+  void hashed_check_klass_subtype_slow_path(Register sub_klass,
+                                     Register super_klass,
+                                     Register temp_reg,
+                                     Register temp2_reg,
+                                     Label* L_success,
+                                     Label* L_failure,
+                                     bool set_cond_codes = false);
 
-  // Simplified, combined version, good for typical uses.
+  // As above, but with a constant super_klass.
+  // The result is in Register result, not the condition codes.
+  void lookup_secondary_supers_table(Register sub_klass,
+                                     Register super_klass,
+                                     Register temp1,
+                                     Register temp2,
+                                     Register temp3,
+                                     Register temp4,
+                                     Register result,
+                                     u1 super_klass_slot);
+
+  void lookup_secondary_supers_table_slow_path(Register r_super_klass,
+                                               Register r_array_base,
+                                               Register r_array_index,
+                                               Register r_bitmap,
+                                               Register temp1,
+                                               Register temp2,
+                                               Label* L_success,
+                                               Label* L_failure = nullptr);
+
+  void verify_secondary_supers_table(Register r_sub_klass,
+                                     Register r_super_klass,
+                                     Register expected,
+                                     Register temp1,
+                                     Register temp2,
+                                     Register temp3);
+
+  void repne_scanq(Register addr, Register value, Register count, Register limit,
+                   Label* L_success,
+                   Label* L_failure = nullptr);
+
+    // Simplified, combined version, good for typical uses.
   // Falls through on failure.
   void check_klass_subtype(Register sub_klass,
                            Register super_klass,
@@ -1177,6 +1220,7 @@ public:
   void evmovdqub(XMMRegister dst, KRegister mask, Address        src, bool merge, int vector_len) { Assembler::evmovdqub(dst, mask, src, merge, vector_len); }
   void evmovdqub(XMMRegister dst, KRegister mask, AddressLiteral src, bool merge, int vector_len, Register rscratch = noreg);
 
+  void evmovdquw(XMMRegister dst, XMMRegister src, int vector_len) { Assembler::evmovdquw(dst, src, vector_len); }
   void evmovdquw(Address     dst, XMMRegister src, int vector_len) { Assembler::evmovdquw(dst, src, vector_len); }
   void evmovdquw(XMMRegister dst, Address     src, int vector_len) { Assembler::evmovdquw(dst, src, vector_len); }
 
@@ -1385,6 +1429,8 @@ public:
   void vpmulld(XMMRegister dst, XMMRegister nds, Address        src, int vector_len) { Assembler::vpmulld(dst, nds, src, vector_len); }
   void vpmulld(XMMRegister dst, XMMRegister nds, AddressLiteral src, int vector_len, Register rscratch = noreg);
 
+  void vpmuldq(XMMRegister dst, XMMRegister nds, XMMRegister    src, int vector_len) { Assembler::vpmuldq(dst, nds, src, vector_len); }
+
   void vpsubb(XMMRegister dst, XMMRegister nds, XMMRegister src, int vector_len);
   void vpsubb(XMMRegister dst, XMMRegister nds, Address     src, int vector_len);
 
@@ -1394,9 +1440,13 @@ public:
   void vpsraw(XMMRegister dst, XMMRegister nds, XMMRegister shift, int vector_len);
   void vpsraw(XMMRegister dst, XMMRegister nds, int         shift, int vector_len);
 
+  void evpsrad(XMMRegister dst, XMMRegister nds, XMMRegister shift, int vector_len);
+  void evpsrad(XMMRegister dst, XMMRegister nds, int         shift, int vector_len);
+
   void evpsraq(XMMRegister dst, XMMRegister nds, XMMRegister shift, int vector_len);
   void evpsraq(XMMRegister dst, XMMRegister nds, int         shift, int vector_len);
 
+  using Assembler::evpsllw;
   void evpsllw(XMMRegister dst, KRegister mask, XMMRegister nds, XMMRegister src, bool merge, int vector_len, bool is_varshift) {
     if (!is_varshift) {
       Assembler::evpsllw(dst, mask, nds, src, merge, vector_len);
@@ -1439,6 +1489,7 @@ public:
       Assembler::evpsrlvq(dst, mask, nds, src, merge, vector_len);
     }
   }
+  using Assembler::evpsraw;
   void evpsraw(XMMRegister dst, KRegister mask, XMMRegister nds, XMMRegister src, bool merge, int vector_len, bool is_varshift) {
     if (!is_varshift) {
       Assembler::evpsraw(dst, mask, nds, src, merge, vector_len);
@@ -1446,6 +1497,7 @@ public:
       Assembler::evpsravw(dst, mask, nds, src, merge, vector_len);
     }
   }
+  using Assembler::evpsrad;
   void evpsrad(XMMRegister dst, KRegister mask, XMMRegister nds, XMMRegister src, bool merge, int vector_len, bool is_varshift) {
     if (!is_varshift) {
       Assembler::evpsrad(dst, mask, nds, src, merge, vector_len);

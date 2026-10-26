@@ -26,6 +26,7 @@
 #include "precompiled.hpp"
 #include "asm/assembler.inline.hpp"
 #include "asm/macroAssembler.inline.hpp"
+#include "compiler/compilerDefinitions.inline.hpp"
 #include "compiler/disassembler.hpp"
 #include "jvm.h"
 #include "memory/resourceArea.hpp"
@@ -130,7 +131,7 @@ void VM_Version::initialize() {
   }
 
   if (PowerArchitecturePPC64 >= 8) {
-    if (FLAG_IS_DEFAULT(SuperwordUseVSX)) {
+    if (FLAG_IS_DEFAULT(SuperwordUseVSX) && CompilerConfig::is_c2_enabled()) {
       FLAG_SET_ERGO(SuperwordUseVSX, true);
     }
   } else {
@@ -319,8 +320,14 @@ void VM_Version::initialize() {
     FLAG_SET_DEFAULT(UseAESCTRIntrinsics, false);
   }
 
-  if (UseGHASHIntrinsics) {
-    warning("GHASH intrinsics are not available on this CPU");
+  if (VM_Version::has_vsx()) {
+    if (FLAG_IS_DEFAULT(UseGHASHIntrinsics)) {
+      UseGHASHIntrinsics = true;
+    }
+  } else if (UseGHASHIntrinsics) {
+    if (!FLAG_IS_DEFAULT(UseGHASHIntrinsics)) {
+      warning("GHASH intrinsics are not available on this CPU");
+    }
     FLAG_SET_DEFAULT(UseGHASHIntrinsics, false);
   }
 

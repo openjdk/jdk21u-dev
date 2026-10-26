@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@
 #include "asm/macroAssembler.inline.hpp"
 #include "memory/resourceArea.hpp"
 #include "oops/access.inline.hpp"
+#include "oops/klass.hpp"
 #include "oops/oop.inline.hpp"
 #include "prims/vectorSupport.hpp"
 #include "runtime/continuation.hpp"
@@ -126,6 +127,18 @@ address StubRoutines::_counterMode_AESCrypt                = nullptr;
 address StubRoutines::_galoisCounterMode_AESCrypt          = nullptr;
 address StubRoutines::_ghash_processBlocks                 = nullptr;
 address StubRoutines::_chacha20Block                       = nullptr;
+address StubRoutines::_kyberNtt                            = nullptr;
+address StubRoutines::_kyberInverseNtt                     = nullptr;
+address StubRoutines::_kyberNttMult                        = nullptr;
+address StubRoutines::_kyberAddPoly_2                      = nullptr;
+address StubRoutines::_kyberAddPoly_3                      = nullptr;
+address StubRoutines::_kyber12To16                         = nullptr;
+address StubRoutines::_kyberBarrettReduce                  = nullptr;
+address StubRoutines::_dilithiumAlmostNtt                  = nullptr;
+address StubRoutines::_dilithiumAlmostInverseNtt           = nullptr;
+address StubRoutines::_dilithiumNttMult                    = nullptr;
+address StubRoutines::_dilithiumMontMulByConstant          = nullptr;
+address StubRoutines::_dilithiumDecomposePoly              = nullptr;
 address StubRoutines::_base64_encodeBlock                  = nullptr;
 address StubRoutines::_base64_decodeBlock                  = nullptr;
 address StubRoutines::_poly1305_processBlocks              = nullptr;
@@ -139,6 +152,7 @@ address StubRoutines::_sha256_implCompressMB = nullptr;
 address StubRoutines::_sha512_implCompress   = nullptr;
 address StubRoutines::_sha512_implCompressMB = nullptr;
 address StubRoutines::_sha3_implCompress     = nullptr;
+address StubRoutines::_double_keccak         = nullptr;
 address StubRoutines::_sha3_implCompressMB   = nullptr;
 
 address StubRoutines::_updateBytesCRC32 = nullptr;
@@ -161,6 +175,7 @@ address StubRoutines::_vectorizedMismatch = nullptr;
 address StubRoutines::_dexp = nullptr;
 address StubRoutines::_dlog = nullptr;
 address StubRoutines::_dlog10 = nullptr;
+address StubRoutines::_fmod = nullptr;
 address StubRoutines::_dpow = nullptr;
 address StubRoutines::_dsin = nullptr;
 address StubRoutines::_dcos = nullptr;
@@ -183,6 +198,10 @@ JFR_ONLY(RuntimeStub* StubRoutines::_jfr_write_checkpoint_stub = nullptr;)
 JFR_ONLY(address StubRoutines::_jfr_write_checkpoint = nullptr;)
 JFR_ONLY(RuntimeStub* StubRoutines::_jfr_return_lease_stub = nullptr;)
 JFR_ONLY(address StubRoutines::_jfr_return_lease = nullptr;)
+
+address StubRoutines::_lookup_secondary_supers_table_slow_path_stub = nullptr;
+address StubRoutines::_lookup_secondary_supers_table_stubs[Klass::SECONDARY_SUPERS_TABLE_SIZE] = { nullptr };
+
 
 // Initialization
 //

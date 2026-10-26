@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -266,14 +266,16 @@ final class SessionTicketExtension {
                         (byte)(keyID)}
                 );
 
+                // use getOutputSize to avoid a ShortBufferException
+                // from providers that require oversized buffers. See JDK-8368514.
                 ByteBuffer out;
-                out = ByteBuffer.allocate(data.remaining() - GCM_TAG_LEN / 8);
+                out = ByteBuffer.allocate(c.getOutputSize(data.remaining()));
                 c.doFinal(data, out);
                 out.flip();
                 return out;
             } catch (Exception e) {
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
-                    SSLLogger.fine("Decryption failed." + e.getMessage());
+                    SSLLogger.fine("Decryption failed." + e);
                 }
             }
             return null;
@@ -354,12 +356,7 @@ final class SessionTicketExtension {
                 return new byte[0];
             }
 
-            if (chc.localSupportedSignAlgs == null) {
-                chc.localSupportedSignAlgs =
-                        SignatureScheme.getSupportedAlgorithms(
-                                chc.sslConfig,
-                                chc.algorithmConstraints, chc.activeProtocols);
-            }
+            SignatureScheme.updateHandshakeLocalSupportedAlgs(chc);
 
             return chc.resumingSession.getPskIdentity();
         }

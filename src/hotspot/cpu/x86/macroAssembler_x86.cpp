@@ -51,6 +51,7 @@
 #include "runtime/safepointMechanism.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/stubRoutines.hpp"
+#include "utilities/globalDefinitions.hpp"
 #include "utilities/macros.hpp"
 
 #ifdef PRODUCT
@@ -3151,6 +3152,17 @@ void MacroAssembler::sign_extend_short(Register reg) {
   }
 }
 
+void MacroAssembler::narrow_subword_type(Register reg, BasicType bt) {
+  assert(is_subword_type(bt), "required");
+  switch (bt) {
+  case T_BOOLEAN: andl(reg, 1); break;
+  case T_BYTE:    movsbl(reg, reg); break;
+  case T_CHAR:    movzwl(reg, reg); break;
+  case T_SHORT:   movswl(reg, reg); break;
+  default:        ShouldNotReachHere();
+  }
+}
+
 void MacroAssembler::testl(Address dst, int32_t imm32) {
   if (imm32 >= 0 && is8bit(imm32)) {
     testb(dst, imm32);
@@ -3998,7 +4010,7 @@ RegSet MacroAssembler::call_clobbered_gp_registers() {
   RegSet regs;
 #ifdef _LP64
   regs += RegSet::of(rax, rcx, rdx);
-#ifndef WINDOWS
+#ifndef _WINDOWS
   regs += RegSet::of(rsi, rdi);
 #endif
   regs += RegSet::range(r8, r11);
@@ -4010,7 +4022,7 @@ RegSet MacroAssembler::call_clobbered_gp_registers() {
 
 XMMRegSet MacroAssembler::call_clobbered_xmm_registers() {
   int num_xmm_registers = XMMRegister::available_xmm_registers();
-#if defined(WINDOWS) && defined(_LP64)
+#if defined(_WINDOWS) && defined(_LP64)
   XMMRegSet result = XMMRegSet::range(xmm0, xmm5);
   if (num_xmm_registers > 16) {
      result += XMMRegSet::range(xmm16, as_XMMRegister(num_xmm_registers - 1));
@@ -4651,6 +4663,339 @@ void MacroAssembler::check_klass_subtype_slow_path(Register sub_klass,
 
   bind(L_fallthrough);
 }
+
+#ifdef _LP64
+
+// population_count variant for running without the POPCNT
+// instruction, which was introduced with SSE4.2 in 2008.
+void MacroAssembler::population_count(Register dst, Register src,
+                                      Register scratch1, Register scratch2) {
+  assert_different_registers(src, scratch1, scratch2);
+  if (UsePopCountInstruction) {
+    Assembler::popcntq(dst, src);
+  } else {
+    assert_different_registers(src, scratch1, scratch2);
+    assert_different_registers(dst, scratch1, scratch2);
+    Label loop, done;
+
+    mov(scratch1, src);
+    // dst = 0;
+    // while(scratch1 != 0) {
+    //   dst++;
+    //   scratch1 &= (scratch1 - 1);
+    // }
+    xorl(dst, dst);
+    testq(scratch1, scratch1);
+    jccb(Assembler::equal, done);
+    {
+      bind(loop);
+      incq(dst);
+      movq(scratch2, scratch1);
+      decq(scratch2);
+      andq(scratch1, scratch2);
+      jccb(Assembler::notEqual, loop);
+    }
+    bind(done);
+  }
+}
+
+// Ensure that the inline code and the stub are using the same registers.
+#define LOOKUP_SECONDARY_SUPERS_TABLE_REGISTERS                      \
+do {                                                                 \
+  assert(r_super_klass  == rax, "mismatch");                         \
+  assert(r_array_base   == rbx, "mismatch");                         \
+  assert(r_array_length == rcx, "mismatch");                         \
+  assert(r_array_index  == rdx, "mismatch");                         \
+  assert(r_sub_klass    == rsi || r_sub_klass == noreg, "mismatch"); \
+  assert(r_bitmap       == r11 || r_bitmap    == noreg, "mismatch"); \
+  assert(result         == rdi || result      == noreg, "mismatch"); \
+} while(0)
+
+void MacroAssembler::lookup_secondary_supers_table(Register r_sub_klass,
+                                                   Register r_super_klass,
+                                                   Register temp1,
+                                                   Register temp2,
+                                                   Register temp3,
+                                                   Register temp4,
+                                                   Register result,
+                                                   u1 super_klass_slot) {
+  assert_different_registers(r_sub_klass, r_super_klass, temp1, temp2, temp3, temp4, result);
+
+  Label L_fallthrough, L_success, L_failure;
+
+  BLOCK_COMMENT("lookup_secondary_supers_table {");
+
+  const Register
+    r_array_index  = temp1,
+    r_array_length = temp2,
+    r_array_base   = temp3,
+    r_bitmap       = temp4;
+
+  LOOKUP_SECONDARY_SUPERS_TABLE_REGISTERS;
+
+  xorq(result, result); // = 0
+
+  movq(r_bitmap, Address(r_sub_klass, Klass::bitmap_offset()));
+  movq(r_array_index, r_bitmap);
+
+  // First check the bitmap to see if super_klass might be present. If
+  // the bit is zero, we are certain that super_klass is not one of
+  // the secondary supers.
+  u1 bit = super_klass_slot;
+  {
+    // NB: If the count in a x86 shift instruction is 0, the flags are
+    // not affected, so we do a testq instead.
+    int shift_count = Klass::SECONDARY_SUPERS_TABLE_MASK - bit;
+    if (shift_count != 0) {
+      salq(r_array_index, shift_count);
+    } else {
+      testq(r_array_index, r_array_index);
+    }
+  }
+  // We test the MSB of r_array_index, i.e. its sign bit
+  jcc(Assembler::positive, L_failure);
+
+  // Get the first array index that can contain super_klass into r_array_index.
+  if (bit != 0) {
+    population_count(r_array_index, r_array_index, temp2, temp3);
+  } else {
+    movl(r_array_index, 1);
+  }
+  // NB! r_array_index is off by 1. It is compensated by keeping r_array_base off by 1 word.
+
+  // We will consult the secondary-super array.
+  movptr(r_array_base, Address(r_sub_klass, in_bytes(Klass::secondary_supers_offset())));
+
+  // We're asserting that the first word in an Array<Klass*> is the
+  // length, and the second word is the first word of the data. If
+  // that ever changes, r_array_base will have to be adjusted here.
+  assert(Array<Klass*>::base_offset_in_bytes() == wordSize, "Adjust this code");
+  assert(Array<Klass*>::length_offset_in_bytes() == 0, "Adjust this code");
+
+  cmpq(r_super_klass, Address(r_array_base, r_array_index, Address::times_8));
+  jccb(Assembler::equal, L_success);
+
+  // Is there another entry to check? Consult the bitmap.
+  btq(r_bitmap, (bit + 1) & Klass::SECONDARY_SUPERS_TABLE_MASK);
+  jccb(Assembler::carryClear, L_failure);
+
+  // Linear probe. Rotate the bitmap so that the next bit to test is
+  // in Bit 1.
+  if (bit != 0) {
+    rorq(r_bitmap, bit);
+  }
+
+  // Calls into the stub generated by lookup_secondary_supers_table_slow_path.
+  // Arguments: r_super_klass, r_array_base, r_array_index, r_bitmap.
+  // Kills: r_array_length.
+  // Returns: result.
+  call(RuntimeAddress(StubRoutines::lookup_secondary_supers_table_slow_path_stub()));
+  // Result (0/1) is in rdi
+  jmpb(L_fallthrough);
+
+  bind(L_failure);
+  incq(result); // 0 => 1
+
+  bind(L_success);
+  // result = 0;
+
+  bind(L_fallthrough);
+  BLOCK_COMMENT("} lookup_secondary_supers_table");
+
+  if (VerifySecondarySupers) {
+    verify_secondary_supers_table(r_sub_klass, r_super_klass, result,
+                                  temp1, temp2, temp3);
+  }
+}
+
+void MacroAssembler::repne_scanq(Register addr, Register value, Register count, Register limit,
+                                 Label* L_success, Label* L_failure) {
+  Label L_loop, L_fallthrough;
+  {
+    int label_nulls = 0;
+    if (L_success == nullptr) { L_success = &L_fallthrough; label_nulls++; }
+    if (L_failure == nullptr) { L_failure = &L_fallthrough; label_nulls++; }
+    assert(label_nulls <= 1, "at most one null in the batch");
+  }
+  bind(L_loop);
+  cmpq(value, Address(addr, count, Address::times_8));
+  jcc(Assembler::equal, *L_success);
+  addl(count, 1);
+  cmpl(count, limit);
+  jcc(Assembler::less, L_loop);
+
+  if (&L_fallthrough != L_failure) {
+    jmp(*L_failure);
+  }
+  bind(L_fallthrough);
+}
+
+// Called by code generated by check_klass_subtype_slow_path
+// above. This is called when there is a collision in the hashed
+// lookup in the secondary supers array.
+void MacroAssembler::lookup_secondary_supers_table_slow_path(Register r_super_klass,
+                                                             Register r_array_base,
+                                                             Register r_array_index,
+                                                             Register r_bitmap,
+                                                             Register temp1,
+                                                             Register temp2,
+                                                             Label* L_success,
+                                                             Label* L_failure) {
+  assert_different_registers(r_super_klass, r_array_base, r_array_index, r_bitmap, temp1, temp2);
+
+  const Register
+    r_array_length = temp1,
+    r_sub_klass    = noreg,
+    result         = noreg;
+
+  LOOKUP_SECONDARY_SUPERS_TABLE_REGISTERS;
+
+  Label L_fallthrough;
+  int label_nulls = 0;
+  if (L_success == nullptr)   { L_success   = &L_fallthrough; label_nulls++; }
+  if (L_failure == nullptr)   { L_failure   = &L_fallthrough; label_nulls++; }
+  assert(label_nulls <= 1, "at most one null in the batch");
+
+  // Load the array length.
+  movl(r_array_length, Address(r_array_base, Array<Klass*>::length_offset_in_bytes()));
+  // And adjust the array base to point to the data.
+  // NB! Effectively increments current slot index by 1.
+  assert(Array<Klass*>::base_offset_in_bytes() == wordSize, "");
+  addptr(r_array_base, Array<Klass*>::base_offset_in_bytes());
+
+  // Linear probe
+  Label L_huge;
+
+  // The bitmap is full to bursting.
+  // Implicit invariant: BITMAP_FULL implies (length > 0)
+  cmpl(r_array_length, (int32_t)Klass::SECONDARY_SUPERS_TABLE_SIZE - 2);
+  jcc(Assembler::greater, L_huge);
+
+  // NB! Our caller has checked bits 0 and 1 in the bitmap. The
+  // current slot (at secondary_supers[r_array_index]) has not yet
+  // been inspected, and r_array_index may be out of bounds if we
+  // wrapped around the end of the array.
+
+  { // This is conventional linear probing, but instead of terminating
+    // when a null entry is found in the table, we maintain a bitmap
+    // in which a 0 indicates missing entries.
+    // The check above guarantees there are 0s in the bitmap, so the loop
+    // eventually terminates.
+
+    xorl(temp2, temp2); // = 0;
+
+    Label L_again;
+    bind(L_again);
+
+    // Check for array wraparound.
+    cmpl(r_array_index, r_array_length);
+    cmovl(Assembler::greaterEqual, r_array_index, temp2);
+
+    cmpq(r_super_klass, Address(r_array_base, r_array_index, Address::times_8));
+    jcc(Assembler::equal, *L_success);
+
+    // If the next bit in bitmap is zero, we're done.
+    btq(r_bitmap, 2); // look-ahead check (Bit 2); Bits 0 and 1 are tested by now
+    jcc(Assembler::carryClear, *L_failure);
+
+    rorq(r_bitmap, 1); // Bits 1/2 => 0/1
+    addl(r_array_index, 1);
+
+    jmp(L_again);
+  }
+
+  { // Degenerate case: more than 64 secondary supers.
+    // FIXME: We could do something smarter here, maybe a vectorized
+    // comparison or a binary search, but is that worth any added
+    // complexity?
+    bind(L_huge);
+    xorl(r_array_index, r_array_index); // = 0
+    repne_scanq(r_array_base, r_super_klass, r_array_index, r_array_length,
+                L_success,
+                (&L_fallthrough != L_failure ? L_failure : nullptr));
+
+    bind(L_fallthrough);
+  }
+}
+
+struct VerifyHelperArguments {
+  Klass* _super;
+  Klass* _sub;
+  intptr_t _linear_result;
+  intptr_t _table_result;
+};
+
+static void verify_secondary_supers_table_helper(const char* msg, VerifyHelperArguments* args) {
+  Klass::on_secondary_supers_verification_failure(args->_super,
+                                                  args->_sub,
+                                                  args->_linear_result,
+                                                  args->_table_result,
+                                                  msg);
+}
+
+// Make sure that the hashed lookup and a linear scan agree.
+void MacroAssembler::verify_secondary_supers_table(Register r_sub_klass,
+                                                   Register r_super_klass,
+                                                   Register result,
+                                                   Register temp1,
+                                                   Register temp2,
+                                                   Register temp3) {
+  const Register
+      r_array_index  = temp1,
+      r_array_length = temp2,
+      r_array_base   = temp3,
+      r_bitmap       = noreg;
+
+  LOOKUP_SECONDARY_SUPERS_TABLE_REGISTERS;
+
+  BLOCK_COMMENT("verify_secondary_supers_table {");
+
+  Label L_success, L_failure, L_check, L_done;
+
+  movptr(r_array_base, Address(r_sub_klass, in_bytes(Klass::secondary_supers_offset())));
+  movl(r_array_length, Address(r_array_base, Array<Klass*>::length_offset_in_bytes()));
+  // And adjust the array base to point to the data.
+  addptr(r_array_base, Array<Klass*>::base_offset_in_bytes());
+
+  testl(r_array_length, r_array_length); // array_length == 0?
+  jcc(Assembler::zero, L_failure);
+
+  movl(r_array_index, 0);
+  repne_scanq(r_array_base, r_super_klass, r_array_index, r_array_length, &L_success);
+  // fall through to L_failure
+
+  const Register linear_result = r_array_index; // reuse temp1
+
+  bind(L_failure); // not present
+  movl(linear_result, 1);
+  jmp(L_check);
+
+  bind(L_success); // present
+  movl(linear_result, 0);
+
+  bind(L_check);
+  cmpl(linear_result, result);
+  jcc(Assembler::equal, L_done);
+
+  { // To avoid calling convention issues, build a record on the stack
+    // and pass the pointer to that instead.
+    push(result);
+    push(linear_result);
+    push(r_sub_klass);
+    push(r_super_klass);
+    movptr(c_rarg1, rsp);
+    movptr(c_rarg0, (uintptr_t) "mismatch");
+    call(RuntimeAddress(CAST_FROM_FN_PTR(address, verify_secondary_supers_table_helper)));
+    should_not_reach_here();
+  }
+  bind(L_done);
+
+  BLOCK_COMMENT("} verify_secondary_supers_table");
+}
+
+#undef LOOKUP_SECONDARY_SUPERS_TABLE_REGISTERS
+
+#endif // LP64
 
 void MacroAssembler::clinit_barrier(Register klass, Register thread, Label* L_fast_path, Label* L_slow_path) {
   assert(L_fast_path != nullptr || L_slow_path != nullptr, "at least one is required");
@@ -8504,15 +8849,19 @@ void MacroAssembler::crc32c_ipl_alg2_alt2(Register in_out, Register in1, Registe
 #undef BLOCK_COMMENT
 
 // Compress char[] array to byte[].
-//   ..\jdk\src\java.base\share\classes\java\lang\StringUTF16.java
+// Intrinsic for java.lang.StringUTF16.compress(char[] src, int srcOff, byte[] dst, int dstOff, int len)
+// Return the array length if every element in array can be encoded,
+// otherwise, the index of first non-latin1 (> 0xff) character.
 //   @IntrinsicCandidate
-//   private static int compress(char[] src, int srcOff, byte[] dst, int dstOff, int len) {
+//   public static int compress(char[] src, int srcOff, byte[] dst, int dstOff, int len) {
 //     for (int i = 0; i < len; i++) {
-//       int c = src[srcOff++];
-//       if (c >>> 8 != 0) {
-//         return 0;
+//       char c = src[srcOff];
+//       if (c > 0xff) {
+//           return i;  // return index of non-latin1 char
 //       }
-//       dst[dstOff++] = (byte)c;
+//       dst[dstOff] = (byte)c;
+//       srcOff++;
+//       dstOff++;
 //     }
 //     return len;
 //   }
@@ -8520,7 +8869,7 @@ void MacroAssembler::char_array_compress(Register src, Register dst, Register le
   XMMRegister tmp1Reg, XMMRegister tmp2Reg,
   XMMRegister tmp3Reg, XMMRegister tmp4Reg,
   Register tmp5, Register result, KRegister mask1, KRegister mask2) {
-  Label copy_chars_loop, return_length, return_zero, done;
+  Label copy_chars_loop, done, reset_sp, copy_tail;
 
   // rsi: src
   // rdi: dst
@@ -8535,28 +8884,28 @@ void MacroAssembler::char_array_compress(Register src, Register dst, Register le
   assert(len != result, "");
 
   // save length for return
-  push(len);
+  movl(result, len);
 
   if ((AVX3Threshold == 0) && (UseAVX > 2) && // AVX512
     VM_Version::supports_avx512vlbw() &&
     VM_Version::supports_bmi2()) {
 
-    Label copy_32_loop, copy_loop_tail, below_threshold;
+    Label copy_32_loop, copy_loop_tail, below_threshold, reset_for_copy_tail;
 
     // alignment
     Label post_alignment;
 
-    // if length of the string is less than 16, handle it in an old fashioned way
+    // if length of the string is less than 32, handle it the old fashioned way
     testl(len, -32);
     jcc(Assembler::zero, below_threshold);
 
     // First check whether a character is compressible ( <= 0xFF).
     // Create mask to test for Unicode chars inside zmm vector
-    movl(result, 0x00FF);
-    evpbroadcastw(tmp2Reg, result, Assembler::AVX_512bit);
+    movl(tmp5, 0x00FF);
+    evpbroadcastw(tmp2Reg, tmp5, Assembler::AVX_512bit);
 
     testl(len, -64);
-    jcc(Assembler::zero, post_alignment);
+    jccb(Assembler::zero, post_alignment);
 
     movl(tmp5, dst);
     andl(tmp5, (32 - 1));
@@ -8565,18 +8914,19 @@ void MacroAssembler::char_array_compress(Register src, Register dst, Register le
 
     // bail out when there is nothing to be done
     testl(tmp5, 0xFFFFFFFF);
-    jcc(Assembler::zero, post_alignment);
+    jccb(Assembler::zero, post_alignment);
 
     // ~(~0 << len), where len is the # of remaining elements to process
-    movl(result, 0xFFFFFFFF);
-    shlxl(result, result, tmp5);
-    notl(result);
-    kmovdl(mask2, result);
+    movl(len, 0xFFFFFFFF);
+    shlxl(len, len, tmp5);
+    notl(len);
+    kmovdl(mask2, len);
+    movl(len, result);
 
     evmovdquw(tmp1Reg, mask2, Address(src, 0), /*merge*/ false, Assembler::AVX_512bit);
     evpcmpw(mask1, mask2, tmp1Reg, tmp2Reg, Assembler::le, /*signed*/ false, Assembler::AVX_512bit);
     ktestd(mask1, mask2);
-    jcc(Assembler::carryClear, return_zero);
+    jcc(Assembler::carryClear, copy_tail);
 
     evpmovwb(Address(dst, 0), mask2, tmp1Reg, Assembler::AVX_512bit);
 
@@ -8591,7 +8941,7 @@ void MacroAssembler::char_array_compress(Register src, Register dst, Register le
     movl(tmp5, len);
     andl(tmp5, (32 - 1));    // tail count (in chars)
     andl(len, ~(32 - 1));    // vector count (in chars)
-    jcc(Assembler::zero, copy_loop_tail);
+    jccb(Assembler::zero, copy_loop_tail);
 
     lea(src, Address(src, len, Address::times_2));
     lea(dst, Address(dst, len, Address::times_1));
@@ -8601,55 +8951,60 @@ void MacroAssembler::char_array_compress(Register src, Register dst, Register le
     evmovdquw(tmp1Reg, Address(src, len, Address::times_2), Assembler::AVX_512bit);
     evpcmpuw(mask1, tmp1Reg, tmp2Reg, Assembler::le, Assembler::AVX_512bit);
     kortestdl(mask1, mask1);
-    jcc(Assembler::carryClear, return_zero);
+    jccb(Assembler::carryClear, reset_for_copy_tail);
 
     // All elements in current processed chunk are valid candidates for
     // compression. Write a truncated byte elements to the memory.
     evpmovwb(Address(dst, len, Address::times_1), tmp1Reg, Assembler::AVX_512bit);
     addptr(len, 32);
-    jcc(Assembler::notZero, copy_32_loop);
+    jccb(Assembler::notZero, copy_32_loop);
 
     bind(copy_loop_tail);
     // bail out when there is nothing to be done
     testl(tmp5, 0xFFFFFFFF);
-    jcc(Assembler::zero, return_length);
+    jcc(Assembler::zero, done);
 
     movl(len, tmp5);
 
     // ~(~0 << len), where len is the # of remaining elements to process
-    movl(result, 0xFFFFFFFF);
-    shlxl(result, result, len);
-    notl(result);
+    movl(tmp5, 0xFFFFFFFF);
+    shlxl(tmp5, tmp5, len);
+    notl(tmp5);
 
-    kmovdl(mask2, result);
+    kmovdl(mask2, tmp5);
 
     evmovdquw(tmp1Reg, mask2, Address(src, 0), /*merge*/ false, Assembler::AVX_512bit);
     evpcmpw(mask1, mask2, tmp1Reg, tmp2Reg, Assembler::le, /*signed*/ false, Assembler::AVX_512bit);
     ktestd(mask1, mask2);
-    jcc(Assembler::carryClear, return_zero);
+    jcc(Assembler::carryClear, copy_tail);
 
     evpmovwb(Address(dst, 0), mask2, tmp1Reg, Assembler::AVX_512bit);
-    jmp(return_length);
+    jmp(done);
+
+    bind(reset_for_copy_tail);
+    lea(src, Address(src, tmp5, Address::times_2));
+    lea(dst, Address(dst, tmp5, Address::times_1));
+    subptr(len, tmp5);
+    jmp(copy_chars_loop);
 
     bind(below_threshold);
   }
 
   if (UseSSE42Intrinsics) {
-    Label copy_32_loop, copy_16, copy_tail;
-
-    movl(result, len);
-
-    movl(tmp5, 0xff00ff00);   // create mask to test for Unicode chars in vectors
+    Label copy_32_loop, copy_16, copy_tail_sse, reset_for_copy_tail;
 
     // vectored compression
-    andl(len, 0xfffffff0);    // vector count (in chars)
-    andl(result, 0x0000000f);    // tail count (in chars)
-    testl(len, len);
-    jcc(Assembler::zero, copy_16);
+    testl(len, 0xfffffff8);
+    jcc(Assembler::zero, copy_tail);
 
-    // compress 16 chars per iter
+    movl(tmp5, 0xff00ff00);   // create mask to test for Unicode chars in vectors
     movdl(tmp1Reg, tmp5);
     pshufd(tmp1Reg, tmp1Reg, 0);   // store Unicode mask in tmp1Reg
+
+    andl(len, 0xfffffff0);
+    jccb(Assembler::zero, copy_16);
+
+    // compress 16 chars per iter
     pxor(tmp4Reg, tmp4Reg);
 
     lea(src, Address(src, len, Address::times_2));
@@ -8662,59 +9017,60 @@ void MacroAssembler::char_array_compress(Register src, Register dst, Register le
     movdqu(tmp3Reg, Address(src, len, Address::times_2, 16)); // load next 8 characters
     por(tmp4Reg, tmp3Reg);
     ptest(tmp4Reg, tmp1Reg);       // check for Unicode chars in next vector
-    jcc(Assembler::notZero, return_zero);
+    jccb(Assembler::notZero, reset_for_copy_tail);
     packuswb(tmp2Reg, tmp3Reg);    // only ASCII chars; compress each to 1 byte
     movdqu(Address(dst, len, Address::times_1), tmp2Reg);
     addptr(len, 16);
-    jcc(Assembler::notZero, copy_32_loop);
+    jccb(Assembler::notZero, copy_32_loop);
 
     // compress next vector of 8 chars (if any)
     bind(copy_16);
-    movl(len, result);
-    andl(len, 0xfffffff8);    // vector count (in chars)
-    andl(result, 0x00000007);    // tail count (in chars)
-    testl(len, len);
-    jccb(Assembler::zero, copy_tail);
+    // len = 0
+    testl(result, 0x00000008);     // check if there's a block of 8 chars to compress
+    jccb(Assembler::zero, copy_tail_sse);
 
-    movdl(tmp1Reg, tmp5);
-    pshufd(tmp1Reg, tmp1Reg, 0);   // store Unicode mask in tmp1Reg
     pxor(tmp3Reg, tmp3Reg);
 
     movdqu(tmp2Reg, Address(src, 0));
     ptest(tmp2Reg, tmp1Reg);       // check for Unicode chars in vector
-    jccb(Assembler::notZero, return_zero);
+    jccb(Assembler::notZero, reset_for_copy_tail);
     packuswb(tmp2Reg, tmp3Reg);    // only LATIN1 chars; compress each to 1 byte
     movq(Address(dst, 0), tmp2Reg);
     addptr(src, 16);
     addptr(dst, 8);
+    jmpb(copy_tail_sse);
 
-    bind(copy_tail);
+    bind(reset_for_copy_tail);
+    movl(tmp5, result);
+    andl(tmp5, 0x0000000f);
+    lea(src, Address(src, tmp5, Address::times_2));
+    lea(dst, Address(dst, tmp5, Address::times_1));
+    subptr(len, tmp5);
+    jmpb(copy_chars_loop);
+
+    bind(copy_tail_sse);
     movl(len, result);
+    andl(len, 0x00000007);    // tail count (in chars)
   }
   // compress 1 char per iter
+  bind(copy_tail);
   testl(len, len);
-  jccb(Assembler::zero, return_length);
+  jccb(Assembler::zero, done);
   lea(src, Address(src, len, Address::times_2));
   lea(dst, Address(dst, len, Address::times_1));
   negptr(len);
 
   bind(copy_chars_loop);
-  load_unsigned_short(result, Address(src, len, Address::times_2));
-  testl(result, 0xff00);      // check if Unicode char
-  jccb(Assembler::notZero, return_zero);
-  movb(Address(dst, len, Address::times_1), result);  // ASCII char; compress to 1 byte
+  load_unsigned_short(tmp5, Address(src, len, Address::times_2));
+  testl(tmp5, 0xff00);      // check if Unicode char
+  jccb(Assembler::notZero, reset_sp);
+  movb(Address(dst, len, Address::times_1), tmp5);  // ASCII char; compress to 1 byte
   increment(len);
-  jcc(Assembler::notZero, copy_chars_loop);
+  jccb(Assembler::notZero, copy_chars_loop);
 
-  // if compression succeeded, return length
-  bind(return_length);
-  pop(result);
-  jmpb(done);
-
-  // if compression failed, return 0
-  bind(return_zero);
-  xorl(result, result);
-  addptr(rsp, wordSize);
+  // add len then return (len will be zero if compress succeeded, otherwise negative)
+  bind(reset_sp);
+  addl(result, len);
 
   bind(done);
 }

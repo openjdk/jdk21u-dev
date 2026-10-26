@@ -832,25 +832,30 @@ jlong os::elapsed_frequency() {
 }
 
 
-julong os::available_memory() {
-  return win32::available_memory();
+bool os::available_memory(physical_memory_size_type& value) {
+  return win32::available_memory(value);
 }
 
-julong os::free_memory() {
-  return win32::available_memory();
+bool os::free_memory(physical_memory_size_type& value) {
+  return win32::available_memory(value);
 }
 
-julong os::win32::available_memory() {
+bool os::win32::available_memory(physical_memory_size_type& value) {
   // Use GlobalMemoryStatusEx() because GlobalMemoryStatus() may return incorrect
   // value if total memory is larger than 4GB
   MEMORYSTATUSEX ms;
   ms.dwLength = sizeof(ms);
-  GlobalMemoryStatusEx(&ms);
-
-  return (julong)ms.ullAvailPhys;
+  BOOL res = GlobalMemoryStatusEx(&ms);
+  if (res == TRUE) {
+    value = static_cast<physical_memory_size_type>(ms.ullAvailPhys);
+    return true;
+  } else {
+    assert(false, "GlobalMemoryStatusEx failed in os::win32::available_memory(): %lu", ::GetLastError());
+    return false;
+  }
 }
 
-julong os::physical_memory() {
+physical_memory_size_type os::physical_memory() {
   return win32::physical_memory();
 }
 
@@ -1269,38 +1274,50 @@ void os::shutdown() {
 
 static HANDLE dumpFile = nullptr;
 
-// Check if dump file can be created.
-void os::check_dump_limit(char* buffer, size_t buffsz) {
-  bool status = true;
+// Check if core dump is active and if a core dump file can be created
+void os::check_core_dump_prerequisites(char* buffer, size_t bufferSize, bool check_only) {
   if (!FLAG_IS_DEFAULT(CreateCoredumpOnCrash) && !CreateCoredumpOnCrash) {
-    jio_snprintf(buffer, buffsz, "CreateCoredumpOnCrash is disabled from command line");
-    status = false;
-  }
-
+    jio_snprintf(buffer, bufferSize, "CreateCoredumpOnCrash is disabled from command line");
+    VMError::record_coredump_status(buffer, false);
+  } else {
+    bool success = true;
+    bool warn = true;
 #ifndef ASSERT
-  if (!os::win32::is_windows_server() && FLAG_IS_DEFAULT(CreateCoredumpOnCrash)) {
-    jio_snprintf(buffer, buffsz, "Minidumps are not enabled by default on client versions of Windows");
-    status = false;
-  }
+    if (!os::win32::is_windows_server() && FLAG_IS_DEFAULT(CreateCoredumpOnCrash)) {
+      jio_snprintf(buffer, bufferSize, "Minidumps are not enabled by default on client versions of Windows");
+      success = false;
+      warn = true;
+    }
 #endif
 
-  if (status) {
-    const char* cwd = get_current_directory(nullptr, 0);
-    int pid = current_process_id();
-    if (cwd != nullptr) {
-      jio_snprintf(buffer, buffsz, "%s\\hs_err_pid%u.mdmp", cwd, pid);
-    } else {
-      jio_snprintf(buffer, buffsz, ".\\hs_err_pid%u.mdmp", pid);
+    if (success) {
+      if (!check_only) {
+        const char* cwd = get_current_directory(nullptr, 0);
+        int pid = current_process_id();
+        if (cwd != nullptr) {
+          jio_snprintf(buffer, bufferSize, "%s\\hs_err_pid%u.mdmp", cwd, pid);
+        } else {
+          jio_snprintf(buffer, bufferSize, ".\\hs_err_pid%u.mdmp", pid);
+        }
+
+        if (dumpFile == nullptr &&
+            (dumpFile = CreateFile(buffer, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr))
+            == INVALID_HANDLE_VALUE) {
+          jio_snprintf(buffer, bufferSize, "Failed to create minidump file (0x%x).", GetLastError());
+          success = false;
+        }
+      } else {
+        // For now on Windows, there are no more checks that we can do
+        warn = false;
+      }
     }
 
-    if (dumpFile == nullptr &&
-       (dumpFile = CreateFile(buffer, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr))
-                 == INVALID_HANDLE_VALUE) {
-      jio_snprintf(buffer, buffsz, "Failed to create minidump file (0x%x).", GetLastError());
-      status = false;
+    if (!check_only) {
+      VMError::record_coredump_status(buffer, success);
+    } else if (warn) {
+      warning("CreateCoredumpOnCrash specified, but %s", buffer);
     }
   }
-  VMError::record_coredump_status(buffer, status);
 }
 
 void os::abort(bool dump_core, void* siginfo, const void* context) {
@@ -1632,6 +1649,7 @@ static int _print_module(const char* fname, address base_address,
 // same architecture as Hotspot is running on
 void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   log_info(os)("attempting shared library load of %s", name);
+  Events::log_dll_message(nullptr, "Attempting to load shared library %s", name);
 
   void * result = LoadLibrary(name);
   if (result != nullptr) {
@@ -2284,7 +2302,7 @@ void* os::win32::install_signal_handler(int sig, signal_handler_t handler) {
     sigbreakHandler = handler;
     return oldHandler;
   } else {
-    return ::signal(sig, handler);
+    return CAST_FROM_FN_PTR(void*, ::signal(sig, handler));
   }
 }
 
@@ -2935,22 +2953,23 @@ LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptio
 
 #if defined(USE_VECTORED_EXCEPTION_HANDLING)
 LONG WINAPI topLevelUnhandledExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
-  if (InterceptOSException) goto exit;
-  DWORD exception_code = exceptionInfo->ExceptionRecord->ExceptionCode;
+  if (!InterceptOSException) {
+    DWORD exceptionCode = exceptionInfo->ExceptionRecord->ExceptionCode;
 #if defined(_M_ARM64)
-  address pc = (address)exceptionInfo->ContextRecord->Pc;
+    address pc = (address) exceptionInfo->ContextRecord->Pc;
 #elif defined(_M_AMD64)
-  address pc = (address) exceptionInfo->ContextRecord->Rip;
+    address pc = (address) exceptionInfo->ContextRecord->Rip;
 #else
-  address pc = (address) exceptionInfo->ContextRecord->Eip;
+    address pc = (address) exceptionInfo->ContextRecord->Eip;
 #endif
-  Thread* t = Thread::current_or_null_safe();
+    Thread* thread = Thread::current_or_null_safe();
 
-  if (exception_code != EXCEPTION_BREAKPOINT) {
-    report_error(t, exception_code, pc, exceptionInfo->ExceptionRecord,
-                exceptionInfo->ContextRecord);
+    if (exceptionCode != EXCEPTION_BREAKPOINT) {
+      report_error(thread, exceptionCode, pc, exceptionInfo->ExceptionRecord,
+                  exceptionInfo->ContextRecord);
+    }
   }
-exit:
+
   return previousUnhandledExceptionFilter ? previousUnhandledExceptionFilter(exceptionInfo) : EXCEPTION_CONTINUE_SEARCH;
 }
 #endif
@@ -3085,7 +3104,7 @@ class NUMANodeListHolder {
 
 static size_t _large_page_size = 0;
 
-static bool request_lock_memory_privilege() {
+bool os::win32::request_lock_memory_privilege() {
   HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE,
                                 os::current_process_id());
 
@@ -3269,14 +3288,14 @@ static char* allocate_pages_individually(size_t bytes, char* addr, DWORD flags,
   return p_buf;
 }
 
-static size_t large_page_init_decide_size() {
+size_t os::win32::large_page_init_decide_size() {
   // print a warning if any large page related flag is specified on command line
   bool warn_on_failure = !FLAG_IS_DEFAULT(UseLargePages) ||
                          !FLAG_IS_DEFAULT(LargePageSizeInBytes);
 
-#define WARN(msg) if (warn_on_failure) { warning(msg); }
+#define WARN(...) if (warn_on_failure) { warning(__VA_ARGS__); }
 
-  if (!request_lock_memory_privilege()) {
+  if (!os::win32::request_lock_memory_privilege()) {
     WARN("JVM cannot use large page memory because it does not have enough privilege to lock pages in memory.");
     return 0;
   }
@@ -3287,15 +3306,26 @@ static size_t large_page_init_decide_size() {
     return 0;
   }
 
-#if defined(IA32) || defined(AMD64)
-  if (size > 4*M || LargePageSizeInBytes > 4*M) {
+#if defined(IA32)
+  if (size > 4 * M || LargePageSizeInBytes > 4 * M) {
     WARN("JVM cannot use large pages bigger than 4mb.");
     return 0;
   }
+#elif defined(AMD64)
+  if (!EnableAllLargePageSizesForWindows) {
+    if (size > 4 * M || LargePageSizeInBytes > 4 * M) {
+      WARN("JVM cannot use large pages bigger than 4mb.");
+      return 0;
+    }
+  }
 #endif
 
-  if (LargePageSizeInBytes > 0 && LargePageSizeInBytes % size == 0) {
-    size = LargePageSizeInBytes;
+  if (LargePageSizeInBytes > 0) {
+    if (LargePageSizeInBytes % size == 0) {
+      size = LargePageSizeInBytes;
+    } else {
+      WARN("The specified large page size (%d) is not a multiple of the minimum large page size (%d), defaulting to minimum page size.", LargePageSizeInBytes, size);
+    }
   }
 
 #undef WARN
@@ -3308,12 +3338,23 @@ void os::large_page_init() {
     return;
   }
 
-  _large_page_size = large_page_init_decide_size();
+  _large_page_size = os::win32::large_page_init_decide_size();
   const size_t default_page_size = os::vm_page_size();
   if (_large_page_size > default_page_size) {
+#if !defined(IA32)
+    if (EnableAllLargePageSizesForWindows) {
+      size_t min_size = GetLargePageMinimum();
+
+      // Populate _page_sizes with large page sizes less than or equal to _large_page_size, ensuring each page size is double the size of the previous one.
+      for (size_t page_size = min_size; page_size < _large_page_size; page_size *= 2) {
+        _page_sizes.add(page_size);
+      }
+    }
+#endif
+
     _page_sizes.add(_large_page_size);
   }
-
+  // Set UseLargePages based on whether a large page size was successfully determined
   UseLargePages = _large_page_size != 0;
 }
 
@@ -3575,7 +3616,6 @@ static char* reserve_large_pages_aligned(size_t size, size_t alignment, bool exe
 char* os::pd_reserve_memory_special(size_t bytes, size_t alignment, size_t page_size, char* addr,
                                     bool exec) {
   assert(UseLargePages, "only for large pages");
-  assert(page_size == os::large_page_size(), "Currently only support one large page size on Windows");
   assert(is_aligned(addr, alignment), "Must be");
   assert(is_aligned(addr, page_size), "Must be");
 
@@ -3584,11 +3624,17 @@ char* os::pd_reserve_memory_special(size_t bytes, size_t alignment, size_t page_
     return nullptr;
   }
 
+  // Ensure GetLargePageMinimum() returns a valid positive value
+  size_t large_page_min = GetLargePageMinimum();
+  if (large_page_min <= 0) {
+    return nullptr;
+  }
+
   // The requested alignment can be larger than the page size, for example with G1
   // the alignment is bound to the heap region size. So this reservation needs to
   // ensure that the requested alignment is met. When there is a requested address
   // this solves it self, since it must be properly aligned already.
-  if (addr == nullptr && alignment > page_size) {
+  if (addr == nullptr && alignment > large_page_min) {
     return reserve_large_pages_aligned(bytes, alignment, exec);
   }
 
@@ -4034,25 +4080,25 @@ int os::current_process_id() {
   return (_initial_pid ? _initial_pid : _getpid());
 }
 
-int    os::win32::_processor_type            = 0;
+int                       os::win32::_processor_type            = 0;
 // Processor level is not available on non-NT systems, use vm_version instead
-int    os::win32::_processor_level           = 0;
-julong os::win32::_physical_memory           = 0;
+int                       os::win32::_processor_level           = 0;
+physical_memory_size_type os::win32::_physical_memory           = 0;
 
-bool   os::win32::_is_windows_server         = false;
+bool                      os::win32::_is_windows_server         = false;
 
 // 6573254
 // Currently, the bug is observed across all the supported Windows releases,
 // including the latest one (as of this writing - Windows Server 2012 R2)
-bool   os::win32::_has_exit_bug              = true;
+bool                      os::win32::_has_exit_bug              = true;
 
-int    os::win32::_major_version             = 0;
-int    os::win32::_minor_version             = 0;
-int    os::win32::_build_number              = 0;
-int    os::win32::_build_minor               = 0;
+int                       os::win32::_major_version             = 0;
+int                       os::win32::_minor_version             = 0;
+int                       os::win32::_build_number              = 0;
+int                       os::win32::_build_minor               = 0;
 
-bool   os::win32::_processor_group_warning_displayed = false;
-bool   os::win32::_job_object_processor_group_warning_displayed = false;
+bool                      os::win32::_processor_group_warning_displayed = false;
+bool                      os::win32::_job_object_processor_group_warning_displayed = false;
 
 void getWindowsInstallationType(char* buffer, int bufferSize) {
   HKEY hKey;
@@ -4267,8 +4313,11 @@ void os::win32::initialize_system_info() {
 
   // also returns dwAvailPhys (free physical memory bytes), dwTotalVirtual, dwAvailVirtual,
   // dwMemoryLoad (% of memory in use)
-  GlobalMemoryStatusEx(&ms);
-  _physical_memory = ms.ullTotalPhys;
+  BOOL res = GlobalMemoryStatusEx(&ms);
+  if (res != TRUE) {
+    assert(false, "GlobalMemoryStatusEx failed in os::win32::initialize_system_info(): %lu", ::GetLastError());
+  }
+  _physical_memory = static_cast<physical_memory_size_type>(ms.ullTotalPhys);
 
   if (FLAG_IS_DEFAULT(MaxRAM)) {
     // Adjust MaxRAM according to the maximum virtual address space available.
@@ -6049,6 +6098,10 @@ char* os::build_agent_function_name(const char *sym_name, const char *lib_name,
     strcpy(agent_entry_name, sym_name);
   }
   return agent_entry_name;
+}
+
+void os::print_open_file_descriptors(outputStream* st) {
+  // File descriptor counting not supported on Windows.
 }
 
 /*

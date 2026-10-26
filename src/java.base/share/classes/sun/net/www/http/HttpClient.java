@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1994, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@ package sun.net.www.http;
 
 import java.io.*;
 import java.net.*;
+import java.net.Proxy.Type;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.OptionalInt;
@@ -41,6 +42,8 @@ import sun.net.www.ParseUtil;
 import sun.net.www.protocol.http.AuthCacheImpl;
 import sun.net.www.protocol.http.HttpURLConnection;
 import sun.util.logging.PlatformLogger;
+
+import static sun.net.util.ProxyUtil.copyProxy;
 import static sun.net.www.protocol.http.HttpURLConnection.TunnelState.*;
 import sun.security.action.GetPropertyAction;
 
@@ -181,6 +184,13 @@ public class HttpClient extends NetworkClient {
         return keepAliveTimeout;
     }
 
+    public Proxy getHttpProxy() {
+        if (proxy != null && proxy.type() == Type.HTTP) {
+            return proxy;
+        }
+        return null;
+    }
+
     static String normalizeCBT(String s) {
         if (s == null || s.equals("never")) {
             return "never";
@@ -267,7 +277,7 @@ public class HttpClient extends NetworkClient {
     }
 
     protected HttpClient(URL url, Proxy p, int to) throws IOException {
-        proxy = (p == null) ? Proxy.NO_PROXY : p;
+        proxy = p == null ? Proxy.NO_PROXY : copyProxy(p);
         this.host = url.getHost();
         this.url = url;
         port = url.getPort();
@@ -332,9 +342,7 @@ public class HttpClient extends NetworkClient {
     public static HttpClient New(URL url, Proxy p, int to, boolean useCache,
         HttpURLConnection httpuc) throws IOException
     {
-        if (p == null) {
-            p = Proxy.NO_PROXY;
-        }
+        p = p == null ? Proxy.NO_PROXY : copyProxy(p);
         HttpClient ret = null;
         /* see if one's already around */
         if (useCache) {

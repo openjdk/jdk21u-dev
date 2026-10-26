@@ -28,7 +28,7 @@
  * @summary Check that Ctrl-\ or Ctrl-Break (on Windows) causes HotSpot VM to print a full thread dump.
  * @library /vmTestbase
  *          /test/lib
- * @run driver TestBreakSignalThreadDump
+ * @run main/native TestBreakSignalThreadDump
  */
 
 /*
@@ -36,9 +36,11 @@
  * @bug 8292695
  * @summary Check that Ctrl-\ causes HotSpot VM to print a full thread dump when signal chaining is used.
  * @requires os.family != "windows" & os.family != "aix"
+ * @comment loading of the jsig lib does currently not work well with ASAN lib
+ * @requires !vm.asan
  * @library /vmTestbase
  *          /test/lib
- * @run driver TestBreakSignalThreadDump load_libjsig
+ * @run main/native TestBreakSignalThreadDump load_libjsig
  */
 
 import java.nio.file.Files;

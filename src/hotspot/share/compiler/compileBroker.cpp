@@ -1033,7 +1033,9 @@ void CompileBroker::possibly_add_compiler_threads(JavaThread* THREAD) {
   if (new_c2_count <= old_c2_count && new_c1_count <= old_c1_count) return;
 
   // Now, we do the more expensive operations.
-  julong free_memory = os::free_memory();
+  physical_memory_size_type free_memory = 0;
+  // Return value ignored - defaulting to 0 on failure.
+  (void)os::free_memory(free_memory);
   // If SegmentedCodeCache is off, both values refer to the single heap (with type CodeBlobType::All).
   size_t available_cc_np = CodeCache::unallocated_capacity(CodeBlobType::MethodNonProfiled),
          available_cc_p  = CodeCache::unallocated_capacity(CodeBlobType::MethodProfiled);
@@ -2234,7 +2236,7 @@ void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
         }
       }
     }
-    if (!task->is_success()) {
+    if (!task->is_success() && !JVMCI::in_shutdown()) {
       handle_compile_error(thread, task, nullptr, compilable, failure_reason);
     }
     if (event.should_commit()) {
@@ -2501,6 +2503,11 @@ void CompileBroker::collect_statistics(CompilerThread* thread, elapsedTimer time
   // C1 and C2 counters are counting both successful and unsuccessful compiles
   _t_total_compilation.add(time);
 
+  // Update compilation times. Used by the implementation of JFR CompilerStatistics
+  // and java.lang.management.CompilationMXBean.
+  _perf_total_compilation->inc(time.ticks());
+  _peak_compilation_time = MAX2(time.milliseconds(), _peak_compilation_time);
+
   if (!success) {
     _total_bailout_count++;
     if (UsePerfData) {
@@ -2519,12 +2526,6 @@ void CompileBroker::collect_statistics(CompilerThread* thread, elapsedTimer time
     _t_invalidated_compilation.add(time);
   } else {
     // Compilation succeeded
-
-    // update compilation ticks - used by the implementation of
-    // java.lang.management.CompilationMXBean
-    _perf_total_compilation->inc(time.ticks());
-    _peak_compilation_time = time.milliseconds() > _peak_compilation_time ? time.milliseconds() : _peak_compilation_time;
-
     if (CITime) {
       int bytes_compiled = method->code_size() + task->num_inlined_bytecodes();
       if (is_osr) {

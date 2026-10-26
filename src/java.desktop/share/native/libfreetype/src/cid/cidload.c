@@ -4,7 +4,7 @@
  *
  *   CID-keyed Type1 font loader (body).
  *
- * Copyright (C) 1996-2023 by
+ * Copyright (C) 1996-2026 by
  * David Turner, Robert Wilhelm, and Werner Lemberg.
  *
  * This file is part of the FreeType project, and may only be used,
@@ -388,7 +388,7 @@
     T1_FIELD_CALLBACK( "ExpansionFactor", parse_expansion_factor, 0 )
     T1_FIELD_CALLBACK( "FontName",        parse_font_name, 0 )
 
-    { 0, T1_FIELD_LOCATION_CID_INFO, T1_FIELD_TYPE_NONE, 0, 0, 0, 0, 0, 0 }
+    T1_FIELD_ZERO
   };
 
 
@@ -469,36 +469,23 @@
             T1_Field  keyword = (T1_Field)cid_field_records;
 
 
-            for (;;)
+            while ( keyword->len )
             {
-              FT_Byte*  name;
+              FT_Byte*  name = (FT_Byte*)keyword->ident;
 
 
-              name = (FT_Byte*)keyword->ident;
-              if ( !name )
-                break;
-
-              if ( cur[0] == name[0]                     &&
-                   len == ft_strlen( (const char*)name ) )
+              if ( keyword->len == len              &&
+                   ft_memcmp( cur, name, len ) == 0 )
               {
-                FT_UInt  n;
-
-
-                for ( n = 1; n < len; n++ )
-                  if ( cur[n] != name[n] )
-                    break;
-
-                if ( n >= len )
-                {
-                  /* we found it - run the parsing callback */
-                  parser->root.error = cid_load_keyword( face,
-                                                         loader,
-                                                         keyword );
-                  if ( parser->root.error )
-                    return parser->root.error;
-                  break;
-                }
+                /* we found it - run the parsing callback */
+                parser->root.error = cid_load_keyword( face,
+                                                       loader,
+                                                       keyword );
+                if ( parser->root.error )
+                  return parser->root.error;
+                break;
               }
+
               keyword++;
             }
           }
@@ -525,12 +512,14 @@
     CID_FaceInfo   cid    = &face->cid;
     FT_Memory      memory = face->root.memory;
     FT_Stream      stream = face->cid_stream;
+    PSAux_Service  psaux  = (PSAux_Service)face->psaux;
     FT_Error       error;
+
     FT_UInt        n;
     CID_Subrs      subr;
     FT_UInt        max_offsets = 0;
-    FT_ULong*      offsets = NULL;
-    PSAux_Service  psaux = (PSAux_Service)face->psaux;
+    FT_ULong*      offsets     = NULL;
+    FT_ULong       cum_len     = 0;
 
 
     if ( FT_NEW_ARRAY( face->subrs, cid->num_dicts ) )
@@ -597,6 +586,14 @@
       /* now, compute the size of subrs charstrings, */
       /* allocate, and read them                     */
       data_len = offsets[num_subrs] - offsets[0];
+      cum_len += data_len;
+
+      if ( cum_len / 4 > stream->size )
+      {
+        FT_ERROR(( "cid_read_subrs: excessive overlaps\n" ));
+        error = FT_THROW( Invalid_File_Format );
+        goto Fail;
+      }
 
       if ( FT_QNEW_ARRAY( subr->code, num_subrs + 1 ) ||
            FT_QALLOC( subr->code[0], data_len )       )

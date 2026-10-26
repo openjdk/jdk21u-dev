@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -367,6 +367,7 @@ class ScanHazardPtrPrintMatchingThreadsClosure : public ThreadClosure {
   }
 };
 
+#ifdef ASSERT
 // Closure to validate hazard ptrs.
 //
 class ValidateHazardPtrsClosure : public ThreadClosure {
@@ -387,6 +388,7 @@ class ValidateHazardPtrsClosure : public ThreadClosure {
            p2i(thread));
   }
 };
+#endif
 
 // Closure to determine if the specified JavaThread is found by
 // threads_do().
@@ -725,7 +727,8 @@ JavaThread* ThreadsList::find_JavaThread_from_java_tid(jlong java_tid) const {
         }
       }
     }
-  } else if (!thread->is_exiting()) {
+  } else if (includes(thread) && !thread->is_exiting()) {
+    // The thread is protected by this list and has not yet exited
     return thread;
   }
   return nullptr;
@@ -864,7 +867,7 @@ void ThreadsSMRSupport::add_thread(JavaThread *thread){
 
   ThreadsList *old_list = xchg_java_thread_list(new_list);
   free_list(old_list);
-  if (ThreadIdTable::is_initialized()) {
+  if (ThreadIdTable::is_initialized_acquire()) {
     jlong tid = SharedRuntime::get_java_tid(thread);
     ThreadIdTable::add_thread(tid, thread);
   }
@@ -951,8 +954,10 @@ void ThreadsSMRSupport::free_list(ThreadsList* threads) {
     log_debug(thread, smr)("tid=" UINTX_FORMAT ": ThreadsSMRSupport::free_list: threads=" INTPTR_FORMAT " is not freed.", os::current_thread_id(), p2i(threads));
   }
 
+#ifdef ASSERT
   ValidateHazardPtrsClosure validate_cl;
   threads_do(&validate_cl);
+#endif
 
   delete scan_table;
 }

@@ -734,6 +734,177 @@ class StubGenerator: public StubCodeGenerator {
     return start;
   }
 
+  // Computes the Galois/Counter Mode (GCM) product and reduction.
+  //
+  // This function performs polynomial multiplication of the subkey H with
+  // the current GHASH state using vectorized polynomial multiplication (`vpmsumd`).
+  // The subkey H is divided into lower, middle, and higher halves.
+  // The multiplication results are reduced using `vConstC2` to stay within GF(2^128).
+  // The final computed value is stored back into `vState`.
+  static void computeGCMProduct(MacroAssembler* _masm,
+                                VectorRegister vLowerH, VectorRegister vH, VectorRegister vHigherH,
+                                VectorRegister vConstC2, VectorRegister vZero, VectorRegister vState,
+                                VectorRegister vLowProduct, VectorRegister vMidProduct, VectorRegister vHighProduct,
+                                VectorRegister vReducedLow, VectorRegister vTmp8, VectorRegister vTmp9,
+                                VectorRegister vCombinedResult, VectorRegister vSwappedH) {
+    __ vxor(vH, vH, vState);
+    __ vpmsumd(vLowProduct, vLowerH, vH);                          // L : Lower Half of subkey H
+    __ vpmsumd(vMidProduct, vSwappedH, vH);                        // M : Combined halves of subkey H
+    __ vpmsumd(vHighProduct, vHigherH, vH);                        // H : Higher Half of subkey H
+    __ vpmsumd(vReducedLow, vLowProduct, vConstC2);                // Reduction
+    __ vsldoi(vTmp8, vMidProduct, vZero, 8);                       // mL : Extract the lower 64 bits of M
+    __ vsldoi(vTmp9, vZero, vMidProduct, 8);                       // mH : Extract the higher 64 bits of M
+    __ vxor(vLowProduct, vLowProduct, vTmp8);                      // LL + mL : Partial result for lower half
+    __ vxor(vHighProduct, vHighProduct, vTmp9);                    // HH + mH : Partial result for upper half
+    __ vsldoi(vLowProduct, vLowProduct, vLowProduct, 8);           // Swap
+    __ vxor(vLowProduct, vLowProduct, vReducedLow);
+    __ vsldoi(vCombinedResult, vLowProduct, vLowProduct, 8);       // Swap
+    __ vpmsumd(vLowProduct, vLowProduct, vConstC2);                // Reduction using constant
+    __ vxor(vCombinedResult, vCombinedResult, vHighProduct);       // Combine reduced Low & High products
+    __ vxor(vState, vLowProduct, vCombinedResult);
+  }
+
+  // Generate stub for ghash process blocks.
+  //
+  // Arguments for generated stub:
+  //      state:    R3_ARG1 (long[] state)
+  //      subkeyH:  R4_ARG2 (long[] subH)
+  //      data:     R5_ARG3 (byte[] data)
+  //      blocks:   R6_ARG4 (number of 16-byte blocks to process)
+  //
+  // The polynomials are processed in bit-reflected order for efficiency reasons.
+  // This optimization leverages the structure of the Galois field arithmetic
+  // to minimize the number of bit manipulations required during multiplication.
+  // For an explanation of how this works, refer :
+  // Vinodh Gopal, Erdinc Ozturk, Wajdi Feghali, Jim Guilford, Gil Wolrich,
+  // Martin Dixon. "Optimized Galois-Counter-Mode Implementation on Intel®
+  // Architecture Processor"
+  // http://web.archive.org/web/20130609111954/http://www.intel.com/content/dam/www/public/us/en/documents/white-papers/communications-ia-galois-counter-mode-paper.pdf
+  //
+  //
+  address generate_ghash_processBlocks() {
+    StubCodeMark mark(this, "StubRoutines", "ghash");
+    address start = __ function_entry();
+
+    // Registers for parameters
+    Register state = R3_ARG1;                     // long[] state
+    Register subkeyH = R4_ARG2;                   // long[] subH
+    Register data = R5_ARG3;                      // byte[] data
+    Register blocks = R6_ARG4;
+    Register temp1 = R8;
+    // Vector Registers
+    VectorRegister vZero = VR0;
+    VectorRegister vH = VR1;
+    VectorRegister vLowerH = VR2;
+    VectorRegister vHigherH = VR3;
+    VectorRegister vLowProduct = VR4;
+    VectorRegister vMidProduct = VR5;
+    VectorRegister vHighProduct = VR6;
+    VectorRegister vReducedLow = VR7;
+    VectorRegister vTmp8 = VR8;
+    VectorRegister vTmp9 = VR9;
+    VectorRegister vTmp10 = VR10;
+    VectorRegister vSwappedH = VR11;
+    VectorRegister vTmp12 = VR12;
+    VectorRegister loadOrder = VR13;
+    VectorRegister vHigh = VR14;
+    VectorRegister vLow = VR15;
+    VectorRegister vState = VR16;
+    VectorRegister vPerm = VR17;
+    VectorRegister vCombinedResult = VR18;
+    VectorRegister vConstC2 = VR19;
+
+    __ li(temp1, 0xc2);
+    __ sldi(temp1, temp1, 56);
+    __ vspltisb(vZero, 0);
+    __ mtvrd(vConstC2, temp1);
+    __ lxvd2x(vH->to_vsr(), subkeyH);
+    __ lxvd2x(vState->to_vsr(), state);
+    // Operations to obtain lower and higher bytes of subkey H.
+    __ vspltisb(vReducedLow, 1);
+    __ vspltisb(vTmp10, 7);
+    __ vsldoi(vTmp8, vZero, vReducedLow, 1);            // 0x1
+    __ vor(vTmp8, vConstC2, vTmp8);                     // 0xC2...1
+    __ vsplt(vTmp9, 0, vH);                             // MSB of H
+    __ vsl(vH, vH, vReducedLow);                        // Carry = H<<7
+    __ vsrab(vTmp9, vTmp9, vTmp10);
+    __ vand(vTmp9, vTmp9, vTmp8);                       // Carry
+    __ vxor(vTmp10, vH, vTmp9);
+    __ vsldoi(vConstC2, vZero, vConstC2, 8);
+    __ vsldoi(vSwappedH, vTmp10, vTmp10, 8);            // swap Lower and Higher Halves of subkey H
+    __ vsldoi(vLowerH, vZero, vSwappedH, 8);            // H.L
+    __ vsldoi(vHigherH, vSwappedH, vZero, 8);           // H.H
+#ifdef ASSERT
+    __ cmpwi(CCR0, blocks, 0);                           // Compare 'blocks' (R6_ARG4) with zero
+    __ asm_assert_ne("blocks should NOT be zero");
+#endif
+    __ clrldi(blocks, blocks, 32);
+    __ mtctr(blocks);
+    __ lvsl(loadOrder, temp1);
+#ifdef VM_LITTLE_ENDIAN
+    __ vspltisb(vTmp12, 0xf);
+    __ vxor(loadOrder, loadOrder, vTmp12);
+#define LE_swap_bytes(x) __ vec_perm(x, x, x, loadOrder)
+#else
+#define LE_swap_bytes(x)
+#endif
+
+    // This code performs Karatsuba multiplication in Galois fields to compute the GHASH operation.
+    //
+    // The Karatsuba method breaks the multiplication of two 128-bit numbers into smaller parts,
+    // performing three 128-bit multiplications and combining the results efficiently.
+    //
+    // (C1:C0) = A1*B1, (D1:D0) = A0*B0, (E1:E0) = (A0+A1)(B0+B1)
+    // (A1:A0)(B1:B0) = C1:(C0+C1+D1+E1):(D1+C0+D0+E0):D0
+    //
+    // Inputs:
+    // - vH:       The data vector (state), containing both B0 (lower half) and B1 (higher half).
+    // - vLowerH:  Lower half of the subkey H (A0).
+    // - vHigherH: Higher half of the subkey H (A1).
+    // - vConstC2: Constant used for reduction (for final processing).
+    //
+    // References:
+    // Shay Gueron, Michael E. Kounavis.
+    // "Intel® Carry-Less Multiplication Instruction and its Usage for Computing the GCM Mode"
+    // https://web.archive.org/web/20110609115824/https://software.intel.com/file/24918
+    //
+    Label L_aligned_loop, L_store, L_unaligned_loop, L_initialize_unaligned_loop;
+    __ andi(temp1, data, 15);
+    __ cmpwi(CCR0, temp1, 0);
+    __ bne(CCR0, L_initialize_unaligned_loop);
+
+    __ bind(L_aligned_loop);
+      __ lvx(vH, temp1, data);
+      LE_swap_bytes(vH);
+      computeGCMProduct(_masm, vLowerH, vH, vHigherH, vConstC2, vZero, vState,
+                    vLowProduct, vMidProduct, vHighProduct, vReducedLow, vTmp8, vTmp9, vCombinedResult, vSwappedH);
+      __ addi(data, data, 16);
+    __ bdnz(L_aligned_loop);
+    __ b(L_store);
+
+    __ bind(L_initialize_unaligned_loop);
+    __ li(temp1, 0);
+    __ lvsl(vPerm, temp1, data);
+    __ lvx(vHigh, temp1, data);
+#ifdef VM_LITTLE_ENDIAN
+    __ vspltisb(vTmp12, -1);
+    __ vxor(vPerm, vPerm, vTmp12);
+#endif
+    __ bind(L_unaligned_loop);
+      __ addi(data, data, 16);
+      __ lvx(vLow, temp1, data);
+      __ vec_perm(vH, vHigh, vLow, vPerm);
+      computeGCMProduct(_masm, vLowerH, vH, vHigherH, vConstC2, vZero, vState,
+                    vLowProduct, vMidProduct, vHighProduct, vReducedLow, vTmp8, vTmp9, vCombinedResult, vSwappedH);
+      __ vmr(vHigh, vLow);
+    __ bdnz(L_unaligned_loop);
+
+    __ bind(L_store);
+    __ stxvd2x(vState->to_vsr(), state);
+    __ blr();
+
+    return start;
+  }
   // -XX:+OptimizeFill : convert fill/copy loops into intrinsic
   //
   // The code is implemented(ported from sparc) as we believe it benefits JVM98, however
@@ -2639,10 +2810,8 @@ class StubGenerator: public StubCodeGenerator {
     Register to             = R4_ARG2;  // destination array address
     Register key            = R5_ARG3;  // round key array
 
-    Register keylen         = R8;
-    Register temp           = R9;
-    Register keypos         = R10;
-    Register fifteen        = R12;
+    Register keylen         = R6;
+    Register tmp            = R7;
 
     VectorRegister vRet     = VR0;
 
@@ -2651,68 +2820,27 @@ class StubGenerator: public StubCodeGenerator {
     VectorRegister vKey3    = VR3;
     VectorRegister vKey4    = VR4;
 
-    VectorRegister fromPerm = VR5;
-    VectorRegister keyPerm  = VR6;
-    VectorRegister toPerm   = VR7;
-    VectorRegister fSplt    = VR8;
+    VectorRegister vp       = VR6;  // permute vector for byte vector accesses on P8 LE
 
-    VectorRegister vTmp1    = VR9;
-    VectorRegister vTmp2    = VR10;
-    VectorRegister vTmp3    = VR11;
-    VectorRegister vTmp4    = VR12;
-
-    __ li              (fifteen, 15);
+    __ compute_vp_for_byte_vector_unaligned(vp, /*temp*/ vRet);
 
     // load unaligned from[0-15] to vRet
-    __ lvx             (vRet, from);
-    __ lvx             (vTmp1, fifteen, from);
-    __ lvsl            (fromPerm, from);
-#ifdef VM_LITTLE_ENDIAN
-    __ vspltisb        (fSplt, 0x0f);
-    __ vxor            (fromPerm, fromPerm, fSplt);
-#endif
-    __ vperm           (vRet, vRet, vTmp1, fromPerm);
+    __ load_byte_vector_unaligned(vRet, 0, from, tmp, vp);
+
+    // load the 1st round key to vKey1
+    __ load_word_vector_unaligned(vKey1, 0, key, tmp);
 
     // load keylen (44 or 52 or 60)
     __ lwz             (keylen, arrayOopDesc::length_offset_in_bytes() - arrayOopDesc::base_offset_in_bytes(T_INT), key);
 
-    // to load keys
-    __ load_perm       (keyPerm, key);
-#ifdef VM_LITTLE_ENDIAN
-    __ vspltisb        (vTmp2, -16);
-    __ vrld            (keyPerm, keyPerm, vTmp2);
-    __ vrld            (keyPerm, keyPerm, vTmp2);
-    __ vsldoi          (keyPerm, keyPerm, keyPerm, 8);
-#endif
-
-    // load the 1st round key to vTmp1
-    __ lvx             (vTmp1, key);
-    __ li              (keypos, 16);
-    __ lvx             (vKey1, keypos, key);
-    __ vec_perm        (vTmp1, vKey1, keyPerm);
-
     // 1st round
-    __ vxor            (vRet, vRet, vTmp1);
+    __ vxor            (vRet, vRet, vKey1);
 
-    // load the 2nd round key to vKey1
-    __ li              (keypos, 32);
-    __ lvx             (vKey2, keypos, key);
-    __ vec_perm        (vKey1, vKey2, keyPerm);
-
-    // load the 3rd round key to vKey2
-    __ li              (keypos, 48);
-    __ lvx             (vKey3, keypos, key);
-    __ vec_perm        (vKey2, vKey3, keyPerm);
-
-    // load the 4th round key to vKey3
-    __ li              (keypos, 64);
-    __ lvx             (vKey4, keypos, key);
-    __ vec_perm        (vKey3, vKey4, keyPerm);
-
-    // load the 5th round key to vKey4
-    __ li              (keypos, 80);
-    __ lvx             (vTmp1, keypos, key);
-    __ vec_perm        (vKey4, vTmp1, keyPerm);
+    // load the 2nd - 5th round key to vKey1 - vKey4
+    __ load_word_vector_unaligned(vKey1, 16, key, tmp);
+    __ load_word_vector_unaligned(vKey2, 32, key, tmp);
+    __ load_word_vector_unaligned(vKey3, 48, key, tmp);
+    __ load_word_vector_unaligned(vKey4, 64, key, tmp);
 
     // 2nd - 5th rounds
     __ vcipher         (vRet, vRet, vKey1);
@@ -2720,25 +2848,11 @@ class StubGenerator: public StubCodeGenerator {
     __ vcipher         (vRet, vRet, vKey3);
     __ vcipher         (vRet, vRet, vKey4);
 
-    // load the 6th round key to vKey1
-    __ li              (keypos, 96);
-    __ lvx             (vKey2, keypos, key);
-    __ vec_perm        (vKey1, vTmp1, vKey2, keyPerm);
-
-    // load the 7th round key to vKey2
-    __ li              (keypos, 112);
-    __ lvx             (vKey3, keypos, key);
-    __ vec_perm        (vKey2, vKey3, keyPerm);
-
-    // load the 8th round key to vKey3
-    __ li              (keypos, 128);
-    __ lvx             (vKey4, keypos, key);
-    __ vec_perm        (vKey3, vKey4, keyPerm);
-
-    // load the 9th round key to vKey4
-    __ li              (keypos, 144);
-    __ lvx             (vTmp1, keypos, key);
-    __ vec_perm        (vKey4, vTmp1, keyPerm);
+    // load the 6th - 9th round key to vKey1 - vKey4
+    __ load_word_vector_unaligned(vKey1, 80, key, tmp);
+    __ load_word_vector_unaligned(vKey2, 96, key, tmp);
+    __ load_word_vector_unaligned(vKey3, 112, key, tmp);
+    __ load_word_vector_unaligned(vKey4, 128, key, tmp);
 
     // 6th - 9th rounds
     __ vcipher         (vRet, vRet, vKey1);
@@ -2746,15 +2860,9 @@ class StubGenerator: public StubCodeGenerator {
     __ vcipher         (vRet, vRet, vKey3);
     __ vcipher         (vRet, vRet, vKey4);
 
-    // load the 10th round key to vKey1
-    __ li              (keypos, 160);
-    __ lvx             (vKey2, keypos, key);
-    __ vec_perm        (vKey1, vTmp1, vKey2, keyPerm);
-
-    // load the 11th round key to vKey2
-    __ li              (keypos, 176);
-    __ lvx             (vTmp1, keypos, key);
-    __ vec_perm        (vKey2, vTmp1, keyPerm);
+    // load the 10th - 11th round key to vKey1 - vKey2
+    __ load_word_vector_unaligned(vKey1, 144, key, tmp);
+    __ load_word_vector_unaligned(vKey2, 160, key, tmp);
 
     // if all round keys are loaded, skip next 4 rounds
     __ cmpwi           (CCR0, keylen, 44);
@@ -2764,15 +2872,9 @@ class StubGenerator: public StubCodeGenerator {
     __ vcipher         (vRet, vRet, vKey1);
     __ vcipher         (vRet, vRet, vKey2);
 
-    // load the 12th round key to vKey1
-    __ li              (keypos, 192);
-    __ lvx             (vKey2, keypos, key);
-    __ vec_perm        (vKey1, vTmp1, vKey2, keyPerm);
-
-    // load the 13th round key to vKey2
-    __ li              (keypos, 208);
-    __ lvx             (vTmp1, keypos, key);
-    __ vec_perm        (vKey2, vTmp1, keyPerm);
+    // load the 12th - 13th round key to vKey1 - vKey2
+    __ load_word_vector_unaligned(vKey1, 176, key, tmp);
+    __ load_word_vector_unaligned(vKey2, 192, key, tmp);
 
     // if all round keys are loaded, skip next 2 rounds
     __ cmpwi           (CCR0, keylen, 52);
@@ -2787,15 +2889,9 @@ class StubGenerator: public StubCodeGenerator {
     __ vcipher         (vRet, vRet, vKey1);
     __ vcipher         (vRet, vRet, vKey2);
 
-    // load the 14th round key to vKey1
-    __ li              (keypos, 224);
-    __ lvx             (vKey2, keypos, key);
-    __ vec_perm        (vKey1, vTmp1, vKey2, keyPerm);
-
-    // load the 15th round key to vKey2
-    __ li              (keypos, 240);
-    __ lvx             (vTmp1, keypos, key);
-    __ vec_perm        (vKey2, vTmp1, keyPerm);
+    // load the 14th - 15th round key to vKey1 - vKey2
+    __ load_word_vector_unaligned(vKey1, 208, key, tmp);
+    __ load_word_vector_unaligned(vKey2, 224, key, tmp);
 
     __ bind(L_doLast);
 
@@ -2803,23 +2899,8 @@ class StubGenerator: public StubCodeGenerator {
     __ vcipher         (vRet, vRet, vKey1);
     __ vcipherlast     (vRet, vRet, vKey2);
 
-#ifdef VM_LITTLE_ENDIAN
-    // toPerm = 0x0F0E0D0C0B0A09080706050403020100
-    __ lvsl            (toPerm, keypos); // keypos is a multiple of 16
-    __ vxor            (toPerm, toPerm, fSplt);
-
-    // Swap Bytes
-    __ vperm           (vRet, vRet, vRet, toPerm);
-#endif
-
     // store result (unaligned)
-    // Note: We can't use a read-modify-write sequence which touches additional Bytes.
-    Register lo = temp, hi = fifteen; // Reuse
-    __ vsldoi          (vTmp1, vRet, vRet, 8);
-    __ mfvrd           (hi, vRet);
-    __ mfvrd           (lo, vTmp1);
-    __ std             (hi, 0 LITTLE_ENDIAN_ONLY(+ 8), to);
-    __ std             (lo, 0 BIG_ENDIAN_ONLY(+ 8), to);
+    __ store_byte_vector_unaligned(vRet, 0, to, tmp, vp);
 
     __ blr();
 
@@ -2846,10 +2927,8 @@ class StubGenerator: public StubCodeGenerator {
     Register to             = R4_ARG2;  // destination array address
     Register key            = R5_ARG3;  // round key array
 
-    Register keylen         = R8;
-    Register temp           = R9;
-    Register keypos         = R10;
-    Register fifteen        = R12;
+    Register keylen         = R6;
+    Register tmp            = R7;
 
     VectorRegister vRet     = VR0;
 
@@ -2859,40 +2938,15 @@ class StubGenerator: public StubCodeGenerator {
     VectorRegister vKey4    = VR4;
     VectorRegister vKey5    = VR5;
 
-    VectorRegister fromPerm = VR6;
-    VectorRegister keyPerm  = VR7;
-    VectorRegister toPerm   = VR8;
-    VectorRegister fSplt    = VR9;
+    VectorRegister vp       = VR6;  // permute vector for byte vector accesses on P8 LE
 
-    VectorRegister vTmp1    = VR10;
-    VectorRegister vTmp2    = VR11;
-    VectorRegister vTmp3    = VR12;
-    VectorRegister vTmp4    = VR13;
-
-    __ li              (fifteen, 15);
+    __ compute_vp_for_byte_vector_unaligned(vp, /*temp*/ vRet);
 
     // load unaligned from[0-15] to vRet
-    __ lvx             (vRet, from);
-    __ lvx             (vTmp1, fifteen, from);
-    __ lvsl            (fromPerm, from);
-#ifdef VM_LITTLE_ENDIAN
-    __ vspltisb        (fSplt, 0x0f);
-    __ vxor            (fromPerm, fromPerm, fSplt);
-#endif
-    __ vperm           (vRet, vRet, vTmp1, fromPerm); // align [and byte swap in LE]
+    __ load_byte_vector_unaligned(vRet, 0, from, tmp, vp);
 
     // load keylen (44 or 52 or 60)
     __ lwz             (keylen, arrayOopDesc::length_offset_in_bytes() - arrayOopDesc::base_offset_in_bytes(T_INT), key);
-
-    // to load keys
-    __ load_perm       (keyPerm, key);
-#ifdef VM_LITTLE_ENDIAN
-    __ vxor            (vTmp2, vTmp2, vTmp2);
-    __ vspltisb        (vTmp2, -16);
-    __ vrld            (keyPerm, keyPerm, vTmp2);
-    __ vrld            (keyPerm, keyPerm, vTmp2);
-    __ vsldoi          (keyPerm, keyPerm, keyPerm, 8);
-#endif
 
     __ cmpwi           (CCR0, keylen, 44);
     __ beq             (CCR0, L_do44);
@@ -2905,32 +2959,12 @@ class StubGenerator: public StubCodeGenerator {
     __ bne             (CCR0, L_error);
 #endif
 
-    // load the 15th round key to vKey1
-    __ li              (keypos, 240);
-    __ lvx             (vKey1, keypos, key);
-    __ li              (keypos, 224);
-    __ lvx             (vKey2, keypos, key);
-    __ vec_perm        (vKey1, vKey2, vKey1, keyPerm);
-
-    // load the 14th round key to vKey2
-    __ li              (keypos, 208);
-    __ lvx             (vKey3, keypos, key);
-    __ vec_perm        (vKey2, vKey3, vKey2, keyPerm);
-
-    // load the 13th round key to vKey3
-    __ li              (keypos, 192);
-    __ lvx             (vKey4, keypos, key);
-    __ vec_perm        (vKey3, vKey4, vKey3, keyPerm);
-
-    // load the 12th round key to vKey4
-    __ li              (keypos, 176);
-    __ lvx             (vKey5, keypos, key);
-    __ vec_perm        (vKey4, vKey5, vKey4, keyPerm);
-
-    // load the 11th round key to vKey5
-    __ li              (keypos, 160);
-    __ lvx             (vTmp1, keypos, key);
-    __ vec_perm        (vKey5, vTmp1, vKey5, keyPerm);
+    // load the 15th - 11th round key to vKey1 - vKey5
+    __ load_word_vector_unaligned(vKey1, 224, key, tmp);
+    __ load_word_vector_unaligned(vKey2, 208, key, tmp);
+    __ load_word_vector_unaligned(vKey3, 192, key, tmp);
+    __ load_word_vector_unaligned(vKey4, 176, key, tmp);
+    __ load_word_vector_unaligned(vKey5, 160, key, tmp);
 
     // 1st - 5th rounds
     __ vxor            (vRet, vRet, vKey1);
@@ -2944,22 +2978,10 @@ class StubGenerator: public StubCodeGenerator {
     __ align(32);
     __ bind            (L_do52);
 
-    // load the 13th round key to vKey1
-    __ li              (keypos, 208);
-    __ lvx             (vKey1, keypos, key);
-    __ li              (keypos, 192);
-    __ lvx             (vKey2, keypos, key);
-    __ vec_perm        (vKey1, vKey2, vKey1, keyPerm);
-
-    // load the 12th round key to vKey2
-    __ li              (keypos, 176);
-    __ lvx             (vKey3, keypos, key);
-    __ vec_perm        (vKey2, vKey3, vKey2, keyPerm);
-
-    // load the 11th round key to vKey3
-    __ li              (keypos, 160);
-    __ lvx             (vTmp1, keypos, key);
-    __ vec_perm        (vKey3, vTmp1, vKey3, keyPerm);
+    // load the 13th - 11th round key to vKey1 - vKey3
+    __ load_word_vector_unaligned(vKey1, 192, key, tmp);
+    __ load_word_vector_unaligned(vKey2, 176, key, tmp);
+    __ load_word_vector_unaligned(vKey3, 160, key, tmp);
 
     // 1st - 3rd rounds
     __ vxor            (vRet, vRet, vKey1);
@@ -2972,41 +2994,19 @@ class StubGenerator: public StubCodeGenerator {
     __ bind            (L_do44);
 
     // load the 11th round key to vKey1
-    __ li              (keypos, 176);
-    __ lvx             (vKey1, keypos, key);
-    __ li              (keypos, 160);
-    __ lvx             (vTmp1, keypos, key);
-    __ vec_perm        (vKey1, vTmp1, vKey1, keyPerm);
+    __ load_word_vector_unaligned(vKey1, 160, key, tmp);
 
     // 1st round
     __ vxor            (vRet, vRet, vKey1);
 
     __ bind            (L_doLast);
 
-    // load the 10th round key to vKey1
-    __ li              (keypos, 144);
-    __ lvx             (vKey2, keypos, key);
-    __ vec_perm        (vKey1, vKey2, vTmp1, keyPerm);
-
-    // load the 9th round key to vKey2
-    __ li              (keypos, 128);
-    __ lvx             (vKey3, keypos, key);
-    __ vec_perm        (vKey2, vKey3, vKey2, keyPerm);
-
-    // load the 8th round key to vKey3
-    __ li              (keypos, 112);
-    __ lvx             (vKey4, keypos, key);
-    __ vec_perm        (vKey3, vKey4, vKey3, keyPerm);
-
-    // load the 7th round key to vKey4
-    __ li              (keypos, 96);
-    __ lvx             (vKey5, keypos, key);
-    __ vec_perm        (vKey4, vKey5, vKey4, keyPerm);
-
-    // load the 6th round key to vKey5
-    __ li              (keypos, 80);
-    __ lvx             (vTmp1, keypos, key);
-    __ vec_perm        (vKey5, vTmp1, vKey5, keyPerm);
+    // load the 10th - 6th round key to vKey1 - vKey5
+    __ load_word_vector_unaligned(vKey1, 144, key, tmp);
+    __ load_word_vector_unaligned(vKey2, 128, key, tmp);
+    __ load_word_vector_unaligned(vKey3, 112, key, tmp);
+    __ load_word_vector_unaligned(vKey4, 96, key, tmp);
+    __ load_word_vector_unaligned(vKey5, 80, key, tmp);
 
     // last 10th - 6th rounds
     __ vncipher        (vRet, vRet, vKey1);
@@ -3015,29 +3015,12 @@ class StubGenerator: public StubCodeGenerator {
     __ vncipher        (vRet, vRet, vKey4);
     __ vncipher        (vRet, vRet, vKey5);
 
-    // load the 5th round key to vKey1
-    __ li              (keypos, 64);
-    __ lvx             (vKey2, keypos, key);
-    __ vec_perm        (vKey1, vKey2, vTmp1, keyPerm);
-
-    // load the 4th round key to vKey2
-    __ li              (keypos, 48);
-    __ lvx             (vKey3, keypos, key);
-    __ vec_perm        (vKey2, vKey3, vKey2, keyPerm);
-
-    // load the 3rd round key to vKey3
-    __ li              (keypos, 32);
-    __ lvx             (vKey4, keypos, key);
-    __ vec_perm        (vKey3, vKey4, vKey3, keyPerm);
-
-    // load the 2nd round key to vKey4
-    __ li              (keypos, 16);
-    __ lvx             (vKey5, keypos, key);
-    __ vec_perm        (vKey4, vKey5, vKey4, keyPerm);
-
-    // load the 1st round key to vKey5
-    __ lvx             (vTmp1, key);
-    __ vec_perm        (vKey5, vTmp1, vKey5, keyPerm);
+    // load the 5th - 1st round key to vKey1 - vKey5
+    __ load_word_vector_unaligned(vKey1, 64, key, tmp);
+    __ load_word_vector_unaligned(vKey2, 48, key, tmp);
+    __ load_word_vector_unaligned(vKey3, 32, key, tmp);
+    __ load_word_vector_unaligned(vKey4, 16, key, tmp);
+    __ load_word_vector_unaligned(vKey5, 0, key, tmp);
 
     // last 5th - 1th rounds
     __ vncipher        (vRet, vRet, vKey1);
@@ -3046,23 +3029,8 @@ class StubGenerator: public StubCodeGenerator {
     __ vncipher        (vRet, vRet, vKey4);
     __ vncipherlast    (vRet, vRet, vKey5);
 
-#ifdef VM_LITTLE_ENDIAN
-    // toPerm = 0x0F0E0D0C0B0A09080706050403020100
-    __ lvsl            (toPerm, keypos); // keypos is a multiple of 16
-    __ vxor            (toPerm, toPerm, fSplt);
-
-    // Swap Bytes
-    __ vperm           (vRet, vRet, vRet, toPerm);
-#endif
-
     // store result (unaligned)
-    // Note: We can't use a read-modify-write sequence which touches additional Bytes.
-    Register lo = temp, hi = fifteen; // Reuse
-    __ vsldoi          (vTmp1, vRet, vRet, 8);
-    __ mfvrd           (hi, vRet);
-    __ mfvrd           (lo, vTmp1);
-    __ std             (hi, 0 LITTLE_ENDIAN_ONLY(+ 8), to);
-    __ std             (lo, 0 BIG_ENDIAN_ONLY(+ 8), to);
+    __ store_byte_vector_unaligned(vRet, 0, to, tmp, vp);
 
     __ blr();
 
@@ -3553,6 +3521,24 @@ class StubGenerator: public StubCodeGenerator {
     StubCodeMark mark(this, "StubRoutines", is_crc32c ? "CRC32C_updateBytes" : "CRC32_updateBytes");
     address start = __ function_entry();  // Remember stub start address (is rtn value).
     __ crc32(R3_ARG1, R4_ARG2, R5_ARG3, R2, R6, R7, R8, R9, R10, R11, R12, is_crc32c);
+    __ blr();
+    return start;
+  }
+
+  address generate_floatToFloat16() {
+    __ align(CodeEntryAlignment);
+    StubCodeMark mark(this, "StubRoutines", "floatToFloat16");
+    address start = __ function_entry();
+    __ f2hf(R3_RET, F1_ARG1, F0);
+    __ blr();
+    return start;
+  }
+
+  address generate_float16ToFloat() {
+    __ align(CodeEntryAlignment);
+    StubCodeMark mark(this, "StubRoutines", "float16ToFloat");
+    address start = __ function_entry();
+    __ hf2f(F1_RET, R3_ARG1);
     __ blr();
     return start;
   }
@@ -4755,6 +4741,12 @@ class StubGenerator: public StubCodeGenerator {
       StubRoutines::_crc32c_table_addr = StubRoutines::ppc::generate_crc_constants(REVERSE_CRC32C_POLY);
       StubRoutines::_updateBytesCRC32C = generate_CRC32_updateBytes(true);
     }
+
+    if (VM_Version::supports_float16()) {
+      // For results consistency both intrinsics should be enabled.
+      StubRoutines::_hf2f = generate_float16ToFloat();
+      StubRoutines::_f2hf = generate_floatToFloat16();
+    }
   }
 
   void generate_continuation_stubs() {
@@ -4786,7 +4778,7 @@ class StubGenerator: public StubCodeGenerator {
     StubRoutines::_throw_NullPointerException_at_call_entry= generate_throw_exception("NullPointerException at call throw_exception", CAST_FROM_FN_PTR(address, SharedRuntime::throw_NullPointerException_at_call), false);
 
     // support for verify_oop (must happen after universe_init)
-    StubRoutines::_verify_oop_subroutine_entry             = generate_verify_oop();
+    StubRoutines::_verify_oop_subroutine_entry = generate_verify_oop();
 
     // nmethod entry barriers for concurrent class unloading
     BarrierSetNMethod* bs_nm = BarrierSet::barrier_set()->barrier_set_nmethod();
@@ -4825,6 +4817,10 @@ class StubGenerator: public StubCodeGenerator {
     if (VM_Version::supports_data_cache_line_flush()) {
       StubRoutines::_data_cache_writeback = generate_data_cache_writeback();
       StubRoutines::_data_cache_writeback_sync = generate_data_cache_writeback_sync();
+    }
+
+    if (UseGHASHIntrinsics) {
+      StubRoutines::_ghash_processBlocks = generate_ghash_processBlocks();
     }
 
     if (UseAESIntrinsics) {

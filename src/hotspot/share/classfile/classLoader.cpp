@@ -78,6 +78,9 @@
 #include "utilities/macros.hpp"
 #include "utilities/utf8.hpp"
 
+#include <stdlib.h>
+#include <ctype.h>
+
 // Entry point in java.dll for path canonicalization
 
 typedef int (*canonicalize_fn_t)(const char *orig, char *out, int len);
@@ -133,6 +136,7 @@ PerfCounter*    ClassLoader::_perf_define_appclass_selftime = nullptr;
 PerfCounter*    ClassLoader::_perf_app_classfile_bytes_read = nullptr;
 PerfCounter*    ClassLoader::_perf_sys_classfile_bytes_read = nullptr;
 PerfCounter*    ClassLoader::_unsafe_defineClassCallCounter = nullptr;
+PerfCounter*    ClassLoader::_perf_secondary_hash_time = nullptr;
 
 GrowableArray<ModuleClassPathList*>* ClassLoader::_patch_mod_entries = nullptr;
 GrowableArray<ModuleClassPathList*>* ClassLoader::_exploded_entries = nullptr;
@@ -745,6 +749,7 @@ ClassPathEntry* ClassLoader::create_class_path_entry(JavaThread* current,
 #if INCLUDE_CDS
       ClassLoaderExt::set_has_non_jar_in_classpath();
 #endif
+      log_info(class, path)("failed: %s, err: %s", path, error_msg);
       return nullptr;
     }
     log_info(class, path)("opened: %s", path);
@@ -810,7 +815,8 @@ bool ClassLoader::add_to_app_classpath_entries(JavaThread* current,
   ClassPathEntry* e = _app_classpath_entries;
   if (check_for_duplicates) {
     while (e != nullptr) {
-      if (strcmp(e->name(), entry->name()) == 0) {
+      if (strcmp(e->name(), entry->name()) == 0 &&
+          e->from_class_path_attr() == entry->from_class_path_attr()) {
         // entry already exists
         return false;
       }
@@ -1223,7 +1229,7 @@ InstanceKlass* ClassLoader::load_class(Symbol* name, bool search_append_only, TR
 }
 
 #if INCLUDE_CDS
-char* ClassLoader::skip_uri_protocol(char* source) {
+static const char* skip_uri_protocol(const char* source) {
   if (strncmp(source, "file:", 5) == 0) {
     // file: protocol path could start with file:/ or file:///
     // locate the char after all the forward slashes
@@ -1240,6 +1246,47 @@ char* ClassLoader::skip_uri_protocol(char* source) {
     source += 5;
   }
   return source;
+}
+
+static char decode_percent_encoded(const char *str, size_t& index) {
+  if (str[index] == '%'
+      && isxdigit(str[index + 1])
+      && isxdigit(str[index + 2])) {
+    char hex[3];
+    hex[0] = str[index + 1];
+    hex[1] = str[index + 2];
+    hex[2] = '\0';
+    index += 2;
+    return (char) strtol(hex, NULL, 16);
+  }
+  return str[index];
+}
+
+char* ClassLoader::uri_to_path(const char* uri) {
+  const size_t len = strlen(uri) + 1;
+  char* path = NEW_RESOURCE_ARRAY(char, len);
+
+  uri = skip_uri_protocol(uri);
+
+  if (strncmp(uri, "//", 2) == 0) {
+    // Skip the empty "authority" part
+    uri += 2;
+  }
+
+#ifdef _WINDOWS
+  if (uri[0] == '/') {
+    // Absolute path name on Windows does not begin with a slash
+    uri += 1;
+  }
+#endif
+
+  size_t path_index = 0;
+  for (size_t i = 0; i < strlen(uri); ++i) {
+    char decoded = decode_percent_encoded(uri, i);
+    path[path_index++] = decoded;
+  }
+  path[path_index] = '\0';
+  return path;
 }
 
 // Record the shared classpath index and loader type for classes loaded
@@ -1275,7 +1322,7 @@ void ClassLoader::record_result(JavaThread* current, InstanceKlass* ik,
     // Save the path from the file: protocol or the module name from the jrt: protocol
     // if no protocol prefix is found, path is the same as stream->source(). This path
     // must be valid since the class has been successfully parsed.
-    char* path = skip_uri_protocol(src);
+    const char* path = ClassLoader::uri_to_path(src);
     assert(path != nullptr, "sanity");
     for (int i = 0; i < FileMapInfo::get_number_of_shared_paths(); i++) {
       SharedClassPathEntry* ent = FileMapInfo::shared_path(i);
@@ -1385,6 +1432,7 @@ void ClassLoader::initialize(TRAPS) {
     NEWPERFBYTECOUNTER(_perf_sys_classfile_bytes_read, SUN_CLS, "sysClassBytes");
 
     NEWPERFEVENTCOUNTER(_unsafe_defineClassCallCounter, SUN_CLS, "unsafeDefineClassCalls");
+    NEWPERFTICKCOUNTER(_perf_secondary_hash_time, SUN_CLS, "secondarySuperHashTime");
   }
 
   // lookup java library entry points
@@ -1416,6 +1464,10 @@ char* ClassLoader::lookup_vm_options() {
   jio_snprintf(modules_path, JVM_MAXPATHLEN, "%s%slib%smodules", Arguments::get_java_home(), fileSep, fileSep);
   JImage_file =(*JImageOpen)(modules_path, &error);
   if (JImage_file == nullptr) {
+    if (Arguments::has_jimage()) {
+      // The modules file exists but is unreadable or corrupt
+      vm_exit_during_initialization(err_msg("Unable to load %s", modules_path));
+    }
     return nullptr;
   }
 

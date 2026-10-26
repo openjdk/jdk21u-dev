@@ -110,6 +110,9 @@
 #if INCLUDE_MANAGEMENT
 #include "services/finalizerService.hpp"
 #endif
+#ifdef LINUX
+#include "osContainer_linux.hpp"
+#endif
 
 #include <errno.h>
 
@@ -487,6 +490,15 @@ JVM_END
 JVM_LEAF(jboolean, JVM_IsUseContainerSupport(void))
 #ifdef LINUX
   if (UseContainerSupport) {
+    return JNI_TRUE;
+  }
+#endif
+  return JNI_FALSE;
+JVM_END
+
+JVM_LEAF(jboolean, JVM_IsContainerized(void))
+#ifdef LINUX
+  if (OSContainer::is_containerized()) {
     return JNI_TRUE;
   }
 #endif
@@ -1775,7 +1787,7 @@ JVM_ENTRY(jobjectArray, JVM_GetClassDeclaredFields(JNIEnv *env, jclass ofClass, 
   fieldDescriptor fd;
   for (JavaFieldStream fs(k); !fs.done(); fs.next()) {
     if (!publicOnly || fs.access_flags().is_public()) {
-      fd.reinitialize(k, fs.index());
+      fd.reinitialize(k, fs.to_FieldInfo());
       oop field = Reflection::new_field(&fd, CHECK_NULL);
       result->obj_at_put(out_idx, field);
       ++out_idx;
@@ -2955,9 +2967,10 @@ JVM_ENTRY(void, JVM_StartThread(JNIEnv* env, jobject jthread))
   // We must release the Threads_lock before we can post a jvmti event
   // in Thread::start.
   {
+    MutexLocker throttle_ml(UseThreadsLockThrottleLock ? ThreadsLockThrottle_lock : nullptr);
     // Ensure that the C++ Thread and OSThread structures aren't freed before
     // we operate.
-    MutexLocker mu(Threads_lock);
+    MutexLocker ml(Threads_lock);
 
     // Since JDK 5 the java.lang.Thread threadStatus is used to prevent
     // re-starting an already started thread, so we should usually find
@@ -3244,9 +3257,17 @@ JVM_ENTRY(void, JVM_WaitForReferencePendingList(JNIEnv* env))
   }
 JVM_END
 
+JVM_ENTRY(jobject, JVM_ReferenceGet(JNIEnv* env, jobject ref))
+  oop ref_oop = JNIHandles::resolve_non_null(ref);
+  // PhantomReference has its own implementation of get().
+  assert(!java_lang_ref_Reference::is_phantom(ref_oop), "precondition");
+  oop referent = java_lang_ref_Reference::weak_referent(ref_oop);
+  return JNIHandles::make_local(THREAD, referent);
+JVM_END
+
 JVM_ENTRY(jboolean, JVM_ReferenceRefersTo(JNIEnv* env, jobject ref, jobject o))
   oop ref_oop = JNIHandles::resolve_non_null(ref);
-  // PhantomReference has it's own implementation of refersTo().
+  // PhantomReference has its own implementation of refersTo().
   // See: JVM_PhantomReferenceRefersTo
   assert(!java_lang_ref_Reference::is_phantom(ref_oop), "precondition");
   oop referent = java_lang_ref_Reference::weak_referent_no_keepalive(ref_oop);

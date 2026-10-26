@@ -314,7 +314,6 @@ static bool matches_property_suffix(const char* option, const char* property, si
 // any of the reserved module properties.
 // property should be passed without the leading "-D".
 bool Arguments::is_internal_module_property(const char* property) {
-  assert((strncmp(property, "-D", 2) != 0), "Unexpected leading -D");
   if  (strncmp(property, MODULE_PROPERTY_PREFIX, MODULE_PROPERTY_PREFIX_LEN) == 0) {
     const char* property_suffix = property + MODULE_PROPERTY_PREFIX_LEN;
     if (matches_property_suffix(property_suffix, ADDEXPORTS, ADDEXPORTS_LEN) ||
@@ -1553,13 +1552,13 @@ void Arguments::set_heap_size() {
                            !FLAG_IS_DEFAULT(MaxRAM));
   if (override_coop_limit) {
     if (FLAG_IS_DEFAULT(MaxRAM)) {
-      phys_mem = os::physical_memory();
+      phys_mem = static_cast<julong>(os::physical_memory());
       FLAG_SET_ERGO(MaxRAM, (uint64_t)phys_mem);
     } else {
       phys_mem = (julong)MaxRAM;
     }
   } else {
-    phys_mem = FLAG_IS_DEFAULT(MaxRAM) ? MIN2(os::physical_memory(), (julong)MaxRAM)
+    phys_mem = FLAG_IS_DEFAULT(MaxRAM) ? MIN2(static_cast<julong>(os::physical_memory()), (julong)MaxRAM)
                                        : (julong)MaxRAM;
   }
 
@@ -1695,7 +1694,8 @@ jint Arguments::set_aggressive_heap_flags() {
   // Thus, we need to make sure we're using a julong for intermediate
   // calculations.
   julong initHeapSize;
-  julong total_memory = os::physical_memory();
+  physical_memory_size_type phys_mem = os::physical_memory();
+  julong total_memory = static_cast<julong>(phys_mem);
 
   if (total_memory < (julong) 256 * M) {
     jio_fprintf(defaultStream::error_stream(),
@@ -3993,6 +3993,17 @@ jint Arguments::apply_ergo() {
   jint code = set_aggressive_opts_flags();
   if (code != JNI_OK) {
     return code;
+  }
+
+  if (FLAG_IS_DEFAULT(UseSecondarySupersTable)) {
+    FLAG_SET_DEFAULT(UseSecondarySupersTable, VM_Version::supports_secondary_supers_table());
+  } else if (UseSecondarySupersTable && !VM_Version::supports_secondary_supers_table()) {
+    warning("UseSecondarySupersTable is not supported");
+    FLAG_SET_DEFAULT(UseSecondarySupersTable, false);
+  }
+  if (!UseSecondarySupersTable) {
+    FLAG_SET_DEFAULT(StressSecondarySupers, false);
+    FLAG_SET_DEFAULT(VerifySecondarySupers, false);
   }
 
 #ifdef ZERO

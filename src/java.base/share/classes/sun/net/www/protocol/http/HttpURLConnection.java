@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1995, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -84,6 +84,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static sun.net.util.ProxyUtil.copyProxy;
 import static sun.net.www.protocol.http.AuthScheme.BASIC;
 import static sun.net.www.protocol.http.AuthScheme.DIGEST;
 import static sun.net.www.protocol.http.AuthScheme.NTLM;
@@ -391,6 +392,9 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
     private boolean tryTransparentNTLMProxy = true;
     private boolean useProxyResponseCode = false;
 
+    // used when redirecting to compare current and previous proxies
+    private Proxy lastProxy;
+
     /* Used by Windows specific code */
     private Object authObj;
 
@@ -416,6 +420,10 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
     /* Remembered Exception, we will throw it again if somebody
        calls getInputStream after disconnect */
     private Exception rememberedException = null;
+
+    /* Remembered Exception, we will throw it again if somebody
+       calls getOutputStream after disconnect  or error */
+    private Exception rememberedExceptionOut = null;
 
     /* If we decide we want to reuse a client, we put it here */
     private HttpClient reuseClient = null;
@@ -601,8 +609,8 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                         throws ProtocolException {
         lock();
         try {
-            if (connecting) {
-                throw new IllegalStateException("connect in progress");
+            if (connected || connecting) {
+                throw new IllegalStateException("Already connected");
             }
             super.setRequestMethod(method);
         } finally {
@@ -931,7 +939,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
         responses = new MessageHeader(maxHeaderSize);
         userHeaders = new MessageHeader();
         this.handler = handler;
-        instProxy = p;
+        instProxy = copyProxy(p);
         if (instProxy instanceof sun.net.ApplicationProxy) {
             /* Application set Proxies should not have access to cookies
              * in a secure environment unless explicitly allowed. */
@@ -1246,7 +1254,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                     final Iterator<Proxy> it = proxies.iterator();
                     Proxy p;
                     while (it.hasNext()) {
-                        p = it.next();
+                        p = copyProxy(it.next());
                         try {
                             if (!failedOnce) {
                                 http = getNewHttpClient(url, p, connectTimeout);
@@ -1444,6 +1452,14 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                                + " if doOutput=false - call setDoOutput(true)");
             }
 
+            if (rememberedExceptionOut != null) {
+                if (rememberedExceptionOut instanceof RuntimeException) {
+                    throw new RuntimeException(rememberedExceptionOut);
+                } else {
+                    throw getChainedException((IOException) rememberedExceptionOut);
+                }
+            }
+
             if (method.equals("GET")) {
                 method = "POST"; // Backward compatibility
             }
@@ -1503,9 +1519,11 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
             int i = responseCode;
             disconnectInternal();
             responseCode = i;
+            rememberedExceptionOut = e;
             throw e;
         } catch (RuntimeException | IOException e) {
             disconnectInternal();
+            rememberedExceptionOut = e;
             throw e;
         }
     }
@@ -1683,7 +1701,6 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
         // If the user has set either of these headers then do not remove them
         isUserServerAuth = requests.getKey("Authorization") != -1;
         isUserProxyAuth = requests.getKey("Proxy-Authorization") != -1;
-
         try {
             do {
                 if (!checkReuseConnection())
@@ -1693,6 +1710,14 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                     return cachedInputStream;
                 }
 
+                // we may need to remove proxy-authorization
+                Proxy p = http.getHttpProxy();
+                // if we're not using a proxy or if the proxy to be used is not
+                // the same as the originally set one, then remove it
+                if (p == null || (lastProxy != null && !lastProxy.equals(p))) {
+                    requests.remove("Proxy-Authorization");
+                    lastProxy = null;
+                }
                 /* REMIND: This exists to fix the HttpsURLConnection subclass.
                  * Hotjava needs to run on JDK1.1FCS.  Do proper fix once a
                  * proper solution for SSL can be found.
@@ -1723,7 +1748,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                     disconnectInternal();
                     throw new IOException ("Invalid Http response");
                 }
-                if (respCode == HTTP_PROXY_AUTH) {
+                if (respCode == HTTP_PROXY_AUTH && tunnelState() != TunnelState.TUNNELING) {
                     if (streaming()) {
                         disconnectInternal();
                         throw new HttpRetryException (
@@ -1965,11 +1990,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                 if (method.equals("HEAD") || cl == 0 ||
                     respCode == HTTP_NOT_MODIFIED ||
                     respCode == HTTP_NO_CONTENT) {
-
-                    http.finished();
-                    http = null;
-                    inputStream = new EmptyInputStream();
-                    connected = false;
+                    noResponseBody();
                 }
 
                 if (respCode == 200 || respCode == 203 || respCode == 206 ||
@@ -2049,6 +2070,24 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                 serverAuthentication.disposeContext();
             }
         }
+    }
+
+    /**
+     * This method is called when a response with no response
+     * body is received, and arrange for the http client to
+     * be returned to the pool (or released) immediately when
+     * possible.
+     * @apiNote Used by {@link sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection}
+     * to preserve the TLS information after receiving an empty body.
+     * @implSpec
+     * Subclasses that override this method should call the super class
+     * implementation.
+     */
+    protected void noResponseBody() {
+        http.finished();
+        http = null;
+        inputStream = new EmptyInputStream();
+        connected = false;
     }
 
     /*
@@ -2269,6 +2308,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
 
                 if (respCode == HTTP_OK) {
                     setTunnelState(TunnelState.TUNNELING);
+                    savedRequests.remove("Proxy-Authorization");
                     break;
                 }
                 // we don't know how to deal with other response code
@@ -2844,6 +2884,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
     {
         assert isLockHeldByCurrentThread();
 
+        lastProxy = http.getHttpProxy();
         disconnectInternal();
         if (streaming()) {
             throw new HttpRetryException (RETRY_MSG3, stat, loc);

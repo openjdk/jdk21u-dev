@@ -207,6 +207,18 @@ class StubRoutines: AllStatic {
   static address _galoisCounterMode_AESCrypt;
   static address _ghash_processBlocks;
   static address _chacha20Block;
+  static address _kyberNtt;
+  static address _kyberInverseNtt;
+  static address _kyberNttMult;
+  static address _kyberAddPoly_2;
+  static address _kyberAddPoly_3;
+  static address _kyber12To16;
+  static address _kyberBarrettReduce;
+  static address _dilithiumAlmostNtt;
+  static address _dilithiumAlmostInverseNtt;
+  static address _dilithiumNttMult;
+  static address _dilithiumMontMulByConstant;
+  static address _dilithiumDecomposePoly;
   static address _base64_encodeBlock;
   static address _base64_decodeBlock;
   static address _poly1305_processBlocks;
@@ -220,6 +232,7 @@ class StubRoutines: AllStatic {
   static address _sha512_implCompress;
   static address _sha512_implCompressMB;
   static address _sha3_implCompress;
+  static address _double_keccak;
   static address _sha3_implCompressMB;
 
   static address _updateBytesCRC32;
@@ -249,6 +262,7 @@ class StubRoutines: AllStatic {
   static address _dlibm_reduce_pi04l;
   static address _dlibm_tan_cot_huge;
   static address _dtan;
+  static address _fmod;
 
   static address _f2hf;
   static address _hf2f;
@@ -265,6 +279,9 @@ class StubRoutines: AllStatic {
   // Vector Math Routines
   static address _vector_f_math[VectorSupport::NUM_VEC_SIZES][VectorSupport::NUM_SVML_OP];
   static address _vector_d_math[VectorSupport::NUM_VEC_SIZES][VectorSupport::NUM_SVML_OP];
+
+  static address _lookup_secondary_supers_table_stubs[];
+  static address _lookup_secondary_supers_table_slow_path_stub;
 
  public:
   // Initialization/Testing
@@ -392,6 +409,18 @@ class StubRoutines: AllStatic {
   static address counterMode_AESCrypt()  { return _counterMode_AESCrypt; }
   static address ghash_processBlocks()   { return _ghash_processBlocks; }
   static address chacha20Block()         { return _chacha20Block; }
+  static address kyberNtt()                   { return _kyberNtt; }
+  static address kyberInverseNtt()            { return _kyberInverseNtt; }
+  static address kyberNttMult()               { return _kyberNttMult; }
+  static address kyberAddPoly_2()             { return _kyberAddPoly_2; }
+  static address kyberAddPoly_3()             { return _kyberAddPoly_3; }
+  static address kyber12To16()                { return _kyber12To16; }
+  static address kyberBarrettReduce()         { return _kyberBarrettReduce; }
+  static address dilithiumAlmostNtt()         { return _dilithiumAlmostNtt; }
+  static address dilithiumAlmostInverseNtt()  { return _dilithiumAlmostInverseNtt; }
+  static address dilithiumNttMult()           { return _dilithiumNttMult; }
+  static address dilithiumMontMulByConstant() { return _dilithiumMontMulByConstant; }
+  static address dilithiumDecomposePoly()     { return _dilithiumDecomposePoly; }
   static address base64_encodeBlock()    { return _base64_encodeBlock; }
   static address base64_decodeBlock()    { return _base64_decodeBlock; }
   static address md5_implCompress()      { return _md5_implCompress; }
@@ -403,6 +432,7 @@ class StubRoutines: AllStatic {
   static address sha512_implCompress()   { return _sha512_implCompress; }
   static address sha512_implCompressMB() { return _sha512_implCompressMB; }
   static address sha3_implCompress()     { return _sha3_implCompress; }
+  static address double_keccak()         { return _double_keccak; }
   static address sha3_implCompressMB()   { return _sha3_implCompressMB; }
 
   static address updateBytesCRC32()    { return _updateBytesCRC32; }
@@ -427,6 +457,7 @@ class StubRoutines: AllStatic {
   static address dlog()                { return _dlog; }
   static address dlog10()              { return _dlog10; }
   static address dpow()                { return _dpow; }
+  static address fmod()                { return _fmod; }
   static address dsin()                { return _dsin; }
   static address dcos()                { return _dcos; }
   static address dlibm_reduce_pi04l()  { return _dlibm_reduce_pi04l; }
@@ -458,6 +489,17 @@ class StubRoutines: AllStatic {
 
   JFR_ONLY(static address jfr_write_checkpoint() { return _jfr_write_checkpoint; })
   JFR_ONLY(static address jfr_return_lease() { return _jfr_return_lease; })
+
+  static address lookup_secondary_supers_table_stub(u1 slot) {
+    assert(slot < Klass::SECONDARY_SUPERS_TABLE_SIZE, "out of bounds");
+    assert(_lookup_secondary_supers_table_stubs[slot] != nullptr, "not implemented");
+    return _lookup_secondary_supers_table_stubs[slot];
+  }
+
+  static address lookup_secondary_supers_table_slow_path_stub() {
+    assert(_lookup_secondary_supers_table_slow_path_stub != nullptr, "not implemented");
+    return _lookup_secondary_supers_table_slow_path_stub;
+  }
 
   static address select_fill_function(BasicType t, bool aligned, const char* &name);
 

@@ -514,12 +514,17 @@ class Assembler : public AbstractAssembler {
     LFSU_OPCODE    = (49u << OPCODE_SHIFT |   00u << 1),
     LFSX_OPCODE    = (31u << OPCODE_SHIFT |  535u << 1),
 
+    LFIWAX_OPCODE  = (31u << OPCODE_SHIFT |  855u << 1),
+    LFIWZX_OPCODE  = (31u << OPCODE_SHIFT |  887u << 1),
+
     STFD_OPCODE    = (54u << OPCODE_SHIFT |   00u << 1),
     STFDU_OPCODE   = (55u << OPCODE_SHIFT |   00u << 1),
     STFDX_OPCODE   = (31u << OPCODE_SHIFT |  727u << 1),
     STFS_OPCODE    = (52u << OPCODE_SHIFT |   00u << 1),
     STFSU_OPCODE   = (53u << OPCODE_SHIFT |   00u << 1),
     STFSX_OPCODE   = (31u << OPCODE_SHIFT |  663u << 1),
+
+    STFIWX_OPCODE  = (31u << OPCODE_SHIFT |  983u << 1),
 
     FSQRT_OPCODE   = (63u << OPCODE_SHIFT |   22u << 1),            // A-FORM
     FSQRTS_OPCODE  = (59u << OPCODE_SHIFT |   22u << 1),            // A-FORM
@@ -546,6 +551,10 @@ class Assembler : public AbstractAssembler {
     STXVL_OPCODE   = (31u << OPCODE_SHIFT |  397u << 1),
     LXVD2X_OPCODE  = (31u << OPCODE_SHIFT |  844u << 1),
     STXVD2X_OPCODE = (31u << OPCODE_SHIFT |  972u << 1),
+    LXVW4X_OPCODE  = (31u << OPCODE_SHIFT |  780u << 1),
+    STXVW4X_OPCODE = (31u << OPCODE_SHIFT |  908u << 1),
+    LXVB16X_OPCODE = (31u << OPCODE_SHIFT |  876u << 1),
+    STXVB16X_OPCODE= (31u << OPCODE_SHIFT | 1004u << 1),
     MTVSRD_OPCODE  = (31u << OPCODE_SHIFT |  179u << 1),
     MTVSRDD_OPCODE = (31u << OPCODE_SHIFT |  435u << 1),
     MTVSRWZ_OPCODE = (31u << OPCODE_SHIFT |  243u << 1),
@@ -563,6 +572,10 @@ class Assembler : public AbstractAssembler {
     XVDIVSP_OPCODE = (60u << OPCODE_SHIFT |   88u << 3),
     XXBRD_OPCODE   = (60u << OPCODE_SHIFT |  475u << 2 | 23u << 16), // XX2-FORM
     XXBRW_OPCODE   = (60u << OPCODE_SHIFT |  475u << 2 | 15u << 16), // XX2-FORM
+    XVCVHPSP_OPCODE= (60u << OPCODE_SHIFT |  475u << 2 | 24u << 16), // XX2-FORM
+    XVCVSPHP_OPCODE= (60u << OPCODE_SHIFT |  475u << 2 | 25u << 16), // XX2-FORM
+    XSCVHPDP_OPCODE= (60u << OPCODE_SHIFT |  347u << 2 | 16u << 16), // XX2-FORM
+    XSCVDPHP_OPCODE= (60u << OPCODE_SHIFT |  347u << 2 | 17u << 16), // XX2-FORM
     XXPERM_OPCODE  = (60u << OPCODE_SHIFT |   26u << 3),
     XXSEL_OPCODE   = (60u << OPCODE_SHIFT |    3u << 4),
     XXSPLTIB_OPCODE= (60u << OPCODE_SHIFT |  360u << 1),
@@ -2119,6 +2132,9 @@ class Assembler : public AbstractAssembler {
   inline void lfdu( FloatRegister d, int si16,   Register a);
   inline void lfdx( FloatRegister d, Register a, Register b);
 
+  inline void lfiwax(FloatRegister d, Register a, Register b);
+  inline void lfiwzx(FloatRegister d, Register a, Register b);
+
   // PPC 1, section 4.6.3 Floating-Point Store Instructions
   inline void stfs(  FloatRegister s, int si16,   Register a);
   inline void stfsu( FloatRegister s, int si16,   Register a);
@@ -2126,6 +2142,8 @@ class Assembler : public AbstractAssembler {
   inline void stfd(  FloatRegister s, int si16,   Register a);
   inline void stfdu( FloatRegister s, int si16,   Register a);
   inline void stfdx( FloatRegister s, Register a, Register b);
+
+  inline void stfiwx(FloatRegister s, Register a, Register b);
 
   // PPC 1, section 4.6.4 Floating-Point Move Instructions
   inline void fmr(  FloatRegister d, FloatRegister b);
@@ -2363,14 +2381,27 @@ class Assembler : public AbstractAssembler {
   inline void mfvscr(   VectorRegister d);
 
   // Vector-Scalar (VSX) instructions.
-  inline void lxv(      VectorSRegister d, int si16, Register a);
-  inline void stxv(     VectorSRegister d, int si16, Register a);
-  inline void lxvl(     VectorSRegister d, Register a, Register b);
-  inline void stxvl(    VectorSRegister d, Register a, Register b);
+  // Power8
   inline void lxvd2x(   VectorSRegister d, Register a);
   inline void lxvd2x(   VectorSRegister d, Register a, Register b);
   inline void stxvd2x(  VectorSRegister d, Register a);
   inline void stxvd2x(  VectorSRegister d, Register a, Register b);
+  inline void lxvw4x(   VectorSRegister d, Register a);
+  inline void lxvw4x(   VectorSRegister d, Register a, Register b);
+  inline void stxvw4x(  VectorSRegister d, Register a);
+  inline void stxvw4x(  VectorSRegister d, Register a, Register b);
+
+  // Power9
+  inline void lxvb16x(  VectorSRegister d, Register a);
+  inline void lxvb16x(  VectorSRegister d, Register a, Register b);
+  inline void stxvb16x( VectorSRegister d, Register a);
+  inline void stxvb16x( VectorSRegister d, Register a, Register b);
+
+  inline void lxv(      VectorSRegister d, int si16, Register a);
+  inline void stxv(     VectorSRegister d, int si16, Register a);
+  inline void lxvl(     VectorSRegister d, Register a, Register b);
+  inline void stxvl(    VectorSRegister d, Register a, Register b);
+
   inline void mtvrwz(   VectorRegister  d, Register a);
   inline void mfvrwz(   Register        a, VectorRegister d);
   inline void mtvrd(    VectorRegister  d, Register a);
@@ -2391,6 +2422,10 @@ class Assembler : public AbstractAssembler {
   inline void xxleqv(   VectorSRegister d, VectorSRegister a, VectorSRegister b);
   inline void xxbrd(    VectorSRegister d, VectorSRegister b);
   inline void xxbrw(    VectorSRegister d, VectorSRegister b);
+  inline void xvcvhpsp( VectorSRegister d, VectorSRegister b);
+  inline void xvcvsphp( VectorSRegister d, VectorSRegister b);
+  inline void xscvhpdp( VectorSRegister d, VectorSRegister b);
+  inline void xscvdphp( VectorSRegister d, VectorSRegister b);
   inline void xxland(   VectorSRegister d, VectorSRegister a, VectorSRegister b);
   inline void xxsel(    VectorSRegister d, VectorSRegister a, VectorSRegister b, VectorSRegister c);
   inline void xxspltib( VectorSRegister d, int ui8);
@@ -2536,10 +2571,13 @@ class Assembler : public AbstractAssembler {
   inline void lfsx(  FloatRegister d, Register b);
   inline void lfd(   FloatRegister d, int si16);
   inline void lfdx(  FloatRegister d, Register b);
+  inline void lfiwax(FloatRegister d, Register b);
+  inline void lfiwzx(FloatRegister d, Register b);
   inline void stfs(  FloatRegister s, int si16);
   inline void stfsx( FloatRegister s, Register b);
   inline void stfd(  FloatRegister s, int si16);
   inline void stfdx( FloatRegister s, Register b);
+  inline void stfiwx(FloatRegister s, Register b);
   inline void lvebx( VectorRegister d, Register s2);
   inline void lvehx( VectorRegister d, Register s2);
   inline void lvewx( VectorRegister d, Register s2);
@@ -2557,6 +2595,15 @@ class Assembler : public AbstractAssembler {
   inline void load_perm(VectorRegister perm, Register addr);
   inline void vec_perm(VectorRegister first_dest, VectorRegister second, VectorRegister perm);
   inline void vec_perm(VectorRegister dest, VectorRegister first, VectorRegister second, VectorRegister perm);
+
+  // Load/Store unaligned vectors with offs (multiple of 16). Byte versions require vp for Power8 LE.
+  inline void load_byte_vector_unaligned(VectorRegister dest, int offs, Register base, Register tmp,
+                                         VectorRegister vp); // vp should be pre-computed (see generator below)
+  inline void store_byte_vector_unaligned(VectorRegister val, int offs, Register base, Register tmp,
+                                          VectorRegister vp, VectorRegister vtmp = vnoreg); // clobbers val if no vtmp provided
+  inline void compute_vp_for_byte_vector_unaligned(VectorRegister dest, VectorRegister vtmp);
+  inline void load_word_vector_unaligned(VectorRegister dest, int offs, Register base, Register tmp);
+  inline void store_word_vector_unaligned(VectorRegister val, int offs, Register base, Register tmp);
 
   // RegisterOrConstant versions.
   // These emitters choose between the versions using two registers and

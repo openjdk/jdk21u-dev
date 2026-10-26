@@ -402,8 +402,20 @@ CodeEmitInfo* LIRGenerator::state_for(Instruction* x, ValueStack* state, bool ig
 
   ValueStack* s = state;
   for_each_state(s) {
-    if (s->kind() == ValueStack::EmptyExceptionState) {
-      assert(s->stack_size() == 0 && s->locals_size() == 0 && (s->locks_size() == 0 || s->locks_size() == 1), "state must be empty");
+    if (s->kind() == ValueStack::EmptyExceptionState ||
+        s->kind() == ValueStack::CallerEmptyExceptionState)
+    {
+#ifdef ASSERT
+      int index;
+      Value value;
+      for_each_stack_value(s, index, value) {
+        fatal("state must be empty");
+      }
+      for_each_local_value(s, index, value) {
+        fatal("state must be empty");
+      }
+#endif
+      assert(s->locks_size() == 0 || s->locks_size() == 1, "state must be empty");
       continue;
     }
 
@@ -1191,7 +1203,7 @@ void LIRGenerator::do_Return(Return* x) {
 
 // Example: ref.get()
 // Combination of LoadField and g1 pre-write barrier
-void LIRGenerator::do_Reference_get(Intrinsic* x) {
+void LIRGenerator::do_Reference_get0(Intrinsic* x) {
 
   const int referent_offset = java_lang_ref_Reference::referent_offset();
 
@@ -3004,8 +3016,8 @@ void LIRGenerator::do_Intrinsic(Intrinsic* x) {
   case vmIntrinsics::_onSpinWait:
     __ on_spin_wait();
     break;
-  case vmIntrinsics::_Reference_get:
-    do_Reference_get(x);
+  case vmIntrinsics::_Reference_get0:
+    do_Reference_get0(x);
     break;
 
   case vmIntrinsics::_updateCRC32:

@@ -197,9 +197,8 @@ AC_DEFUN_ONCE([JDKOPT_SETUP_JDK_OPTIONS],
   # three different page sizes: 4K, 64K, and if run on Mac m1 hardware, 16K.
   COMPATIBLE_CDS_ALIGNMENT_DEFAULT=false
   if test "x$OPENJDK_TARGET_OS" = "xlinux" && test "x$OPENJDK_TARGET_CPU" = "xaarch64"; then
-    COMPATIBLE_CDS_ALIGNMENT_DEFAULT=true
+    COMPATIBLE_CDS_ALIGNMENT_DEFAULT=auto
   fi
-  AC_SUBST(COMPATIBLE_CDS_ALIGNMENT_DEFAULT)
 
   # Compress jars
   COMPRESS_JARS=false
@@ -463,6 +462,31 @@ AC_DEFUN_ONCE([JDKOPT_SETUP_ADDRESS_SANITIZER],
 
 ###############################################################################
 #
+# Static analyzer
+#
+AC_DEFUN_ONCE([JDKOPT_SETUP_STATIC_ANALYZER],
+[
+  UTIL_ARG_ENABLE(NAME: static-analyzer, DEFAULT: false, RESULT: STATIC_ANALYZER_ENABLED,
+      DESC: [enable the GCC static analyzer],
+      CHECK_AVAILABLE: [
+        AC_MSG_CHECKING([if static analyzer is available])
+        if test "x$TOOLCHAIN_TYPE" = "xgcc"; then
+          AC_MSG_RESULT([yes])
+        else
+          AC_MSG_RESULT([no])
+          AVAILABLE=false
+        fi
+      ],
+      IF_ENABLED: [
+        STATIC_ANALYZER_CFLAGS="-fanalyzer -Wno-analyzer-fd-leak"
+        CFLAGS_JDKLIB="$CFLAGS_JDKLIB $STATIC_ANALYZER_CFLAGS"
+        CFLAGS_JDKEXE="$CFLAGS_JDKEXE $STATIC_ANALYZER_CFLAGS"
+      ])
+  AC_SUBST(STATIC_ANALYZER_ENABLED)
+])
+
+################################################################################
+#
 # LeakSanitizer
 #
 AC_DEFUN_ONCE([JDKOPT_SETUP_LEAK_SANITIZER],
@@ -693,7 +717,7 @@ AC_DEFUN([JDKOPT_ENABLE_DISABLE_COMPATIBLE_CDS_ALIGNMENT],
   UTIL_ARG_ENABLE(NAME: compatible-cds-alignment, DEFAULT: $COMPATIBLE_CDS_ALIGNMENT_DEFAULT,
       RESULT: ENABLE_COMPATIBLE_CDS_ALIGNMENT,
       DESC: [enable use alternative compatible cds core region alignment],
-      DEFAULT_DESC: [disabled],
+      DEFAULT_DESC: [disabled except on linux-aarch64],
       CHECKING_MSG: [if compatible cds region alignment enabled],
       CHECK_AVAILABLE: [
         AC_MSG_CHECKING([if CDS archive is available])
@@ -922,6 +946,29 @@ AC_DEFUN([JDKOPT_SETUP_MACOSX_SIGNING],
     AC_SUBST(MACOSX_CODESIGN_IDENTITY)
     AC_SUBST(MACOSX_CODESIGN_MODE)
   fi
+])
+
+################################################################################
+#
+# Setup a hook to invoke a script that runs for file produced by the native
+# compilation steps, after linking.
+# Parameter is the path to the script to be called.
+#
+AC_DEFUN([JDKOPT_SETUP_SIGNING_HOOK],
+[
+  UTIL_ARG_WITH(NAME: signing-hook, TYPE: executable,
+      OPTIONAL: true, DEFAULT: "",
+      DESC: [specify path to script used to code sign native binaries]
+  )
+
+  AC_MSG_CHECKING([for signing hook])
+  if test "x$SIGNING_HOOK" != x; then
+    UTIL_FIXUP_EXECUTABLE(SIGNING_HOOK)
+    AC_MSG_RESULT([$SIGNING_HOOK])
+  else
+    AC_MSG_RESULT([none])
+  fi
+  AC_SUBST(SIGNING_HOOK)
 ])
 
 ################################################################################

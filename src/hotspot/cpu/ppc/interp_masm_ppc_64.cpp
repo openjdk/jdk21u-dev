@@ -451,10 +451,18 @@ void InterpreterMacroAssembler::get_cache_index_at_bcp(Register Rdst, int bcp_of
 }
 
 void InterpreterMacroAssembler::get_cache_and_index_at_bcp(Register cache, int bcp_offset,
-                                                           size_t index_size) {
+                                                           size_t index_size, bool for_fast_bytecode) {
   get_cache_index_at_bcp(cache, bcp_offset, index_size);
   sldi(cache, cache, exact_log2(in_words(ConstantPoolCacheEntry::size()) * BytesPerWord));
   add(cache, R27_constPoolCache, cache);
+
+  if (for_fast_bytecode) {
+    // Prevent speculative loading from ConstantPoolCacheEntry as it can miss the info written by another thread.
+    // TemplateTable::patch_bytecode uses release-store.
+    // We reached here via control dependency (Bytecode dispatch has used the rewritten Bytecode).
+    // So, we can use control-isync based ordering.
+    isync();
+  }
 }
 
 // Load 4-byte signed or unsigned integer in Java format (that is, big-endian format)
@@ -1260,11 +1268,11 @@ void InterpreterMacroAssembler::verify_method_data_pointer() {
   lhz(R11_scratch1, in_bytes(DataLayout::bci_offset()), R28_mdx);
   ld(R12_scratch2, in_bytes(Method::const_offset()), R19_method);
   addi(R11_scratch1, R11_scratch1, in_bytes(ConstMethod::codes_offset()));
-  add(R11_scratch1, R12_scratch2, R12_scratch2);
+  add(R11_scratch1, R11_scratch1, R12_scratch2);
   cmpd(CCR0, R11_scratch1, R14_bcp);
   beq(CCR0, verify_continue);
 
-  call_VM_leaf(CAST_FROM_FN_PTR(address, InterpreterRuntime::verify_mdp ), R19_method, R14_bcp, R28_mdx);
+  call_VM_leaf(CAST_FROM_FN_PTR(address, InterpreterRuntime::verify_mdp), R19_method, R14_bcp, R28_mdx);
 
   bind(verify_continue);
 #endif

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005, 2023, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2005, 2026, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -48,7 +48,10 @@ requires.extraPropDefns.libs = \
     ../../lib/jdk/test/lib/Container.java
 requires.extraPropDefns.javacOpts = --add-exports java.base/jdk.internal.foreign=ALL-UNNAMED
 requires.extraPropDefns.vmOpts = \
-    -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI \
+    -XX:+UnlockDiagnosticVMOptions \
+    -XX:+LogVMOutput -XX:-DisplayVMOutput -XX:LogFile=vmprops.flags.final.vm.log \
+    -XX:+PrintFlagsFinal \
+    -XX:+WhiteBoxAPI \
     --add-exports java.base/jdk.internal.foreign=ALL-UNNAMED
 requires.properties= \
     sun.arch.data.model \
@@ -83,12 +86,15 @@ requires.properties= \
     vm.compiler1.enabled \
     vm.compiler2.enabled \
     vm.musl \
+    vm.asan \
+    vm.ubsan \
     vm.flagless \
-    docker.support \
+    container.support \
+    systemd.support \
     jdk.containerized
 
 # Minimum jtreg version
-requiredVersion=7.3.1+1
+requiredVersion=8.2.1+1
 
 # Path to libraries in the topmost test directory. This is needed so @library
 # does not need ../../../ notation to reach them

@@ -710,9 +710,18 @@ size_t ShenandoahHeap::initial_capacity() const {
 }
 
 bool ShenandoahHeap::is_in(const void* p) const {
-  HeapWord* heap_base = (HeapWord*) base();
-  HeapWord* last_region_end = heap_base + ShenandoahHeapRegion::region_size_words() * num_regions();
-  return p >= heap_base && p < last_region_end;
+  if (is_in_reserved(p)) {
+    if (is_full_gc_move_in_progress()) {
+      // Full GC move is running, we do not have a consistent region
+      // information yet. But we know the pointer is in heap.
+      return true;
+    }
+    // Now check if we point to a live section in active region.
+    ShenandoahHeapRegion* r = heap_region_containing(p);
+    return (r->is_active() && p < r->top());
+  } else {
+    return false;
+  }
 }
 
 void ShenandoahHeap::op_uncommit(double shrink_before, size_t shrink_until) {
@@ -1027,26 +1036,23 @@ void ShenandoahHeap::print_heap_regions_on(outputStream* st) const {
   }
 }
 
-void ShenandoahHeap::trash_humongous_region_at(ShenandoahHeapRegion* start) {
+size_t ShenandoahHeap::trash_humongous_region_at(ShenandoahHeapRegion* start) const {
   assert(start->is_humongous_start(), "reclaim regions starting with the first one");
-
-  oop humongous_obj = cast_to_oop(start->bottom());
-  size_t size = humongous_obj->size();
-  size_t required_regions = ShenandoahHeapRegion::required_regions(size * HeapWordSize);
-  size_t index = start->index() + required_regions - 1;
-
   assert(!start->has_live(), "liveness must be zero");
 
-  for(size_t i = 0; i < required_regions; i++) {
-    // Reclaim from tail. Otherwise, assertion fails when printing region to trace log,
-    // as it expects that every region belongs to a humongous region starting with a humongous start region.
-    ShenandoahHeapRegion* region = get_region(index --);
-
-    assert(region->is_humongous(), "expect correct humongous start or continuation");
+  // Do not try to get the size of this humongous object. STW collections will
+  // have already unloaded classes, so an unmarked object may have a bad klass pointer.
+  ShenandoahHeapRegion* region = start;
+  size_t index = region->index();
+  do {
+    assert(region->is_humongous(), "Expect correct humongous start or continuation");
     assert(!region->is_cset(), "Humongous region should not be in collection set");
-
     region->make_trash_immediate();
-  }
+    region = get_region(++index);
+  } while (region != nullptr && region->is_humongous_continuation());
+
+  // Return number of regions trashed
+  return index - start->index();
 }
 
 class ShenandoahCheckCleanGCLABClosure : public ThreadClosure {
@@ -1138,6 +1144,18 @@ size_t ShenandoahHeap::unsafe_max_tlab_alloc(Thread *thread) const {
 size_t ShenandoahHeap::max_tlab_size() const {
   // Returns size in words
   return ShenandoahHeapRegion::max_tlab_size_words();
+}
+
+void ShenandoahHeap::collect_as_vm_thread(GCCause::Cause cause) {
+  // These requests are ignored because we can't easily have Shenandoah jump into
+  // a synchronous (degenerated or full) cycle while it is in the middle of a concurrent
+  // cycle. We _could_ cancel the concurrent cycle and then try to run a cycle directly
+  // on the VM thread, but this would confuse the control thread mightily and doesn't
+  // seem worth the trouble. Instead, we will have the caller thread run (and wait for) a
+  // concurrent cycle in the prologue of the heap inspect/dump operation. This is how
+  // other concurrent collectors in the JVM handle this scenario as well.
+  assert(Thread::current()->is_VM_thread(), "Should be the VM thread");
+  guarantee(cause == GCCause::_heap_dump || cause == GCCause::_heap_inspection, "Invalid cause");
 }
 
 void ShenandoahHeap::collect(GCCause::Cause cause) {
@@ -1556,12 +1574,12 @@ public:
 
 class ShenandoahRendezvousClosure : public HandshakeClosure {
 public:
-  inline ShenandoahRendezvousClosure() : HandshakeClosure("ShenandoahRendezvous") {}
+  inline ShenandoahRendezvousClosure(const char* name) : HandshakeClosure(name) {}
   inline void do_thread(Thread* thread) {}
 };
 
-void ShenandoahHeap::rendezvous_threads() {
-  ShenandoahRendezvousClosure cl;
+void ShenandoahHeap::rendezvous_threads(const char* name) {
+  ShenandoahRendezvousClosure cl(name);
   Handshake::execute(&cl);
 }
 

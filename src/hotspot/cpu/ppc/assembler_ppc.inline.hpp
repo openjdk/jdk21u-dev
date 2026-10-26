@@ -706,6 +706,9 @@ inline void Assembler::lfd( FloatRegister d, int si16, Register a)   { emit_int3
 inline void Assembler::lfdu(FloatRegister d, int si16, Register a)   { emit_int32( LFDU_OPCODE | frt(d) | ra(a)     | simm(si16,16)); }
 inline void Assembler::lfdx(FloatRegister d, Register a, Register b) { emit_int32( LFDX_OPCODE | frt(d) | ra0mem(a) | rb(b)); }
 
+inline void Assembler::lfiwax(FloatRegister d, Register a, Register b) { emit_int32( LFIWAX_OPCODE | frt(d) | ra0mem(a) |rb(b)); }
+inline void Assembler::lfiwzx(FloatRegister d, Register a, Register b) { emit_int32( LFIWZX_OPCODE | frt(d) | ra0mem(a) |rb(b)); }
+
 // PPC 1, section 4.6.3 Floating-Point Store Instructions
 // Use ra0mem instead of ra in some instructions below.
 inline void Assembler::stfs( FloatRegister s, int si16, Register a)  { emit_int32( STFS_OPCODE  | frs(s) | ra0mem(a) | simm(si16,16)); }
@@ -714,6 +717,8 @@ inline void Assembler::stfsx(FloatRegister s, Register a, Register b){ emit_int3
 inline void Assembler::stfd( FloatRegister s, int si16, Register a)  { emit_int32( STFD_OPCODE  | frs(s) | ra0mem(a) | simm(si16,16)); }
 inline void Assembler::stfdu(FloatRegister s, int si16, Register a)  { emit_int32( STFDU_OPCODE | frs(s) | ra(a)     | simm(si16,16)); }
 inline void Assembler::stfdx(FloatRegister s, Register a, Register b){ emit_int32( STFDX_OPCODE | frs(s) | ra0mem(a) | rb(b)); }
+
+inline void Assembler::stfiwx(FloatRegister s, Register a, Register b) { emit_int32( STFIWX_OPCODE | frs(s) | ra0mem(a) |rb(b)); }
 
 // PPC 1, section 4.6.4 Floating-Point Move Instructions
 inline void Assembler::fmr( FloatRegister d, FloatRegister b) { emit_int32( FMR_OPCODE | frt(d) | frb(b) | rc(0)); }
@@ -823,6 +828,14 @@ inline void Assembler::lxvd2x(  VectorSRegister d, Register s1)              { e
 inline void Assembler::lxvd2x(  VectorSRegister d, Register s1, Register s2) { emit_int32( LXVD2X_OPCODE  | vsrt(d) | ra0mem(s1) | rb(s2)); }
 inline void Assembler::stxvd2x( VectorSRegister d, Register s1)              { emit_int32( STXVD2X_OPCODE | vsrs(d) | ra(0) | rb(s1)); }
 inline void Assembler::stxvd2x( VectorSRegister d, Register s1, Register s2) { emit_int32( STXVD2X_OPCODE | vsrs(d) | ra0mem(s1) | rb(s2)); }
+inline void Assembler::lxvw4x(  VectorSRegister d, Register s1)              { emit_int32( LXVW4X_OPCODE  | vsrt(d) | ra(0) | rb(s1)); }
+inline void Assembler::lxvw4x(  VectorSRegister d, Register s1, Register s2) { emit_int32( LXVW4X_OPCODE  | vsrt(d) | ra0mem(s1) | rb(s2)); }
+inline void Assembler::stxvw4x( VectorSRegister d, Register s1)              { emit_int32( STXVW4X_OPCODE | vsrs(d) | ra(0) | rb(s1)); }
+inline void Assembler::stxvw4x( VectorSRegister d, Register s1, Register s2) { emit_int32( STXVW4X_OPCODE | vsrs(d) | ra0mem(s1) | rb(s2)); }
+inline void Assembler::lxvb16x( VectorSRegister d, Register s1)              { emit_int32( LXVB16X_OPCODE | vsrt(d) | ra(0) | rb(s1)); }
+inline void Assembler::lxvb16x( VectorSRegister d, Register s1, Register s2) { emit_int32( LXVB16X_OPCODE | vsrt(d) | ra0mem(s1) | rb(s2)); }
+inline void Assembler::stxvb16x(VectorSRegister d, Register s1)              { emit_int32( STXVB16X_OPCODE| vsrs(d) | ra(0) | rb(s1)); }
+inline void Assembler::stxvb16x(VectorSRegister d, Register s1, Register s2) { emit_int32( STXVB16X_OPCODE| vsrs(d) | ra0mem(s1) | rb(s2)); }
 inline void Assembler::mtvsrd(  VectorSRegister d, Register a)               { emit_int32( MTVSRD_OPCODE  | vsrt(d)  | ra(a)); }
 inline void Assembler::mtvsrdd( VectorSRegister d, Register a, Register b)   { emit_int32( MTVSRDD_OPCODE | vsrt(d)  | ra(a) | rb(b)); }
 inline void Assembler::mfvsrd(  Register d, VectorSRegister a)               { emit_int32( MFVSRD_OPCODE  | vsrs(a)  | ra(d)); }
@@ -836,6 +849,10 @@ inline void Assembler::xxlxor(  VectorSRegister d, VectorSRegister a, VectorSReg
 inline void Assembler::xxleqv(  VectorSRegister d, VectorSRegister a, VectorSRegister b) { emit_int32( XXLEQV_OPCODE | vsrt(d) | vsra(a) | vsrb(b)); }
 inline void Assembler::xxbrd(   VectorSRegister d, VectorSRegister b)                    { emit_int32( XXBRD_OPCODE | vsrt(d) | vsrb(b) ); }
 inline void Assembler::xxbrw(   VectorSRegister d, VectorSRegister b)                    { emit_int32( XXBRW_OPCODE | vsrt(d) | vsrb(b) ); }
+inline void Assembler::xvcvhpsp(VectorSRegister d, VectorSRegister b)                    { emit_int32( XVCVHPSP_OPCODE | vsrt(d) | vsrb(b) ); }
+inline void Assembler::xvcvsphp(VectorSRegister d, VectorSRegister b)                    { emit_int32( XVCVSPHP_OPCODE | vsrt(d) | vsrb(b) ); }
+inline void Assembler::xscvhpdp(VectorSRegister d, VectorSRegister b)                    { emit_int32( XSCVHPDP_OPCODE | vsrt(d) | vsrb(b) ); }
+inline void Assembler::xscvdphp(VectorSRegister d, VectorSRegister b)                    { emit_int32( XSCVDPHP_OPCODE | vsrt(d) | vsrb(b) ); }
 inline void Assembler::xvdivsp( VectorSRegister d, VectorSRegister a, VectorSRegister b) { emit_int32( XVDIVSP_OPCODE | vsrt(d) | vsra(a) | vsrb(b)); }
 inline void Assembler::xvdivdp( VectorSRegister d, VectorSRegister a, VectorSRegister b) { emit_int32( XVDIVDP_OPCODE | vsrt(d) | vsra(a) | vsrb(b)); }
 inline void Assembler::xvabssp( VectorSRegister d, VectorSRegister b)                    { emit_int32( XVABSSP_OPCODE | vsrt(d) | vsrb(b)); }
@@ -1130,11 +1147,16 @@ inline void Assembler::lfsx(FloatRegister d, Register b) { emit_int32( LFSX_OPCO
 inline void Assembler::lfd( FloatRegister d, int si16)   { emit_int32( LFD_OPCODE  | frt(d) | simm(si16,16)); }
 inline void Assembler::lfdx(FloatRegister d, Register b) { emit_int32( LFDX_OPCODE | frt(d) | rb(b)); }
 
+inline void Assembler::lfiwax(FloatRegister d, Register b) { emit_int32( LFIWAX_OPCODE | frt(d) | rb(b)); }
+inline void Assembler::lfiwzx(FloatRegister d, Register b) { emit_int32( LFIWZX_OPCODE | frt(d) | rb(b)); }
+
 // ra0 version
 inline void Assembler::stfs( FloatRegister s, int si16)   { emit_int32( STFS_OPCODE  | frs(s) | simm(si16, 16)); }
 inline void Assembler::stfsx(FloatRegister s, Register b) { emit_int32( STFSX_OPCODE | frs(s) | rb(b)); }
 inline void Assembler::stfd( FloatRegister s, int si16)   { emit_int32( STFD_OPCODE  | frs(s) | simm(si16, 16)); }
 inline void Assembler::stfdx(FloatRegister s, Register b) { emit_int32( STFDX_OPCODE | frs(s) | rb(b)); }
+
+inline void Assembler::stfiwx(FloatRegister s, Register b) { emit_int32( STFIWX_OPCODE | frs(s) |rb(b)); }
 
 // ra0 version
 inline void Assembler::lvebx( VectorRegister d, Register s2) { emit_int32( LVEBX_OPCODE  | vrt(d) | rb(s2)); }
@@ -1172,6 +1194,108 @@ inline void Assembler::vec_perm(VectorRegister dest, VectorRegister first, Vecto
 #else
   vperm(dest, first, second, perm);
 #endif
+}
+
+inline void Assembler::load_byte_vector_unaligned(VectorRegister dest, int offs, Register base, Register tmp,
+                                                  VectorRegister vp) {
+  VectorSRegister vsr = dest->to_vsr();
+  if (PowerArchitecturePPC64 >= 9) {
+#if !defined(VM_LITTLE_ENDIAN)
+    lxv(vsr, offs, base); // all vector load/store instructions use the same byte order on BE
+#else
+    if (offs == 0) {
+      lxvb16x(vsr, base);
+    } else {
+      li(tmp, offs);
+      lxvb16x(vsr, base, tmp);
+    }
+#endif
+  } else { // Power8 only supports very limited instructions
+    if (offs == 0) {
+      lxvd2x(vsr, base);
+    } else {
+      li(tmp, offs);
+      lxvd2x(vsr, base, tmp);
+    }
+#if defined(VM_LITTLE_ENDIAN)
+    // need to swap bytes in both double-words
+    vperm(dest, dest, dest, vp);
+#endif
+  }
+}
+
+inline void Assembler::store_byte_vector_unaligned(VectorRegister val, int offs, Register base, Register tmp,
+                                                   VectorRegister vp, VectorRegister vtmp) {
+  VectorSRegister vsr = val->to_vsr();
+  if (PowerArchitecturePPC64 >= 9) {
+#if !defined(VM_LITTLE_ENDIAN)
+    stxv(vsr, offs, base); // all vector load/store instructions use the same byte order on BE
+#else
+    if (offs == 0) {
+      stxvb16x(vsr, base);
+    } else {
+      li(tmp, offs);
+      stxvb16x(vsr, base, tmp);
+    }
+#endif
+  } else { // Power8 only supports very limited instructions
+#if defined(VM_LITTLE_ENDIAN)
+    // need to swap bytes in both double-words
+    if (vtmp != vnoreg) {
+      vperm(vtmp, val, val, vp);
+      vsr = vtmp->to_vsr();
+    } else {
+      vperm(val, val, val, vp); // clobbers val!
+    }
+#endif
+    if (offs == 0) {
+      stxvd2x(vsr, base);
+    } else {
+      li(tmp, offs);
+      stxvd2x(vsr, base, tmp);
+    }
+  }
+}
+
+inline void Assembler::compute_vp_for_byte_vector_unaligned(VectorRegister dest, VectorRegister vtmp) {
+#if defined(VM_LITTLE_ENDIAN)
+  if (PowerArchitecturePPC64 < 9) {
+    li(R0, 0);
+    vspltisb(vtmp, 7);      // vtmp = [7, ..., 7]
+    lvsl(dest, R0);         // dest = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    vxor(dest, dest, vtmp); // dest = [7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8]
+  }
+#endif
+}
+
+inline void Assembler::load_word_vector_unaligned(VectorRegister dest, int offs, Register base, Register tmp) {
+  VectorSRegister vsr = dest->to_vsr();
+#if !defined(VM_LITTLE_ENDIAN)
+  if (PowerArchitecturePPC64 >= 9) {
+    lxv(vsr, offs, base); // all vector load/store instructions use the same byte order on BE
+  } else
+#endif
+  if (offs == 0) {
+    lxvw4x(vsr, base);
+  } else {
+    li(tmp, offs);
+    lxvw4x(vsr, base, tmp);
+  }
+}
+
+inline void Assembler::store_word_vector_unaligned(VectorRegister val, int offs, Register base, Register tmp) {
+  VectorSRegister vsr = val->to_vsr();
+#if !defined(VM_LITTLE_ENDIAN)
+  if (PowerArchitecturePPC64 >= 9) {
+    stxv(vsr, offs, base); // all vector load/store instructions use the same byte order on BE
+  } else
+#endif
+  if (offs == 0) {
+    stxvw4x(vsr, base);
+  } else {
+    li(tmp, offs);
+    stxvw4x(vsr, base, tmp);
+  }
 }
 
 inline void Assembler::load_const(Register d, void* x, Register tmp) {

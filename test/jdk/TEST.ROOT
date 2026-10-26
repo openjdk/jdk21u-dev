@@ -1,6 +1,10 @@
+#
+# Copyright (c) 2005, 2026, Oracle and/or its affiliates. All rights reserved.
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
 # This file identifies the root of the test-suite hierarchy.
 # It also contains test-suite configuration information.
-
+#
 # The list of keywords supported in the entire test suite.  The
 # "intermittent" keyword marks tests known to fail intermittently.
 # The "randomness" keyword marks tests using randomness with test
@@ -55,7 +59,7 @@ exclusiveAccess.dirs=java/math/BigInteger/largeMemory \
 java/rmi/Naming java/util/prefs sun/management/jmxremote \
 sun/tools/jstatd sun/security/mscapi java/util/Arrays/largeMemory \
 java/util/BitSet/stream javax/rmi java/net/httpclient/websocket \
-com/sun/net/httpserver/simpleserver sun/tools/jhsdb
+com/sun/net/httpserver/simpleserver sun/tools/jhsdb javax/sound
 
 # Group definitions
 groups=TEST.groups
@@ -72,7 +76,10 @@ requires.extraPropDefns.libs = \
     ../lib/jdk/test/lib/Container.java
 requires.extraPropDefns.javacOpts = --add-exports java.base/jdk.internal.foreign=ALL-UNNAMED
 requires.extraPropDefns.vmOpts = \
-    -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI \
+    -XX:+UnlockDiagnosticVMOptions \
+    -XX:+LogVMOutput -XX:-DisplayVMOutput -XX:LogFile=vmprops.flags.final.vm.log \
+    -XX:+PrintFlagsFinal \
+    -XX:+WhiteBoxAPI \
     --add-exports java.base/jdk.internal.foreign=ALL-UNNAMED
 requires.properties= \
     sun.arch.data.model \
@@ -93,19 +100,22 @@ requires.properties= \
     vm.cds.write.archived.java.heap \
     vm.continuations \
     vm.musl \
+    vm.asan \
+    vm.ubsan \
     vm.debug \
     vm.hasSA \
     vm.hasJFR \
     vm.jvmci \
     vm.jvmci.enabled \
     vm.jvmti \
-    docker.support \
+    container.support \
+    systemd.support \
     release.implementor \
     jdk.containerized \
     jdk.foreign.linker
 
 # Minimum jtreg version
-requiredVersion=7.3.1+1
+requiredVersion=8.2.1+1
 
 # Path to libraries in the topmost test directory. This is needed so @library
 # does not need ../../ notation to reach them

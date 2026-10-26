@@ -2,7 +2,6 @@
  * Copyright (c) 1997, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * summary:
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
  * published by the Free Software Foundation.
@@ -80,13 +79,15 @@ public class CaretPositionTest extends Frame {
 
     public void test() throws AWTException, InterruptedException,
             InvocationTargetException {
-        EventQueue.invokeAndWait(() -> {
-                    onScreen = text_field.getLocationOnScreen();
-                    size = text_field.getSize();
-                });
         Robot robot = new Robot();
         robot.setAutoDelay(50);
         robot.delay(1000);
+
+        EventQueue.invokeAndWait(() -> {
+            onScreen = text_field.getLocationOnScreen();
+            size = text_field.getSize();
+        });
+
         int y = onScreen.y + (size.height / 2);
         robot.mouseMove(onScreen.x + (size.width / 2), y);
         robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);

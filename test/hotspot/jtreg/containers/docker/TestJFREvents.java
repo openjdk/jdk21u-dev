@@ -29,9 +29,11 @@
  *          when run inside Docker container, such as available CPU and memory.
  *          Also make sure that PIDs are based on value provided by container,
  *          not by the host system.
- * @requires (docker.support & os.maxMemory >= 2g)
+ * @requires (container.support & os.maxMemory >= 2g)
+ * @requires !vm.asan
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
+ *          java.base/jdk.internal.platform
  *          java.management
  *          jdk.jartool/sun.tools.jar
  * @build JfrReporter
@@ -55,9 +57,7 @@ public class TestJFREvents {
 
     public static void main(String[] args) throws Exception {
         System.out.println("Test Environment: detected availableCPUs = " + availableCPUs);
-        if (!DockerTestUtils.canTestDocker()) {
-            return;
-        }
+        DockerTestUtils.checkCanTestDocker();
 
         DockerTestUtils.buildJdkContainerImage(imageName);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2006, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,7 +27,6 @@
  * @summary Verify that we can parse ECPrivateKeys from PKCS#12 and use them
  * @author Andreas Sterbenz
  * @library /test/lib ..
- * @library ../../../../java/security/testlibrary
  * @key randomness
  * @modules jdk.crypto.cryptoki jdk.crypto.ec/sun.security.ec
  * @run main/othervm ReadPKCS12
@@ -55,6 +54,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import jdk.test.lib.security.Providers;
+import jtreg.SkippedException;
 
 public class ReadPKCS12 extends PKCS11Test {
 
@@ -67,8 +68,7 @@ public class ReadPKCS12 extends PKCS11Test {
     @Override
     public void main(Provider p) throws Exception {
         if (p.getService("Signature", "SHA1withECDSA") == null) {
-            System.out.println("Provider does not support ECDSA, skipping...");
-            return;
+            throw new SkippedException("Provider does not support ECDSA");
         }
 
         /*

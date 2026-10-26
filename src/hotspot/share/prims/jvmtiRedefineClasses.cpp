@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1375,10 +1375,12 @@ jvmtiError VM_RedefineClasses::load_new_class_versions() {
     // constant pools
     HandleMark hm(current);
     InstanceKlass* the_class = get_ik(_class_defs[i].klass);
-
+    physical_memory_size_type avail_mem = 0;
+    // Return value ignored - defaulting to 0 on failure.
+    (void)os::available_memory(avail_mem);
     log_debug(redefine, class, load)
-      ("loading name=%s kind=%d (avail_mem=" UINT64_FORMAT "K)",
-       the_class->external_name(), _class_load_kind, os::available_memory() >> 10);
+      ("loading name=%s kind=%d (avail_mem=" PHYS_MEM_TYPE_FORMAT "K)",
+       the_class->external_name(), _class_load_kind, avail_mem >> 10);
 
     ClassFileStream st((u1*)_class_defs[i].class_bytes,
                        _class_defs[i].class_byte_count,
@@ -1543,9 +1545,10 @@ jvmtiError VM_RedefineClasses::load_new_class_versions() {
         return JVMTI_ERROR_INTERNAL;
       }
     }
-
+    // Return value ignored - defaulting to 0 on failure.
+    (void)os::available_memory(avail_mem);
     log_debug(redefine, class, load)
-      ("loaded name=%s (avail_mem=" UINT64_FORMAT "K)", the_class->external_name(), os::available_memory() >> 10);
+      ("loaded name=%s (avail_mem=" PHYS_MEM_TYPE_FORMAT "K)", the_class->external_name(), avail_mem >> 10);
   }
 
   return JVMTI_ERROR_NONE;
@@ -1859,6 +1862,12 @@ jvmtiError VM_RedefineClasses::merge_cp_and_rewrite(
   if (!result) {
     // The merge can fail due to memory allocation failure or due
     // to robustness checks.
+    return JVMTI_ERROR_INTERNAL;
+  }
+
+  // ensure merged constant pool size does not overflow u2
+  if (merge_cp_length > 0xFFFF) {
+    log_warning(redefine, class, constantpool)("Merged constant pool overflow: %d entries", merge_cp_length);
     return JVMTI_ERROR_INTERNAL;
   }
 
@@ -4447,9 +4456,12 @@ void VM_RedefineClasses::redefine_single_class(Thread* current, jclass the_jclas
     ResourceMark rm(current);
     // increment the classRedefinedCount field in the_class and in any
     // direct and indirect subclasses of the_class
+    physical_memory_size_type avail_mem = 0;
+    // Return value ignored - defaulting to 0 on failure.
+    (void)os::available_memory(avail_mem);
     log_info(redefine, class, load)
-      ("redefined name=%s, count=%d (avail_mem=" UINT64_FORMAT "K)",
-       the_class->external_name(), java_lang_Class::classRedefinedCount(the_class->java_mirror()), os::available_memory() >> 10);
+      ("redefined name=%s, count=%d (avail_mem=" PHYS_MEM_TYPE_FORMAT "K)",
+       the_class->external_name(), java_lang_Class::classRedefinedCount(the_class->java_mirror()), avail_mem >> 10);
     Events::log_redefinition(current, "redefined class name=%s, count=%d",
                              the_class->external_name(),
                              java_lang_Class::classRedefinedCount(the_class->java_mirror()));

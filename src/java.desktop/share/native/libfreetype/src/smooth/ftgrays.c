@@ -4,7 +4,7 @@
  *
  *   A new `perfect' anti-aliasing renderer (body).
  *
- * Copyright (C) 2000-2023 by
+ * Copyright (C) 2000-2026 by
  * David Turner, Robert Wilhelm, and Werner Lemberg.
  *
  * This file is part of the FreeType project, and may only be used,
@@ -68,11 +68,14 @@
    *
    * This renderer has the following advantages:
    *
-   * - It doesn't need an intermediate bitmap.  Instead, one can supply a
-   *   callback function that will be called by the renderer to draw gray
-   *   spans on any target surface.  You can thus do direct composition on
-   *   any kind of bitmap, provided that you give the renderer the right
-   *   callback.
+   * - It doesn't need an intermediate bitmap.  Instead,  linked lists
+   *   of cells (pixels visited by an outline) are stored, which requires
+   *   less memory and can be maintained on the stack for small glyphs.
+   *
+   * - One can supply a callback function that will be called by the
+   *   renderer to draw gray spans on any target surface.  You can thus
+   *   do direct composition on any kind of bitmap, provided that you give
+   *   the renderer the right callback.
    *
    * - A perfect anti-aliaser, i.e., it computes the _exact_ coverage on
    *   each pixel cell by straight segments.
@@ -157,10 +160,6 @@
 
 #define ft_memset   memset
 
-#define ft_setjmp   setjmp
-#define ft_longjmp  longjmp
-#define ft_jmp_buf  jmp_buf
-
 typedef ptrdiff_t  FT_PtrDist;
 
 
@@ -170,8 +169,8 @@ typedef ptrdiff_t  FT_PtrDist;
 #define Smooth_Err_Invalid_Argument     -3
 #define Smooth_Err_Raster_Overflow      -4
 
-#define FT_BEGIN_HEADER
-#define FT_END_HEADER
+#define FT_BEGIN_HEADER  /* nothing */
+#define FT_END_HEADER    /* nothing */
 
 #include "ftimage.h"
 #include "ftgrays.h"
@@ -468,7 +467,10 @@ typedef ptrdiff_t  FT_PtrDist;
 
   } TPixmap;
 
-  /* maximum number of gray cells in the buffer */
+  /* Maximum number of gray cells in the stack buffer;  */
+  /* for example, a buffer of 680 cells can accommodate */
+  /* a glyph with the taxicab perimeter of 680 pixels.  */
+  /* A larger buffer can be allocated when necessary.   */
 #if FT_RENDER_POOL_SIZE > 2048
 #define FT_MAX_GRAY_POOL  ( FT_RENDER_POOL_SIZE / sizeof ( TCell ) )
 #else
@@ -489,15 +491,14 @@ typedef ptrdiff_t  FT_PtrDist;
 
   typedef struct  gray_TWorker_
   {
-    ft_jmp_buf  jump_buffer;
+    TCoord  min_ex, min_ey;  /* min and max integer pixel coordinates */
+    TCoord  max_ex, max_ey;
 
-    TCoord  min_ex, max_ex;  /* min and max integer pixel coordinates */
-    TCoord  min_ey, max_ey;
-    TCoord  count_ey;        /* same as (max_ey - min_ey) */
-
+    int         error;       /* pool overflow exception                  */
+    PCell       buffer;      /* buffer                                   */
+    PCell       cell_null;   /* last cell, used as dumpster and limit    */
     PCell       cell;        /* current cell                             */
     PCell       cell_free;   /* call allocation next free slot           */
-    PCell       cell_null;   /* last cell, used as dumpster and limit    */
 
     PCell*      ycells;      /* array of cell linked-lists; one per      */
                              /* vertical coordinate in the current band  */
@@ -584,14 +585,11 @@ typedef ptrdiff_t  FT_PtrDist;
     /* Note that if a cell is to the left of the clipping region, it is    */
     /* actually set to the (min_ex-1) horizontal position.                 */
 
-    TCoord  ey_index = ey - ras.min_ey;
-
-
-    if ( ey_index < 0 || ey_index >= ras.count_ey || ex >= ras.max_ex )
+    if ( ey < ras.min_ey || ey >= ras.max_ey || ex >= ras.max_ex )
       ras.cell = ras.cell_null;
     else
     {
-      PCell*  pcell = ras.ycells + ey_index;
+      PCell*  pcell = ras.ycells + ( ey - ras.min_ey );
       PCell   cell;
 
 
@@ -611,9 +609,14 @@ typedef ptrdiff_t  FT_PtrDist;
       }
 
       /* insert new cell */
-      cell = ras.cell_free++;
-      if ( cell >= ras.cell_null )
-        ft_longjmp( ras.jump_buffer, 1 );
+      cell = ras.cell_free;
+      if ( cell == ras.cell_null )
+      {
+        ras.error = FT_THROW( Raster_Overflow );
+        goto Found;
+      }
+
+      ras.cell_free = cell + 1;
 
       cell->x     = ex;
       cell->area  = 0;
@@ -997,49 +1000,12 @@ typedef ptrdiff_t  FT_PtrDist;
 #endif
 
   /*
-   * Benchmarking shows that using DDA to flatten the quadratic Bézier arcs
-   * is slightly faster in the following cases:
-   *
-   *   - When the host CPU is 64-bit.
-   *   - When SSE2 SIMD registers and instructions are available (even on
-   *     x86).
-   *
-   * For other cases, using binary splits is actually slightly faster.
+   * For now, the code that uses DDA to render conic curves requires
+   * `FT_Int64` to be defined.  See for example
+   *    https://gitlab.freedesktop.org/freetype/freetype/-/issues/1071.
    */
-#if ( defined( __SSE2__ )                          ||   \
-      defined( __x86_64__ )                        ||   \
-      defined( _M_AMD64 )                          ||   \
-      ( defined( _M_IX86_FP ) && _M_IX86_FP >= 2 ) ) && \
-    !defined( __VMS )
-#  define FT_SSE2 1
-#else
-#  define FT_SSE2 0
-#endif
 
-#if FT_SSE2                || \
-    defined( __aarch64__ ) || \
-    defined( _M_ARM64 )
-#  define BEZIER_USE_DDA  1
-#else
-#  define BEZIER_USE_DDA  0
-#endif
-
-  /*
-   * For now, the code that depends on `BEZIER_USE_DDA` requires `FT_Int64`
-   * to be defined.  If `FT_INT64` is not defined, meaning there is no
-   * 64-bit type available, disable it to avoid compilation errors.  See for
-   * example https://gitlab.freedesktop.org/freetype/freetype/-/issues/1071.
-   */
-#if !defined( FT_INT64 )
-#  undef BEZIER_USE_DDA
-#  define BEZIER_USE_DDA  0
-#endif
-
-#if BEZIER_USE_DDA
-
-#if FT_SSE2
-#  include <emmintrin.h>
-#endif
+#ifdef FT_INT64
 
 #define LEFT_SHIFT( a, b )  (FT_Int64)( (FT_UInt64)(a) << (b) )
 
@@ -1095,16 +1061,17 @@ typedef ptrdiff_t  FT_PtrDist;
       return;
     }
 
-    /* We can calculate the number of necessary bisections because  */
+    /* We can calculate the number of necessary segments because    */
     /* each bisection predictably reduces deviation exactly 4-fold. */
     /* Even 32-bit deviation would vanish after 16 bisections.      */
-    shift = 0;
+    shift = 16;
     do
     {
-      dx   >>= 2;
-      shift += 1;
+      dx >>= 2;
+      shift--;
 
     } while ( dx > ONE_PIXEL / 4 );
+    count = 0x10000U >> shift;
 
     /*
      * The (P0,P1,P2) arc equation, for t in [0,1] range:
@@ -1150,75 +1117,19 @@ typedef ptrdiff_t  FT_PtrDist;
      *             = (B << (33 - N)) + (A << (32 - 2*N))
      */
 
-#if FT_SSE2
-    /* Experience shows that for small shift values, */
-    /* SSE2 is actually slower.                      */
-    if ( shift > 2 )
-    {
-      union
-      {
-        struct { FT_Int64  ax, ay, bx, by; }  i;
-        struct { __m128i  a, b; }  vec;
+    rx = LEFT_SHIFT( ax, shift + shift );
+    ry = LEFT_SHIFT( ay, shift + shift );
 
-      } u;
+    qx = LEFT_SHIFT( bx, shift + 17 ) + rx;
+    qy = LEFT_SHIFT( by, shift + 17 ) + ry;
 
-      union
-      {
-        struct { FT_Int32  px_lo, px_hi, py_lo, py_hi; }  i;
-        __m128i  vec;
-
-      } v;
-
-      __m128i  a, b;
-      __m128i  r, q, q2;
-      __m128i  p;
-
-
-      u.i.ax = ax;
-      u.i.ay = ay;
-      u.i.bx = bx;
-      u.i.by = by;
-
-      a = _mm_load_si128( &u.vec.a );
-      b = _mm_load_si128( &u.vec.b );
-
-      r  = _mm_slli_epi64( a, 33 - 2 * shift );
-      q  = _mm_slli_epi64( b, 33 - shift );
-      q2 = _mm_slli_epi64( a, 32 - 2 * shift );
-
-      q = _mm_add_epi64( q2, q );
-
-      v.i.px_lo = 0;
-      v.i.px_hi = p0.x;
-      v.i.py_lo = 0;
-      v.i.py_hi = p0.y;
-
-      p = _mm_load_si128( &v.vec );
-
-      for ( count = 1U << shift; count > 0; count-- )
-      {
-        p = _mm_add_epi64( p, q );
-        q = _mm_add_epi64( q, r );
-
-        _mm_store_si128( &v.vec, p );
-
-        gray_render_line( RAS_VAR_ v.i.px_hi, v.i.py_hi );
-      }
-
-      return;
-    }
-#endif  /* FT_SSE2 */
-
-    rx = LEFT_SHIFT( ax, 33 - 2 * shift );
-    ry = LEFT_SHIFT( ay, 33 - 2 * shift );
-
-    qx = LEFT_SHIFT( bx, 33 - shift ) + LEFT_SHIFT( ax, 32 - 2 * shift );
-    qy = LEFT_SHIFT( by, 33 - shift ) + LEFT_SHIFT( ay, 32 - 2 * shift );
+    rx *= 2;
+    ry *= 2;
 
     px = LEFT_SHIFT( p0.x, 32 );
     py = LEFT_SHIFT( p0.y, 32 );
 
-    for ( count = 1U << shift; count > 0; count-- )
+    do
     {
       px += qx;
       py += qy;
@@ -1227,10 +1138,10 @@ typedef ptrdiff_t  FT_PtrDist;
 
       gray_render_line( RAS_VAR_ (FT_Pos)( px >> 32 ),
                                  (FT_Pos)( py >> 32 ) );
-    }
+    } while ( --count );
   }
 
-#else  /* !BEZIER_USE_DDA */
+#else  /* !FT_INT64 */
 
   /*
    * Note that multiple attempts to speed up the function below
@@ -1324,7 +1235,7 @@ typedef ptrdiff_t  FT_PtrDist;
     } while ( --draw );
   }
 
-#endif  /* !BEZIER_USE_DDA */
+#endif  /* !FT_INT64 */
 
 
   /*
@@ -1443,7 +1354,8 @@ typedef ptrdiff_t  FT_PtrDist;
 
     ras.x = x;
     ras.y = y;
-    return 0;
+
+    return ras.error;
   }
 
 
@@ -1455,7 +1367,8 @@ typedef ptrdiff_t  FT_PtrDist;
 
 
     gray_render_line( RAS_VAR_ UPSCALE( to->x ), UPSCALE( to->y ) );
-    return 0;
+
+    return ras.error;
   }
 
 
@@ -1468,7 +1381,8 @@ typedef ptrdiff_t  FT_PtrDist;
 
 
     gray_render_conic( RAS_VAR_ control, to );
-    return 0;
+
+    return ras.error;
   }
 
 
@@ -1482,7 +1396,354 @@ typedef ptrdiff_t  FT_PtrDist;
 
 
     gray_render_cubic( RAS_VAR_ control1, control2, to );
-    return 0;
+
+    return ras.error;
+  }
+
+
+#ifdef STANDALONE_
+
+  /**************************************************************************
+   *
+   * The following functions should only compile in stand-alone mode,
+   * i.e., when building this component without the rest of FreeType.
+   *
+   */
+
+  /**************************************************************************
+   *
+   * @Function:
+   *   FT_Outline_Decompose
+   *
+   * @Description:
+   *   Walk over an outline's structure to decompose it into individual
+   *   segments and Bézier arcs.  This function is also able to emit
+   *   `move to' and `close to' operations to indicate the start and end
+   *   of new contours in the outline.
+   *
+   * @Input:
+   *   outline ::
+   *     A pointer to the source target.
+   *
+   *   func_interface ::
+   *     A table of `emitters', i.e., function pointers
+   *     called during decomposition to indicate path
+   *     operations.
+   *
+   * @InOut:
+   *   user ::
+   *     A typeless pointer which is passed to each
+   *     emitter during the decomposition.  It can be
+   *     used to store the state during the
+   *     decomposition.
+   *
+   * @Return:
+   *   Error code.  0 means success.
+   */
+  static int
+  FT_Outline_Decompose( const FT_Outline*        outline,
+                        const FT_Outline_Funcs*  func_interface,
+                        void*                    user )
+  {
+#undef SCALED
+#define SCALED( x )  ( (x) * ( 1L << shift ) - delta )
+
+    FT_Vector   v_last;
+    FT_Vector   v_control;
+    FT_Vector   v_start;
+
+    FT_Vector*  point;
+    FT_Vector*  limit;
+    char*       tags;
+
+    int         error;
+
+    int   n;         /* index of contour in outline     */
+    int   first;     /* index of first point in contour */
+    int   last;      /* index of last point in contour  */
+
+    char  tag;       /* current point's state           */
+
+    int   shift;
+    TPos  delta;
+
+
+    if ( !outline )
+      return FT_THROW( Invalid_Outline );
+
+    if ( !func_interface )
+      return FT_THROW( Invalid_Argument );
+
+    shift = func_interface->shift;
+    delta = func_interface->delta;
+
+    last = -1;
+    for ( n = 0; n < outline->n_contours; n++ )
+    {
+      FT_TRACE5(( "FT_Outline_Decompose: Contour %d\n", n ));
+
+      first = last + 1;
+      last  = outline->contours[n];
+      if ( last < first )
+        goto Invalid_Outline;
+
+      limit = outline->points + last;
+
+      v_start   = outline->points[first];
+      v_start.x = SCALED( v_start.x );
+      v_start.y = SCALED( v_start.y );
+
+      v_last   = outline->points[last];
+      v_last.x = SCALED( v_last.x );
+      v_last.y = SCALED( v_last.y );
+
+      v_control = v_start;
+
+      point = outline->points + first;
+      tags  = outline->tags   + first;
+      tag   = FT_CURVE_TAG( tags[0] );
+
+      /* check first point to determine origin */
+      if ( tag != FT_CURVE_TAG_ON )
+      {
+        char  last_tag = FT_CURVE_TAG( outline->tags[last] );
+
+
+        /* first point is a control point.  Yes, this happens. */
+        if ( last_tag == FT_CURVE_TAG_ON )
+        {
+          /* start at last point if it is on the curve */
+          v_start = v_last;
+          limit--;
+        }
+        else
+        {
+          if ( last_tag != tag )
+            goto Invalid_Outline;
+
+          /* if both first and last points are controls,   */
+          /* start at their middle and record its position */
+          /* for closure                                   */
+          v_start.x = ( v_start.x + v_last.x ) / 2;
+          v_start.y = ( v_start.y + v_last.y ) / 2;
+
+          v_last = v_start;
+        }
+        point--;
+        tags--;
+      }
+
+      FT_TRACE5(( "  move to (%.2f, %.2f)\n",
+                  v_start.x / 64.0, v_start.y / 64.0 ));
+      error = func_interface->move_to( &v_start, user );
+      if ( error )
+        goto Exit;
+
+      while ( point < limit )
+      {
+        point++;
+        tags++;
+
+        tag = FT_CURVE_TAG( tags[0] );
+        switch ( tag )
+        {
+        case FT_CURVE_TAG_ON:  /* emit a single line_to */
+          {
+            FT_Vector  vec;
+
+
+            vec.x = SCALED( point->x );
+            vec.y = SCALED( point->y );
+
+            FT_TRACE5(( "  line to (%.2f, %.2f)\n",
+                        vec.x / 64.0, vec.y / 64.0 ));
+            error = func_interface->line_to( &vec, user );
+            if ( error )
+              goto Exit;
+            continue;
+          }
+
+        case FT_CURVE_TAG_CONIC:  /* consume conic arcs */
+          v_control.x = SCALED( point->x );
+          v_control.y = SCALED( point->y );
+
+        Do_Conic:
+          if ( point < limit )
+          {
+            FT_Vector  vec;
+            FT_Vector  v_middle;
+
+
+            point++;
+            tags++;
+            tag = FT_CURVE_TAG( tags[0] );
+
+            vec.x = SCALED( point->x );
+            vec.y = SCALED( point->y );
+
+            if ( tag == FT_CURVE_TAG_ON )
+            {
+              FT_TRACE5(( "  conic to (%.2f, %.2f)"
+                          " with control (%.2f, %.2f)\n",
+                          vec.x / 64.0, vec.y / 64.0,
+                          v_control.x / 64.0, v_control.y / 64.0 ));
+              error = func_interface->conic_to( &v_control, &vec, user );
+              if ( error )
+                goto Exit;
+              continue;
+            }
+
+            if ( tag != FT_CURVE_TAG_CONIC )
+              goto Invalid_Outline;
+
+            v_middle.x = ( v_control.x + vec.x ) / 2;
+            v_middle.y = ( v_control.y + vec.y ) / 2;
+
+            FT_TRACE5(( "  conic to (%.2f, %.2f)"
+                        " with control (%.2f, %.2f)\n",
+                        v_middle.x / 64.0, v_middle.y / 64.0,
+                        v_control.x / 64.0, v_control.y / 64.0 ));
+            error = func_interface->conic_to( &v_control, &v_middle, user );
+            if ( error )
+              goto Exit;
+
+            v_control = vec;
+            goto Do_Conic;
+          }
+
+          FT_TRACE5(( "  conic to (%.2f, %.2f)"
+                      " with control (%.2f, %.2f)\n",
+                      v_start.x / 64.0, v_start.y / 64.0,
+                      v_control.x / 64.0, v_control.y / 64.0 ));
+          error = func_interface->conic_to( &v_control, &v_start, user );
+          goto Close;
+
+        default:  /* FT_CURVE_TAG_CUBIC */
+          {
+            FT_Vector  vec1, vec2;
+
+
+            if ( point + 1 > limit                             ||
+                 FT_CURVE_TAG( tags[1] ) != FT_CURVE_TAG_CUBIC )
+              goto Invalid_Outline;
+
+            point += 2;
+            tags  += 2;
+
+            vec1.x = SCALED( point[-2].x );
+            vec1.y = SCALED( point[-2].y );
+
+            vec2.x = SCALED( point[-1].x );
+            vec2.y = SCALED( point[-1].y );
+
+            if ( point <= limit )
+            {
+              FT_Vector  vec;
+              FT_Vector  v_middle;
+
+
+              tag = FT_CURVE_TAG( tags[0] );
+
+              vec.x = SCALED( point->x );
+              vec.y = SCALED( point->y );
+
+              if ( tag == FT_CURVE_TAG_CUBIC )
+              {
+                v_middle.x = ( vec2.x + vec.x ) / 2;
+                v_middle.y = ( vec2.y + vec.y ) / 2;
+
+                vec = v_middle;
+              }
+              else if ( tag != FT_CURVE_TAG_ON )
+                goto Invalid_Outline;
+
+              FT_TRACE5(( "  cubic to (%.2f, %.2f)"
+                          " with controls (%.2f, %.2f) and (%.2f, %.2f)\n",
+                          vec.x / 64.0, vec.y / 64.0,
+                          vec1.x / 64.0, vec1.y / 64.0,
+                          vec2.x / 64.0, vec2.y / 64.0 ));
+              error = func_interface->cubic_to( &vec1, &vec2, &vec, user );
+              if ( error )
+                goto Exit;
+
+              if ( tag == FT_CURVE_TAG_CUBIC )
+              {
+                point--;
+                tags--;
+              }
+              continue;
+            }
+
+            FT_TRACE5(( "  cubic to (%.2f, %.2f)"
+                        " with controls (%.2f, %.2f) and (%.2f, %.2f)\n",
+                        v_start.x / 64.0, v_start.y / 64.0,
+                        vec1.x / 64.0, vec1.y / 64.0,
+                        vec2.x / 64.0, vec2.y / 64.0 ));
+            error = func_interface->cubic_to( &vec1, &vec2, &v_start, user );
+            goto Close;
+          }
+        }
+      }
+
+      /* close the contour with a line segment */
+      FT_TRACE5(( "  line to (%.2f, %.2f)\n",
+                  v_start.x / 64.0, v_start.y / 64.0 ));
+      error = func_interface->line_to( &v_start, user );
+
+    Close:
+      if ( error )
+        goto Exit;
+    }
+
+    FT_TRACE5(( "FT_Outline_Decompose: Done\n", n ));
+    return Smooth_Err_Ok;
+
+  Exit:
+    FT_TRACE5(( "FT_Outline_Decompose: Error 0x%x\n", error ));
+    return error;
+
+  Invalid_Outline:
+    return FT_THROW( Invalid_Outline );
+  }
+
+#endif /* STANDALONE_ */
+
+
+  FT_DEFINE_OUTLINE_FUNCS(
+    func_interface,
+
+    (FT_Outline_MoveTo_Func) gray_move_to,   /* move_to  */
+    (FT_Outline_LineTo_Func) gray_line_to,   /* line_to  */
+    (FT_Outline_ConicTo_Func)gray_conic_to,  /* conic_to */
+    (FT_Outline_CubicTo_Func)gray_cubic_to,  /* cubic_to */
+
+    0,                                       /* shift    */
+    0                                        /* delta    */
+  )
+
+
+  static int
+  gray_convert_glyph_inner( RAS_ARG_
+                            int  continued )
+  {
+    int  error;
+
+
+    if ( continued )
+      FT_Trace_Disable();
+    error = FT_Outline_Decompose( &ras.outline, &func_interface, &ras );
+    if ( continued )
+      FT_Trace_Enable();
+
+    FT_TRACE7(( error == Smooth_Err_Raster_Overflow
+                  ? "band [%d..%d]: to be bisected\n"
+                  : "band [%d..%d]: %td cell%s remaining\n",
+                ras.min_ey,
+                ras.max_ey,
+                ras.cell_null - ras.cell_free,
+                ras.cell_null - ras.cell_free == 1 ? "" : "s" ));
+
+    return error;
   }
 
 
@@ -1619,434 +1880,79 @@ typedef ptrdiff_t  FT_PtrDist;
   }
 
 
-#ifdef STANDALONE_
-
-  /**************************************************************************
-   *
-   * The following functions should only compile in stand-alone mode,
-   * i.e., when building this component without the rest of FreeType.
-   *
-   */
-
-  /**************************************************************************
-   *
-   * @Function:
-   *   FT_Outline_Decompose
-   *
-   * @Description:
-   *   Walk over an outline's structure to decompose it into individual
-   *   segments and Bézier arcs.  This function is also able to emit
-   *   `move to' and `close to' operations to indicate the start and end
-   *   of new contours in the outline.
-   *
-   * @Input:
-   *   outline ::
-   *     A pointer to the source target.
-   *
-   *   func_interface ::
-   *     A table of `emitters', i.e., function pointers
-   *     called during decomposition to indicate path
-   *     operations.
-   *
-   * @InOut:
-   *   user ::
-   *     A typeless pointer which is passed to each
-   *     emitter during the decomposition.  It can be
-   *     used to store the state during the
-   *     decomposition.
-   *
-   * @Return:
-   *   Error code.  0 means success.
-   */
-  static int
-  FT_Outline_Decompose( const FT_Outline*        outline,
-                        const FT_Outline_Funcs*  func_interface,
-                        void*                    user )
-  {
-#undef SCALED
-#define SCALED( x )  ( (x) * ( 1L << shift ) - delta )
-
-    FT_Vector   v_last;
-    FT_Vector   v_control;
-    FT_Vector   v_start;
-
-    FT_Vector*  point;
-    FT_Vector*  limit;
-    char*       tags;
-
-    int         error;
-
-    int   n;         /* index of contour in outline     */
-    int   first;     /* index of first point in contour */
-    int   last;      /* index of last point in contour  */
-
-    char  tag;       /* current point's state           */
-
-    int   shift;
-    TPos  delta;
-
-
-    if ( !outline )
-      return FT_THROW( Invalid_Outline );
-
-    if ( !func_interface )
-      return FT_THROW( Invalid_Argument );
-
-    shift = func_interface->shift;
-    delta = func_interface->delta;
-
-    last = -1;
-    for ( n = 0; n < outline->n_contours; n++ )
-    {
-      FT_TRACE5(( "FT_Outline_Decompose: Contour %d\n", n ));
-
-      first = last + 1;
-      last  = outline->contours[n];
-      if ( last < first )
-        goto Invalid_Outline;
-
-      limit = outline->points + last;
-
-      v_start   = outline->points[first];
-      v_start.x = SCALED( v_start.x );
-      v_start.y = SCALED( v_start.y );
-
-      v_last   = outline->points[last];
-      v_last.x = SCALED( v_last.x );
-      v_last.y = SCALED( v_last.y );
-
-      v_control = v_start;
-
-      point = outline->points + first;
-      tags  = outline->tags   + first;
-      tag   = FT_CURVE_TAG( tags[0] );
-
-      /* A contour cannot start with a cubic control point! */
-      if ( tag == FT_CURVE_TAG_CUBIC )
-        goto Invalid_Outline;
-
-      /* check first point to determine origin */
-      if ( tag == FT_CURVE_TAG_CONIC )
-      {
-        /* first point is conic control.  Yes, this happens. */
-        if ( FT_CURVE_TAG( outline->tags[last] ) == FT_CURVE_TAG_ON )
-        {
-          /* start at last point if it is on the curve */
-          v_start = v_last;
-          limit--;
-        }
-        else
-        {
-          /* if both first and last points are conic,         */
-          /* start at their middle and record its position    */
-          /* for closure                                      */
-          v_start.x = ( v_start.x + v_last.x ) / 2;
-          v_start.y = ( v_start.y + v_last.y ) / 2;
-
-          v_last = v_start;
-        }
-        point--;
-        tags--;
-      }
-
-      FT_TRACE5(( "  move to (%.2f, %.2f)\n",
-                  v_start.x / 64.0, v_start.y / 64.0 ));
-      error = func_interface->move_to( &v_start, user );
-      if ( error )
-        goto Exit;
-
-      while ( point < limit )
-      {
-        point++;
-        tags++;
-
-        tag = FT_CURVE_TAG( tags[0] );
-        switch ( tag )
-        {
-        case FT_CURVE_TAG_ON:  /* emit a single line_to */
-          {
-            FT_Vector  vec;
-
-
-            vec.x = SCALED( point->x );
-            vec.y = SCALED( point->y );
-
-            FT_TRACE5(( "  line to (%.2f, %.2f)\n",
-                        vec.x / 64.0, vec.y / 64.0 ));
-            error = func_interface->line_to( &vec, user );
-            if ( error )
-              goto Exit;
-            continue;
-          }
-
-        case FT_CURVE_TAG_CONIC:  /* consume conic arcs */
-          v_control.x = SCALED( point->x );
-          v_control.y = SCALED( point->y );
-
-        Do_Conic:
-          if ( point < limit )
-          {
-            FT_Vector  vec;
-            FT_Vector  v_middle;
-
-
-            point++;
-            tags++;
-            tag = FT_CURVE_TAG( tags[0] );
-
-            vec.x = SCALED( point->x );
-            vec.y = SCALED( point->y );
-
-            if ( tag == FT_CURVE_TAG_ON )
-            {
-              FT_TRACE5(( "  conic to (%.2f, %.2f)"
-                          " with control (%.2f, %.2f)\n",
-                          vec.x / 64.0, vec.y / 64.0,
-                          v_control.x / 64.0, v_control.y / 64.0 ));
-              error = func_interface->conic_to( &v_control, &vec, user );
-              if ( error )
-                goto Exit;
-              continue;
-            }
-
-            if ( tag != FT_CURVE_TAG_CONIC )
-              goto Invalid_Outline;
-
-            v_middle.x = ( v_control.x + vec.x ) / 2;
-            v_middle.y = ( v_control.y + vec.y ) / 2;
-
-            FT_TRACE5(( "  conic to (%.2f, %.2f)"
-                        " with control (%.2f, %.2f)\n",
-                        v_middle.x / 64.0, v_middle.y / 64.0,
-                        v_control.x / 64.0, v_control.y / 64.0 ));
-            error = func_interface->conic_to( &v_control, &v_middle, user );
-            if ( error )
-              goto Exit;
-
-            v_control = vec;
-            goto Do_Conic;
-          }
-
-          FT_TRACE5(( "  conic to (%.2f, %.2f)"
-                      " with control (%.2f, %.2f)\n",
-                      v_start.x / 64.0, v_start.y / 64.0,
-                      v_control.x / 64.0, v_control.y / 64.0 ));
-          error = func_interface->conic_to( &v_control, &v_start, user );
-          goto Close;
-
-        default:  /* FT_CURVE_TAG_CUBIC */
-          {
-            FT_Vector  vec1, vec2;
-
-
-            if ( point + 1 > limit                             ||
-                 FT_CURVE_TAG( tags[1] ) != FT_CURVE_TAG_CUBIC )
-              goto Invalid_Outline;
-
-            point += 2;
-            tags  += 2;
-
-            vec1.x = SCALED( point[-2].x );
-            vec1.y = SCALED( point[-2].y );
-
-            vec2.x = SCALED( point[-1].x );
-            vec2.y = SCALED( point[-1].y );
-
-            if ( point <= limit )
-            {
-              FT_Vector  vec;
-
-
-              vec.x = SCALED( point->x );
-              vec.y = SCALED( point->y );
-
-              FT_TRACE5(( "  cubic to (%.2f, %.2f)"
-                          " with controls (%.2f, %.2f) and (%.2f, %.2f)\n",
-                          vec.x / 64.0, vec.y / 64.0,
-                          vec1.x / 64.0, vec1.y / 64.0,
-                          vec2.x / 64.0, vec2.y / 64.0 ));
-              error = func_interface->cubic_to( &vec1, &vec2, &vec, user );
-              if ( error )
-                goto Exit;
-              continue;
-            }
-
-            FT_TRACE5(( "  cubic to (%.2f, %.2f)"
-                        " with controls (%.2f, %.2f) and (%.2f, %.2f)\n",
-                        v_start.x / 64.0, v_start.y / 64.0,
-                        vec1.x / 64.0, vec1.y / 64.0,
-                        vec2.x / 64.0, vec2.y / 64.0 ));
-            error = func_interface->cubic_to( &vec1, &vec2, &v_start, user );
-            goto Close;
-          }
-        }
-      }
-
-      /* close the contour with a line segment */
-      FT_TRACE5(( "  line to (%.2f, %.2f)\n",
-                  v_start.x / 64.0, v_start.y / 64.0 ));
-      error = func_interface->line_to( &v_start, user );
-
-    Close:
-      if ( error )
-        goto Exit;
-    }
-
-    FT_TRACE5(( "FT_Outline_Decompose: Done\n", n ));
-    return Smooth_Err_Ok;
-
-  Exit:
-    FT_TRACE5(( "FT_Outline_Decompose: Error 0x%x\n", error ));
-    return error;
-
-  Invalid_Outline:
-    return FT_THROW( Invalid_Outline );
-  }
-
-#endif /* STANDALONE_ */
-
-
-  FT_DEFINE_OUTLINE_FUNCS(
-    func_interface,
-
-    (FT_Outline_MoveTo_Func) gray_move_to,   /* move_to  */
-    (FT_Outline_LineTo_Func) gray_line_to,   /* line_to  */
-    (FT_Outline_ConicTo_Func)gray_conic_to,  /* conic_to */
-    (FT_Outline_CubicTo_Func)gray_cubic_to,  /* cubic_to */
-
-    0,                                       /* shift    */
-    0                                        /* delta    */
-  )
-
-
-  static int
-  gray_convert_glyph_inner( RAS_ARG_
-                            int  continued )
-  {
-    volatile int  error;
-
-
-    if ( ft_setjmp( ras.jump_buffer ) == 0 )
-    {
-      if ( continued )
-        FT_Trace_Disable();
-      error = FT_Outline_Decompose( &ras.outline, &func_interface, &ras );
-      if ( continued )
-        FT_Trace_Enable();
-
-      FT_TRACE7(( "band [%d..%d]: %td cell%s remaining/\n",
-                  ras.min_ey,
-                  ras.max_ey,
-                  ras.cell_null - ras.cell_free,
-                  ras.cell_null - ras.cell_free == 1 ? "" : "s" ));
-    }
-    else
-    {
-      error = FT_THROW( Raster_Overflow );
-
-      FT_TRACE7(( "band [%d..%d]: to be bisected\n",
-                  ras.min_ey, ras.max_ey ));
-    }
-
-    return error;
-  }
-
-
   static int
   gray_convert_glyph( RAS_ARG )
   {
-    const TCoord  yMin = ras.min_ey;
-    const TCoord  yMax = ras.max_ey;
-
-    TCell    buffer[FT_MAX_GRAY_POOL];
-    size_t   height = (size_t)( yMax - yMin );
-    size_t   n = FT_MAX_GRAY_POOL / 8;
-    TCoord   y;
     TCoord   bands[32];  /* enough to accommodate bisections */
-    TCoord*  band;
+    TCoord*  band = bands;
 
     int  continued = 0;
+    int  error     = Smooth_Err_Ok;
 
 
     /* Initialize the null cell at the end of the poll. */
-    ras.cell_null        = buffer + FT_MAX_GRAY_POOL - 1;
     ras.cell_null->x     = CELL_MAX_X_VALUE;
     ras.cell_null->area  = 0;
     ras.cell_null->cover = 0;
     ras.cell_null->next  = NULL;
 
     /* set up vertical bands */
-    ras.ycells     = (PCell*)buffer;
+    ras.ycells = (PCell*)ras.buffer;
 
-    if ( height > n )
+    while ( 1 )
     {
-      /* two divisions rounded up */
-      n       = ( height + n - 1 ) / n;
-      height  = ( height + n - 1 ) / n;
-    }
+      size_t  n;
+      TCoord  i, count = ras.max_ey - ras.min_ey;
 
-    for ( y = yMin; y < yMax; )
-    {
-      ras.min_ey = y;
-      y         += height;
-      ras.max_ey = FT_MIN( y, yMax );
 
-      band    = bands;
-      band[1] = ras.min_ey;
-      band[0] = ras.max_ey;
+      /* memory management: zero out and skip ycells */
+      for ( i = 0; i < count; ++i )
+        ras.ycells[i] = ras.cell_null;
 
-      do
+      n = ( (size_t)count * sizeof ( PCell ) + sizeof ( TCell ) - 1 )
+            / sizeof ( TCell );
+
+      ras.cell_free = ras.buffer + n;
+      ras.cell      = ras.cell_null;
+      ras.error     = Smooth_Err_Ok;
+
+      error     = gray_convert_glyph_inner( RAS_VAR_ continued );
+      continued = 1;
+
+      if ( !error )
       {
-        TCoord  width = band[0] - band[1];
-        TCoord  w;
-        int     error;
+        if ( ras.render_span )  /* for FT_RASTER_FLAG_DIRECT only */
+          gray_sweep_direct( RAS_VAR );
+        else
+          gray_sweep( RAS_VAR );
 
+        if ( band == bands )
+          break;  /* done */
 
-        for ( w = 0; w < width; ++w )
-          ras.ycells[w] = ras.cell_null;
+        ras.max_ey = ras.min_ey;
+        ras.min_ey = *--band;
+        continue;
+      }
+      else if ( error != Smooth_Err_Raster_Overflow )
+        goto Exit;
 
-        /* memory management: skip ycells */
-        n = ( (size_t)width * sizeof ( PCell ) + sizeof ( TCell ) - 1 ) /
-              sizeof ( TCell );
+      /* render pool overflow, reduce the render band by half */
+      count >>= 1;
 
-        ras.cell_free = buffer + n;
-        ras.cell      = ras.cell_null;
-        ras.min_ey    = band[1];
-        ras.max_ey    = band[0];
-        ras.count_ey  = width;
+      /* this happens only if the rendering pool is too small */
+      if ( count == 0 )
+      {
+        FT_TRACE7(( "gray_convert_glyph: rotten glyph\n" ));
+        error = FT_THROW( Raster_Overflow );
+        goto Exit;
+      }
 
-        error     = gray_convert_glyph_inner( RAS_VAR_ continued );
-        continued = 1;
-
-        if ( !error )
-        {
-          if ( ras.render_span )  /* for FT_RASTER_FLAG_DIRECT only */
-            gray_sweep_direct( RAS_VAR );
-          else
-            gray_sweep( RAS_VAR );
-          band--;
-          continue;
-        }
-        else if ( error != Smooth_Err_Raster_Overflow )
-          return error;
-
-        /* render pool overflow; we will reduce the render band by half */
-        width >>= 1;
-
-        /* this should never happen even with tiny rendering pool */
-        if ( width == 0 )
-        {
-          FT_TRACE7(( "gray_convert_glyph: rotten glyph\n" ));
-          return FT_THROW( Raster_Overflow );
-        }
-
-        band++;
-        band[1]  = band[0];
-        band[0] += width;
-      } while ( band >= bands );
+      *band++     = ras.min_ey;
+      ras.min_ey += count;
     }
 
-    return Smooth_Err_Ok;
+  Exit:
+    return error;
   }
 
 
@@ -2054,6 +1960,9 @@ typedef ptrdiff_t  FT_PtrDist;
   gray_raster_render( FT_Raster                raster,
                       const FT_Raster_Params*  params )
   {
+    FT_ULong  estimate;
+    int       ret;
+
     const FT_Outline*  outline    = (const FT_Outline*)params->source;
     const FT_Bitmap*   target_map = params->target;
 
@@ -2073,7 +1982,7 @@ typedef ptrdiff_t  FT_PtrDist;
       return FT_THROW( Invalid_Outline );
 
     /* return immediately if the outline is empty */
-    if ( outline->n_points == 0 || outline->n_contours <= 0 )
+    if ( outline->n_points == 0 || outline->n_contours == 0 )
       return Smooth_Err_Ok;
 
     if ( !outline->contours || !outline->points )
@@ -2093,10 +2002,10 @@ typedef ptrdiff_t  FT_PtrDist;
       ras.render_span      = (FT_Raster_Span_Func)params->gray_spans;
       ras.render_span_data = params->user;
 
-      ras.min_ex = params->clip_box.xMin;
-      ras.min_ey = params->clip_box.yMin;
-      ras.max_ex = params->clip_box.xMax;
-      ras.max_ey = params->clip_box.yMax;
+      ras.min_ex = (TCoord)params->clip_box.xMin;
+      ras.min_ey = (TCoord)params->clip_box.yMin;
+      ras.max_ex = (TCoord)params->clip_box.xMax;
+      ras.max_ey = (TCoord)params->clip_box.yMax;
     }
     else
     {
@@ -2124,15 +2033,43 @@ typedef ptrdiff_t  FT_PtrDist;
 
       ras.min_ex = 0;
       ras.min_ey = 0;
-      ras.max_ex = (FT_Pos)target_map->width;
-      ras.max_ey = (FT_Pos)target_map->rows;
+      ras.max_ex = (TCoord)target_map->width;
+      ras.max_ey = (TCoord)target_map->rows;
     }
 
     /* exit if nothing to do */
-    if ( ras.max_ex <= ras.min_ex || ras.max_ey <= ras.min_ey )
+    if ( ras.min_ex >= ras.max_ex || ras.min_ey >= ras.max_ey )
       return Smooth_Err_Ok;
 
-    return gray_convert_glyph( RAS_VAR );
+    /* allocate memory based on empirical estimate from CJK fonts */
+    estimate = ( ras.max_ex - ras.min_ex + ras.max_ey - ras.min_ey ) * 10UL;
+    if ( estimate > FT_MAX_GRAY_POOL )
+    {
+      FT_Error   error;
+      FT_Memory  memory = (FT_Memory)((gray_PRaster)raster)->memory;
+
+
+      if ( FT_QNEW_ARRAY( ras.buffer, estimate ) )
+        ret = error;
+      else
+      {
+        ras.cell_null = ras.buffer + estimate - 1;
+        ret = gray_convert_glyph( RAS_VAR );
+        FT_FREE( ras.buffer );
+      }
+    }
+    else
+    {
+      TCell  buffer[FT_MAX_GRAY_POOL];  /* stack allocation */
+
+
+      ras.buffer    = buffer;
+      ras.cell_null = ras.buffer + FT_MAX_GRAY_POOL - 1;
+
+      ret = gray_convert_glyph( RAS_VAR );
+    }
+
+    return ret;
   }
 
 

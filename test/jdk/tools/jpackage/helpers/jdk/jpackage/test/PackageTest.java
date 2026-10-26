@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,12 +22,11 @@
  */
 package jdk.jpackage.test;
 
-import java.awt.Desktop;
 import java.awt.GraphicsEnvironment;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -275,7 +274,7 @@ public final class PackageTest extends RunnablePackageTest {
                 Files.deleteIfExists(appOutput);
 
                 List<String> expectedArgs = testRun.openFiles(testFiles);
-                TKit.waitForFileCreated(appOutput, 7);
+                TKit.waitForFileCreated(appOutput, Duration.ofSeconds(7), Duration.ofSeconds(3));
 
                 // Wait a little bit after file has been created to
                 // make sure there are no pending writes into it.
@@ -582,7 +581,9 @@ public final class PackageTest extends RunnablePackageTest {
                     if (expectedJPackageExitCode == 0) {
                         TKit.assertFileExists(cmd.outputBundle());
                     } else {
-                        TKit.assertPathExists(cmd.outputBundle(), false);
+                        cmd.nullableOutputBundle().ifPresent(outputBundle -> {
+                            TKit.assertPathExists(outputBundle, false);
+                        });
                     }
                     verifyPackageBundle(cmd, result);
                     break;
@@ -776,7 +777,7 @@ public final class PackageTest extends RunnablePackageTest {
     private Set<String> namedInitializers;
     private Map<PackageType, PackageHandlers> packageHandlers;
 
-    private final static File BUNDLE_OUTPUT_DIR;
+    private static final Path BUNDLE_OUTPUT_DIR;
 
     static {
         final String propertyName = "output";
@@ -784,9 +785,9 @@ public final class PackageTest extends RunnablePackageTest {
         if (val == null) {
             BUNDLE_OUTPUT_DIR = null;
         } else {
-            BUNDLE_OUTPUT_DIR = new File(val).getAbsoluteFile();
+            BUNDLE_OUTPUT_DIR = Path.of(val).toAbsolutePath();
 
-            if (!BUNDLE_OUTPUT_DIR.isDirectory()) {
+            if (!Files.isDirectory(BUNDLE_OUTPUT_DIR)) {
                 throw new IllegalArgumentException(String.format("Invalid value of %s sytem property: [%s]. Should be existing directory",
                         TKit.getConfigPropertyName(propertyName),
                         BUNDLE_OUTPUT_DIR));

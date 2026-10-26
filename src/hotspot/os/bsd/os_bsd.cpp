@@ -79,6 +79,7 @@
 # include <fcntl.h>
 # include <fenv.h>
 # include <inttypes.h>
+# include <mach/mach.h>
 # include <poll.h>
 # include <pthread.h>
 # include <pwd.h>
@@ -105,6 +106,7 @@
 #endif
 
 #ifdef __APPLE__
+  #include <libproc.h>
   #include <mach/task_info.h>
   #include <mach-o/dyld.h>
 #endif
@@ -120,7 +122,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // global variables
-julong os::Bsd::_physical_memory = 0;
+physical_memory_size_type os::Bsd::_physical_memory = 0;
 
 #ifdef __APPLE__
 mach_timebase_info_data_t os::Bsd::_timebase_info = {0, 0};
@@ -139,17 +141,17 @@ static volatile int processor_id_next = 0;
 ////////////////////////////////////////////////////////////////////////////////
 // utility functions
 
-julong os::available_memory() {
-  return Bsd::available_memory();
+bool os::available_memory(physical_memory_size_type& value) {
+  return Bsd::available_memory(value);
 }
 
-julong os::free_memory() {
-  return Bsd::available_memory();
+bool os::free_memory(physical_memory_size_type& value) {
+  return Bsd::available_memory(value);
 }
 
 // available here means free
-julong os::Bsd::available_memory() {
-  uint64_t available = physical_memory() >> 2;
+bool os::Bsd::available_memory(physical_memory_size_type& value) {
+  physical_memory_size_type available = physical_memory() >> 2;
 #ifdef __APPLE__
   mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
   vm_statistics64_data_t vmstat;
@@ -159,9 +161,12 @@ julong os::Bsd::available_memory() {
          "host_statistics64 failed - check mach_host_self() and count");
   if (kerr == KERN_SUCCESS) {
     available = vmstat.free_count * os::vm_page_size();
+  } else {
+    return false;
   }
 #endif
-  return available;
+  value = available;
+  return true;
 }
 
 // for more info see :
@@ -180,7 +185,7 @@ void os::Bsd::print_uptime_info(outputStream* st) {
   }
 }
 
-julong os::physical_memory() {
+physical_memory_size_type os::physical_memory() {
   return Bsd::physical_memory();
 }
 
@@ -203,11 +208,13 @@ static char cpu_arch[] = "ppc";
   #error Add appropriate cpu_arch setting
 #endif
 
-// Compiler variant
-#ifdef COMPILER2
-  #define COMPILER_VARIANT "server"
+// JVM variant
+#if   defined(ZERO)
+  #define JVM_VARIANT "zero"
+#elif defined(COMPILER2)
+  #define JVM_VARIANT "server"
 #else
-  #define COMPILER_VARIANT "client"
+  #define JVM_VARIANT "client"
 #endif
 
 
@@ -252,7 +259,7 @@ void os::Bsd::initialize_system_info() {
   len = sizeof(mem_val);
   if (sysctl(mib, 2, &mem_val, &len, nullptr, 0) != -1) {
     assert(len == sizeof(mem_val), "unexpected data size");
-    _physical_memory = mem_val;
+    _physical_memory = static_cast<physical_memory_size_type>(mem_val);
   } else {
     _physical_memory = 256 * 1024 * 1024;       // fallback (XXXBSD?)
   }
@@ -263,7 +270,7 @@ void os::Bsd::initialize_system_info() {
     // datasize rlimit restricts us anyway.
     struct rlimit limits;
     getrlimit(RLIMIT_DATA, &limits);
-    _physical_memory = MIN2(_physical_memory, (julong)limits.rlim_cur);
+    _physical_memory = MIN2(_physical_memory, static_cast<physical_memory_size_type>(limits.rlim_cur));
   }
 #endif
 }
@@ -985,6 +992,8 @@ void *os::Bsd::dlopen_helper(const char *filename, int mode) {
   assert(rtn == 0, "fegetenv must succeed");
 #endif // IA32
 
+  Events::log_dll_message(nullptr, "Attempting to load shared library %s", filename);
+
   void * result= ::dlopen(filename, RTLD_LAZY);
 
 #ifndef IA32
@@ -1409,10 +1418,13 @@ void os::print_memory_info(outputStream* st) {
   st->print("Memory:");
   st->print(" " SIZE_FORMAT "k page", os::vm_page_size()>>10);
 
-  st->print(", physical " UINT64_FORMAT "k",
-            os::physical_memory() >> 10);
-  st->print("(" UINT64_FORMAT "k free)",
-            os::available_memory() >> 10);
+  physical_memory_size_type phys_mem = os::physical_memory();
+  st->print(", physical " PHYS_MEM_TYPE_FORMAT "k",
+            phys_mem >> 10);
+  physical_memory_size_type avail_mem = 0;
+  (void)os::available_memory(avail_mem);
+  st->print("(" PHYS_MEM_TYPE_FORMAT "k free)",
+            avail_mem >> 10);
 
   if((sysctlbyname("vm.swapusage", &swap_usage, &size, nullptr, 0) == 0) || (errno == ENOMEM)) {
     if (size >= offset_of(xsw_usage, xsu_used)) {
@@ -1499,10 +1511,10 @@ void os::jvm_path(char *buf, jint buflen) {
           snprintf(jrelib_p, buflen-len, "/lib");
         }
 
-        // Add the appropriate client or server subdir
+        // Add the appropriate JVM variant subdir
         len = strlen(buf);
         jrelib_p = buf + len;
-        snprintf(jrelib_p, buflen-len, "/%s", COMPILER_VARIANT);
+        snprintf(jrelib_p, buflen-len, "/%s", JVM_VARIANT);
         if (0 != access(buf, F_OK)) {
           snprintf(jrelib_p, buflen-len, "%s", "");
         }
@@ -2501,7 +2513,9 @@ void os::jfr_report_memory_info() {
     // Send the RSS JFR event
     EventResidentSetSize event;
     event.set_size(info.resident_size);
-    event.set_peak(info.resident_size_max);
+    // We've seen that resident_size_max sometimes trails resident_size with one page.
+    // Make sure we always report size <= peak
+    event.set_peak(MAX2(info.resident_size_max, info.resident_size));
     event.commit();
   } else {
     // Log a warning
@@ -2538,3 +2552,45 @@ bool os::pd_dll_unload(void* libhandle, char* ebuf, int ebuflen) {
 
   return res;
 } // end: os::pd_dll_unload()
+
+void os::print_open_file_descriptors(outputStream* st) {
+#ifdef __APPLE__
+  char buf[1024 * sizeof(struct proc_fdinfo)];
+  os::Bsd::print_open_file_descriptors(st, buf, sizeof(buf));
+#else
+  st->print_cr("Open File Descriptors: unknown");
+#endif
+}
+
+void os::Bsd::print_open_file_descriptors(outputStream* st, char* buf, size_t buflen) {
+#ifdef __APPLE__
+  pid_t my_pid;
+
+  // ensure the scratch buffer is big enough for at least one FD info struct
+  precond(buflen >= sizeof(struct proc_fdinfo));
+  kern_return_t kres = pid_for_task(mach_task_self(), &my_pid);
+  if (kres != KERN_SUCCESS) {
+    st->print_cr("Open File Descriptors: unknown");
+    return;
+  }
+  size_t max_fds = buflen / sizeof(struct proc_fdinfo);
+  struct proc_fdinfo* fds = reinterpret_cast<struct proc_fdinfo*>(buf);
+
+  // fill our buffer with FD info, up to the available buffer size
+  int res = proc_pidinfo(my_pid, PROC_PIDLISTFDS, 0, fds, max_fds * sizeof(struct proc_fdinfo));
+  if (res <= 0) {
+    st->print_cr("Open File Descriptors: unknown");
+    return;
+  }
+
+  // print lower threshold if count exceeds buffer size
+  int nfiles = res / sizeof(struct proc_fdinfo);
+  if ((size_t)nfiles >= max_fds) {
+    st->print_cr("Open File Descriptors: > %zu", max_fds);
+    return;
+  }
+  st->print_cr("Open File Descriptors: %d", nfiles);
+#else
+  st->print_cr("Open File Descriptors: unknown");
+#endif
+}

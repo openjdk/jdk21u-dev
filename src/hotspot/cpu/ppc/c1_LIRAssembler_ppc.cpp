@@ -748,7 +748,7 @@ int LIR_Assembler::store(LIR_Opr from_reg, Register base, int offset, BasicType 
           if (UseCompressedOops && !wide) {
             // Encoding done in caller
             __ stw(from_reg->as_register(), offset, base);
-            __ verify_coop(from_reg->as_register(), FILE_AND_LINE);
+            __ verify_oop(from_reg->as_register(), FILE_AND_LINE, /*compressed*/ true); // kills R0
           } else {
             __ std(from_reg->as_register(), offset, base);
             if (VerifyOops) {
@@ -792,7 +792,7 @@ int LIR_Assembler::store(LIR_Opr from_reg, Register base, Register disp, BasicTy
         if (UseCompressedOops && !wide) {
           // Encoding done in caller.
           __ stwx(from_reg->as_register(), base, disp);
-          __ verify_coop(from_reg->as_register(), FILE_AND_LINE); // kills R0
+          __ verify_oop(from_reg->as_register(), FILE_AND_LINE, /*compressed*/ true); // kills R0
         } else {
           __ stdx(from_reg->as_register(), base, disp);
           if (VerifyOops) {
@@ -1715,7 +1715,7 @@ void LIR_Assembler::arith_op(LIR_Code code, LIR_Opr left, LIR_Opr right, LIR_Opr
 }
 
 
-void LIR_Assembler::intrinsic_op(LIR_Code code, LIR_Opr value, LIR_Opr thread, LIR_Opr dest, LIR_Op* op) {
+void LIR_Assembler::intrinsic_op(LIR_Code code, LIR_Opr value, LIR_Opr tmp, LIR_Opr dest, LIR_Op* op) {
   switch (code) {
     case lir_sqrt: {
       __ fsqrt(dest->as_double_reg(), value->as_double_reg());
@@ -1723,6 +1723,14 @@ void LIR_Assembler::intrinsic_op(LIR_Code code, LIR_Opr value, LIR_Opr thread, L
     }
     case lir_abs: {
       __ fabs(dest->as_double_reg(), value->as_double_reg());
+      break;
+    }
+    case lir_f2hf: {
+      __ f2hf(dest.as_register(), value.as_float_reg(), tmp.as_float_reg());
+      break;
+    }
+    case lir_hf2f: {
+      __ hf2f(dest->as_float_reg(), value.as_register());
       break;
     }
     default: {

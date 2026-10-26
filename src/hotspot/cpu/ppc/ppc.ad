@@ -2125,6 +2125,9 @@ const bool Matcher::match_rule_supported(int opcode) {
     case Op_PopCountI:
     case Op_PopCountL:
       return (UsePopCountInstruction && VM_Version::has_popcntw());
+    case Op_ConvF2HF:
+    case Op_ConvHF2F:
+      return VM_Version::supports_float16();
 
     case Op_AddVB:
     case Op_AddVS:
@@ -11345,6 +11348,34 @@ instruct convF2D_reg(regD dst, regF src) %{
   ins_pipe(pipe_class_default);
 %}
 
+instruct convF2HF_reg_reg(iRegIdst dst, regF src, regF tmp) %{
+  match(Set dst (ConvF2HF src));
+  effect(TEMP tmp);
+  ins_cost(3 * DEFAULT_COST);
+  size(12);
+  format %{ "xscvdphp $tmp, $src\t# convert to half precision\n\t"
+            "mffprd $dst, $tmp\t# move result from $tmp to $dst\n\t"
+            "extsh $dst, $dst\t# make it a proper short"
+  %}
+  ins_encode %{
+    __ f2hf($dst$$Register, $src$$FloatRegister, $tmp$$FloatRegister);
+  %}
+  ins_pipe(pipe_class_default);
+%}
+
+instruct convHF2F_reg_reg(regF dst, iRegIsrc src) %{
+  match(Set dst (ConvHF2F src));
+  ins_cost(2 * DEFAULT_COST);
+  size(8);
+  format %{ "mtfprd $dst, $src\t# move source from $src to $dst\n\t"
+            "xscvhpdp $dst, $dst\t# convert from half precision"
+  %}
+  ins_encode %{
+    __ hf2f($dst$$FloatRegister, $src$$Register);
+  %}
+  ins_pipe(pipe_class_default);
+%}
+
 //----------Control Flow Instructions------------------------------------------
 // Compare Instructions
 
@@ -12768,16 +12799,8 @@ instruct string_compress(rarg1RegP src, rarg2RegP dst, iRegIsrc len, iRegIdst re
   ins_cost(300);
   format %{ "String Compress $src,$dst,$len -> $result \t// KILL $tmp1, $tmp2, $tmp3, $tmp4, $tmp5" %}
   ins_encode %{
-    Label Lskip, Ldone;
-    __ li($result$$Register, 0);
-    __ string_compress_16($src$$Register, $dst$$Register, $len$$Register, $tmp1$$Register,
-                          $tmp2$$Register, $tmp3$$Register, $tmp4$$Register, $tmp5$$Register, Ldone);
-    __ rldicl_($tmp1$$Register, $len$$Register, 0, 64-3); // Remaining characters.
-    __ beq(CCR0, Lskip);
-    __ string_compress($src$$Register, $dst$$Register, $tmp1$$Register, $tmp2$$Register, Ldone);
-    __ bind(Lskip);
-    __ mr($result$$Register, $len$$Register);
-    __ bind(Ldone);
+    __ encode_iso_array($src$$Register, $dst$$Register, $len$$Register, $tmp1$$Register, $tmp2$$Register,
+                        $tmp3$$Register, $tmp4$$Register, $tmp5$$Register, $result$$Register, false);
   %}
   ins_pipe(pipe_class_default);
 %}
@@ -13049,28 +13072,41 @@ instruct countTrailingZerosL_cnttzd(iRegIdst dst, iRegLsrc src) %{
   ins_pipe(pipe_class_default);
 %}
 
-// Expand nodes for byte_reverse_int.
-instruct insrwi_a(iRegIdst dst, iRegIsrc src, immI16 pos, immI16 shift) %{
-  effect(DEF dst, USE src, USE pos, USE shift);
+// Expand nodes for byte_reverse_int/ushort/short.
+instruct rlwinm(iRegIdst dst, iRegIsrc src, immI16 shift, immI16 mb, immI16 me) %{
+  effect(DEF dst, USE src, USE shift, USE mb, USE me);
   predicate(false);
 
-  format %{ "INSRWI  $dst, $src, $pos, $shift" %}
+  format %{ "RLWINM  $dst, $src, $shift, $mb, $me" %}
   size(4);
   ins_encode %{
-    __ insrwi($dst$$Register, $src$$Register, $shift$$constant, $pos$$constant);
+    __ rlwinm($dst$$Register, $src$$Register, $shift$$constant, $mb$$constant, $me$$constant);
+  %}
+  ins_pipe(pipe_class_default);
+%}
+
+// Expand nodes for byte_reverse_int.
+instruct insrwi_a(iRegIdst dst, iRegIsrc src, immI16 n, immI16 b) %{
+  effect(DEF dst, USE src, USE n, USE b);
+  predicate(false);
+
+  format %{ "INSRWI  $dst, $src, $n, $b" %}
+  size(4);
+  ins_encode %{
+    __ insrwi($dst$$Register, $src$$Register, $n$$constant, $b$$constant);
   %}
   ins_pipe(pipe_class_default);
 %}
 
 // As insrwi_a, but with USE_DEF.
-instruct insrwi(iRegIdst dst, iRegIsrc src, immI16 pos, immI16 shift) %{
-  effect(USE_DEF dst, USE src, USE pos, USE shift);
+instruct insrwi(iRegIdst dst, iRegIsrc src, immI16 n, immI16 b) %{
+  effect(USE_DEF dst, USE src, USE n, USE b);
   predicate(false);
 
-  format %{ "INSRWI  $dst, $src, $pos, $shift" %}
+  format %{ "INSRWI  $dst, $src, $n, $b" %}
   size(4);
   ins_encode %{
-    __ insrwi($dst$$Register, $src$$Register, $shift$$constant, $pos$$constant);
+    __ insrwi($dst$$Register, $src$$Register, $n$$constant, $b$$constant);
   %}
   ins_pipe(pipe_class_default);
 %}
@@ -13092,12 +13128,12 @@ instruct bytes_reverse_int_Ex(iRegIdst dst, iRegIsrc src) %{
     iRegLdst tmpI3;
 
     urShiftI_reg_imm(tmpI1, src, imm24);
-    insrwi_a(dst, tmpI1, imm24, imm8);
+    insrwi_a(dst, tmpI1, imm8, imm24);
     urShiftI_reg_imm(tmpI2, src, imm16);
-    insrwi(dst, tmpI2, imm8, imm16);
+    insrwi(dst, tmpI2, imm16, imm8);
     urShiftI_reg_imm(tmpI3, src, imm8);
     insrwi(dst, tmpI3, imm8, imm8);
-    insrwi(dst, src, imm0, imm8);
+    insrwi(dst, src, imm8, imm0);
   %}
 %}
 
@@ -13205,32 +13241,20 @@ instruct bytes_reverse_long(iRegLdst dst, iRegLsrc src) %{
   ins_pipe(pipe_class_default);
 %}
 
+// Need zero extend. Must not use brh only.
 instruct bytes_reverse_ushort_Ex(iRegIdst dst, iRegIsrc src) %{
   match(Set dst (ReverseBytesUS src));
-  predicate(!UseByteReverseInstructions);
   ins_cost(2*DEFAULT_COST);
 
   expand %{
+    immI16  imm31 %{ (int) 31 %}
+    immI16  imm24 %{ (int) 24 %}
     immI16  imm16 %{ (int) 16 %}
     immI16   imm8 %{ (int)  8 %}
 
-    urShiftI_reg_imm(dst, src, imm8);
-    insrwi(dst, src, imm16, imm8);
+    rlwinm(dst, src, imm24, imm24, imm31);
+    insrwi(dst, src, imm8, imm16);
   %}
-%}
-
-instruct bytes_reverse_ushort(iRegIdst dst, iRegIsrc src) %{
-  match(Set dst (ReverseBytesUS src));
-  predicate(UseByteReverseInstructions);
-  ins_cost(DEFAULT_COST);
-  size(4);
-
-  format %{ "BRH  $dst, $src" %}
-
-  ins_encode %{
-    __ brh($dst$$Register, $src$$Register);
-  %}
-  ins_pipe(pipe_class_default);
 %}
 
 instruct bytes_reverse_short_Ex(iRegIdst dst, iRegIsrc src) %{
@@ -13244,7 +13268,7 @@ instruct bytes_reverse_short_Ex(iRegIdst dst, iRegIsrc src) %{
     iRegLdst tmpI1;
 
     urShiftI_reg_imm(tmpI1, src, imm8);
-    insrwi(tmpI1, src, imm16, imm8);
+    insrwi(tmpI1, src, imm8, imm16);
     extsh(dst, tmpI1);
   %}
 %}

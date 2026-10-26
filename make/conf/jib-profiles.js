@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -436,7 +436,7 @@ var getJibProfilesProfiles = function (input, common, data) {
             target_cpu: "x64",
             dependencies: ["devkit", "gtest", "pandoc"],
             configure_args: concat(common.configure_args_64bit, "--with-zlib=system",
-                "--with-macosx-version-max=10.12.00",
+                "--with-macosx-version-max=11.00.00",
                 "--enable-compatible-cds-alignment",
                 // Use system SetFile instead of the one in the devkit as the
                 // devkit one may not work on Catalina.
@@ -952,7 +952,7 @@ var getJibProfilesProfiles = function (input, common, data) {
 
     // Profiles used to run tests using Jib for internal dependencies.
     var testedProfile = input.testedProfile;
-    if (testedProfile == null) {
+    if (testedProfile == null || testedProfile == "docs") {
         testedProfile = input.build_os + "-" + input.build_cpu;
     }
     var testedProfileJdk = testedProfile + ".jdk";
@@ -994,25 +994,38 @@ var getJibProfilesProfiles = function (input, common, data) {
         testOnlyProfilesPrebuilt["run-test-prebuilt"]["dependencies"].push(testedProfile + ".jdk_symbols");
     }
 
+    var testOnlyProfilesPrebuiltDocs = {
+        "run-test-prebuilt-docs": clone(testOnlyProfilesPrebuilt["run-test-prebuilt"])
+    };
+
+    testOnlyProfilesPrebuiltDocs["run-test-prebuilt-docs"].dependencies.push("docs.doc_api_spec", "tidy");
+    testOnlyProfilesPrebuiltDocs["run-test-prebuilt-docs"].environment["DOCS_JDK_IMAGE_DIR"]
+        = input.get("docs.doc_api_spec", "install_path");
+    testOnlyProfilesPrebuiltDocs["run-test-prebuilt-docs"].environment["TIDY"]
+        = input.get("tidy", "home_path") + "/bin/tidy";
+    testOnlyProfilesPrebuiltDocs["run-test-prebuilt-docs"].labels = "test-docs";
+
     // If actually running the run-test-prebuilt profile, verify that the input
     // variable is valid and if so, add the appropriate target_* values from
     // the tested profile. Use testImageProfile value as backup.
-    if (input.profile == "run-test-prebuilt") {
+    if (input.profile == "run-test-prebuilt" || input.profile == "run-test-prebuilt-docs") {
         if (profiles[testedProfile] == null && profiles[testImageProfile] == null) {
             error("testedProfile is not defined: " + testedProfile + " " + testImageProfile);
         }
     }
-    if (profiles[testedProfile] != null) {
-        testOnlyProfilesPrebuilt["run-test-prebuilt"]["target_os"]
-            = profiles[testedProfile]["target_os"];
-        testOnlyProfilesPrebuilt["run-test-prebuilt"]["target_cpu"]
-            = profiles[testedProfile]["target_cpu"];
-    } else if (profiles[testImageProfile] != null) {
-        testOnlyProfilesPrebuilt["run-test-prebuilt"]["target_os"]
-            = profiles[testImageProfile]["target_os"];
-        testOnlyProfilesPrebuilt["run-test-prebuilt"]["target_cpu"]
-            = profiles[testImageProfile]["target_cpu"];
+    function updateProfileTargets(profiles, testedProfile, testImageProfile, targetProfile, runTestProfile) {
+        var profileToCheck = profiles[testedProfile] || profiles[testImageProfile];
+
+        if (profileToCheck != null) {
+            targetProfile[runTestProfile]["target_os"] = profileToCheck["target_os"];
+            targetProfile[runTestProfile]["target_cpu"] = profileToCheck["target_cpu"];
+        }
     }
+
+    updateProfileTargets(profiles, testedProfile, testImageProfile, testOnlyProfilesPrebuilt, "run-test-prebuilt");
+    updateProfileTargets(profiles, testedProfile, testImageProfile, testOnlyProfilesPrebuiltDocs, "run-test-prebuilt-docs");
+
+    profiles = concatObjects(profiles, testOnlyProfilesPrebuiltDocs);
     profiles = concatObjects(profiles, testOnlyProfilesPrebuilt);
 
     // On macosx add the devkit bin dir to the path in all the run-test profiles.
@@ -1062,6 +1075,8 @@ var getJibProfilesProfiles = function (input, common, data) {
         }
         profiles["run-test-prebuilt"] = concatObjects(profiles["run-test-prebuilt"],
             runTestPrebuiltSrcFullExtra);
+        profiles["run-test-prebuilt-docs"] = concatObjects(profiles["run-test-prebuilt-docs"],
+            runTestPrebuiltSrcFullExtra);
     }
 
     // Generate the missing platform attributes
@@ -1080,10 +1095,10 @@ var getJibProfilesProfiles = function (input, common, data) {
 var getJibProfilesDependencies = function (input, common) {
 
     var devkit_platform_revisions = {
-        linux_x64: "gcc11.2.0-OL6.4+1.0",
+        linux_x64: "gcc13.2.0-OL6.4+1.0",
         macosx: "Xcode12.4+1.1",
         windows_x64: "VS2022-17.1.0+1.1",
-        linux_aarch64: input.build_cpu == "x64" ? "gcc11.2.0-OL7.6+1.1" : "gcc11.2.0-OL7.6+1.0",
+        linux_aarch64: "gcc13.2.0-OL7.6+1.0",
         linux_arm: "gcc8.2.0-Fedora27+1.0",
         linux_ppc64le: "gcc8.2.0-Fedora27+1.0",
         linux_s390x: "gcc8.2.0-Fedora27+1.0",
@@ -1185,9 +1200,9 @@ var getJibProfilesDependencies = function (input, common) {
         jtreg: {
             server: "jpg",
             product: "jtreg",
-            version: "7.3.1",
+            version: "8.2.1",
             build_number: "1",
-            file: "bundles/jtreg-7.3.1+1.zip",
+            file: "bundles/jtreg-8.2.1+1.zip",
             environment_name: "JT_HOME",
             environment_path: input.get("jtreg", "home_path") + "/bin",
             configure_args: "--with-jtreg=" + input.get("jtreg", "home_path"),
@@ -1267,7 +1282,7 @@ var getJibProfilesDependencies = function (input, common) {
         gtest: {
             organization: common.organization,
             ext: "tar.gz",
-            revision: "1.13.0+1.0"
+            revision: "1.14.0+1.0"
         },
 
         libffi: {
@@ -1517,7 +1532,7 @@ var getVersionNumbers = function () {
 var isWsl = function (input) {
     return ( input.build_osenv == "wsl"
              || (input.build_os == "linux"
-                 && java.lang.System.getProperty("os.version").contains("Microsoft")));
+                 && java.lang.System.getProperty("os.version").toLowerCase().contains("microsoft")));
 }
 
 var error = function (s) {

@@ -135,7 +135,12 @@ static jint load_agent(AttachOperation* op, outputStream* out) {
     }
   }
 
-  return JvmtiAgentList::load_agent(agent, absParam, options, out);
+  // The abs parameter should be "true" or "false".
+  const bool is_absolute_path = (absParam != nullptr) && (strcmp(absParam, "true") == 0);
+  JvmtiAgentList::load_agent(agent, is_absolute_path, options, out);
+
+  // Agent_OnAttach result or error message is written to 'out'.
+  return JNI_OK;
 }
 
 // Implementation of "properties" command.
@@ -396,7 +401,13 @@ static void attach_listener_thread_entry(JavaThread* thread, TRAPS) {
     }
 
     ResourceMark rm;
-    bufferedStream st;
+    // jcmd output can get lengthy. As long as we miss jcmd continuous streaming output
+    // and instead just send the output in bulk, make sure large command output does not
+    // cause asserts. We still retain a max cap, but dimensioned in a way that makes it
+    // highly unlikely we should ever hit it under normal conditions.
+    constexpr size_t initial_size = 1 * M;
+    constexpr size_t max_size = 3 * G;
+    bufferedStream st(initial_size, max_size);
     jint res = JNI_OK;
 
     // handle special detachall operation

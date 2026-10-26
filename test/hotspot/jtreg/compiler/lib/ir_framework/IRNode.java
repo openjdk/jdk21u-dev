@@ -348,6 +348,12 @@ public class IRNode {
         superWordNodes(AND_REDUCTION_V, "AndReductionV");
     }
 
+    public static final String ANY_LOOP = PREFIX + "ANY_LOOP" + POSTFIX;
+    static {
+        String regex = START + "(Counted|LongCounted|OuterStripMined)?Loop\\b" + MID + END;
+        fromBeforeCountedLoops(ANY_LOOP, regex);
+    }
+
     public static final String CALL = PREFIX + "CALL" + POSTFIX;
     static {
         beforeMatchingNameRegex(CALL, "Call.*Java");
@@ -1000,6 +1006,11 @@ public class IRNode {
     public static final String NEG_VD = VECTOR_PREFIX + "NEG_VD" + POSTFIX;
     static {
         vectorNode(NEG_VD, "NegVD", TYPE_DOUBLE);
+    }
+
+    public static final String NOP = PREFIX + "NOP" + POSTFIX;
+    static {
+        machOnlyNameRegex(NOP, "Nop");
     }
 
     public static final String NULL_ASSERT_TRAP = PREFIX + "NULL_ASSERT_TRAP" + POSTFIX;

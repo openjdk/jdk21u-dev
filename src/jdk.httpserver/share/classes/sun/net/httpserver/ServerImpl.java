@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,6 +44,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.net.BindException;
 import java.net.InetSocketAddress;
+import java.net.ProtocolException;
 import java.net.ServerSocket;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -61,7 +62,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static sun.net.httpserver.Utils.isValidName;
@@ -94,7 +97,7 @@ class ServerImpl {
     private final Set<HttpConnection> rspConnections;
     private List<Event> events;
     private final Object lolock = new Object();
-    private volatile boolean finished = false;
+    private final CountDownLatch finishedLatch = new CountDownLatch(1);
     private volatile boolean terminating = false;
     private boolean bound = false;
     private boolean started = false;
@@ -108,6 +111,7 @@ class ServerImpl {
     static final long REQ_RSP_TIMER_SCHEDULE = ServerConfig.getReqRspTimerScheduleMillis();
     static final long MAX_REQ_TIME = getTimeMillis(ServerConfig.getMaxReqTime());
     static final long MAX_RSP_TIME = getTimeMillis(ServerConfig.getMaxRspTime());
+    static final boolean HOST_VALIDATION_DISABLED = ServerConfig.isHostValidationDisabled();;
     static final boolean reqRspTimeoutEnabled = MAX_REQ_TIME != -1 || MAX_RSP_TIME != -1;
     // the maximum idle duration for a connection which is currently idle but has served
     // some request in the past
@@ -180,7 +184,7 @@ class ServerImpl {
     }
 
     public void start () {
-        if (!bound || started || finished) {
+        if (!bound || started || finished()) {
             throw new IllegalStateException ("server in wrong state");
         }
         if (executor == null) {
@@ -223,45 +227,75 @@ class ServerImpl {
         return httpsConfig;
     }
 
-    public final boolean isFinishing() {
-        return finished;
+    private final boolean finished(){
+        // if the latch is 0, the server is finished
+        return finishedLatch.getCount() == 0;
     }
 
+    public final boolean isFinishing() {
+        return finished();
+    }
+
+    /**
+     * This method stops the server by adding a stop request event and
+     * waiting for the server until the event is triggered or until the maximum delay is triggered.
+     * <p>
+     * This ensures that the server is stopped immediately after all exchanges are complete. HttpConnections will be forcefully closed if active exchanges do not
+     * complete within the imparted delay.
+     *
+     * @param delay maximum delay to wait for exchanges completion, in seconds
+     */
     public void stop (int delay) {
         if (delay < 0) {
             throw new IllegalArgumentException ("negative delay parameter");
         }
+
+        logger.log(Level.TRACE, "stopping");
+        // posting a stop event, which will flip finished flag if it finishes
+        // before the timeout in this method
         terminating = true;
+
+        addEvent(new Event.StopRequested());
+
         try { schan.close(); } catch (IOException e) {}
         selector.wakeup();
-        long latest = System.currentTimeMillis() + delay * 1000;
-        while (System.currentTimeMillis() < latest) {
-            delay();
-            if (finished) {
-                break;
+
+        try {
+            // waiting for the duration of the delay, unless released before
+            finishedLatch.await(delay, TimeUnit.SECONDS);
+
+        } catch (InterruptedException e) {
+            logger.log(Level.TRACE, "Error in awaiting the delay");
+
+        } finally {
+
+            logger.log(Level.TRACE, "closing connections");
+            finishedLatch.countDown();
+            selector.wakeup();
+            synchronized (allConnections) {
+                for (HttpConnection c : allConnections) {
+                    c.close();
+                }
             }
-        }
-        finished = true;
-        selector.wakeup();
-        synchronized (allConnections) {
-            for (HttpConnection c : allConnections) {
-                c.close();
+            allConnections.clear();
+            idleConnections.clear();
+            newlyAcceptedConnections.clear();
+            timer.cancel();
+            if (reqRspTimeoutEnabled) {
+                timer1.cancel();
             }
-        }
-        allConnections.clear();
-        idleConnections.clear();
-        newlyAcceptedConnections.clear();
-        timer.cancel();
-        if (reqRspTimeoutEnabled) {
-            timer1.cancel();
-        }
-        if (dispatcherThread != null && dispatcherThread != Thread.currentThread()) {
-            try {
-                dispatcherThread.join();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                logger.log (Level.TRACE, "ServerImpl.stop: ", e);
+            logger.log(Level.TRACE, "connections closed");
+
+            if (dispatcherThread != null && dispatcherThread != Thread.currentThread()) {
+                logger.log(Level.TRACE, "waiting for dispatcher thread");
+                try {
+                    dispatcherThread.join();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    logger.log(Level.TRACE, "ServerImpl.stop: ", e);
+                }
             }
+            logger.log(Level.TRACE, "server stopped");
         }
     }
 
@@ -391,15 +425,34 @@ class ServerImpl {
     class Dispatcher implements Runnable {
 
         private void handleEvent (Event r) {
+
+            // Stopping marking the state as finished if stop is requested,
+            // termination is in progress and exchange count is 0
+            if (r instanceof Event.StopRequested) {
+                logger.log(Level.TRACE, "Handling Stop Requested Event");
+
+                // checking if terminating is set to true
+                final boolean terminatingCopy = terminating;
+                assert terminatingCopy;
+
+                if (getExchangeCount() == 0 && reqConnections.isEmpty()) {
+                    finishedLatch.countDown();
+                } else {
+                    logger.log(Level.TRACE, "Some requests are still pending");
+                }
+                return;
+            }
+
             ExchangeImpl t = r.exchange;
             HttpConnection c = t.getConnection();
+
             try {
-                if (r instanceof WriteFinishedEvent) {
+                if (r instanceof Event.WriteFinished) {
 
                     logger.log(Level.TRACE, "Write Finished");
                     int exchanges = endExchange();
-                    if (terminating && exchanges == 0) {
-                        finished = true;
+                    if (terminating && exchanges == 0 && reqConnections.isEmpty()) {
+                        finishedLatch.countDown();
                     }
                     LeftOverInputStream is = t.getOriginalInputStream();
                     if (!is.isEOF()) {
@@ -449,11 +502,12 @@ class ServerImpl {
         }
 
         public void run() {
-            while (!finished) {
+            // finished() will be true when there are no active exchange after terminating
+             while (!finished()) {
                 try {
                     List<Event> list = null;
                     synchronized (lolock) {
-                        if (events.size() > 0) {
+                        if (!events.isEmpty()) {
                             list = events;
                             events = new ArrayList<>();
                         }
@@ -492,6 +546,8 @@ class ServerImpl {
                                 if (MAX_CONNECTIONS > 0 && allConnections.size() >= MAX_CONNECTIONS) {
                                     // we've hit max limit of current open connections, so we go
                                     // ahead and close this connection without processing it
+                                    logger.log(Level.DEBUG, "connection limit reached, " +
+                                            "closing accepted connection " + chan);
                                     try {
                                         chan.close();
                                     } catch (IOException ignore) {
@@ -600,18 +656,18 @@ class ServerImpl {
         conn.close();
         allConnections.remove(conn);
         switch (conn.getState()) {
-        case REQUEST:
-            reqConnections.remove(conn);
-            break;
-        case RESPONSE:
-            rspConnections.remove(conn);
-            break;
-        case IDLE:
-            idleConnections.remove(conn);
-            break;
-        case NEWLY_ACCEPTED:
-            newlyAcceptedConnections.remove(conn);
-            break;
+            case REQUEST:
+                reqConnections.remove(conn);
+                break;
+            case RESPONSE:
+                rspConnections.remove(conn);
+                break;
+            case IDLE:
+                idleConnections.remove(conn);
+                break;
+            case NEWLY_ACCEPTED:
+                newlyAcceptedConnections.remove(conn);
+                break;
         }
         assert !reqConnections.remove(conn);
         assert !rspConnections.remove(conn);
@@ -689,7 +745,16 @@ class ServerImpl {
                     connection.raw = rawin;
                     connection.rawout = rawout;
                 }
-                Request req = new Request (rawin, rawout);
+
+                Request req;
+                try {
+                    req = new Request(rawin, rawout, newconnection && !https);
+                } catch (ProtocolException pe) {
+                    logger.log(Level.DEBUG, "closing due to: " + pe);
+                    reject(Code.HTTP_BAD_REQUEST, "", pe.getMessage());
+                    return;
+                }
+
                 requestLine = req.requestLine();
                 if (requestLine == null) {
                     /* connection closed */
@@ -712,18 +777,34 @@ class ServerImpl {
                             requestLine, "Bad request line");
                     return;
                 }
-                String uriStr = requestLine.substring (start, space);
+
+                // Read the request URI
+                String uriStr = requestLine.substring(start, space);
+                // Reject ambiguous URIs
+                if (uriStr.startsWith("//")) {
+                    reject(Code.HTTP_BAD_REQUEST,
+                            requestLine, "Bad request URI");
+                    return;
+                }
                 URI uri;
                 try {
                     uri = new URI (uriStr);
                 } catch (URISyntaxException e3) {
                     reject(Code.HTTP_BAD_REQUEST,
-                            requestLine, "URISyntaxException thrown");
+                            requestLine, "Bad request URI");
                     return;
                 }
+
                 start = space+1;
                 String version = requestLine.substring (start);
-                Headers headers = req.headers();
+                Headers headers;
+                try {
+                    headers = req.headers();
+                } catch (ProtocolException pe) {
+                    reject(Code.HTTP_BAD_REQUEST, requestLine,
+                            "Failed to parse headers: " + pe.getMessage());
+                    return;
+                }
                 /* check key for illegal characters */
                 for (var k : headers.keySet()) {
                     if (!isValidName(k)) {
@@ -771,6 +852,25 @@ class ServerImpl {
                     }
                     if (clen == 0) {
                         requestCompleted(connection);
+                    }
+                }
+                /* check if there's a single Host header */
+                if (!HOST_VALIDATION_DISABLED) {
+                    List<String> hostValueList = headers.get("Host");
+                    if (hostValueList == null || hostValueList.isEmpty()) {
+                        if (!version.equalsIgnoreCase("http/1.0")) {
+                            reject(400, requestLine, "Missing Host header");
+                            return;
+                        }
+                    } else if (hostValueList.size() > 1) {
+                        reject(400, requestLine, "Multiple Host headers");
+                        return;
+                    } else {
+                        String host = hostValueList.get(0);
+                        if (host.indexOf(',') != -1) {
+                            reject(400, requestLine, "Multiple Host header values");
+                            return;
+                        }
                     }
                 }
                 ctx = contexts.findContext (protocol, uri.getPath());
@@ -933,17 +1033,14 @@ class ServerImpl {
         logger.log (Level.DEBUG, message);
     }
 
-    void delay () {
-        Thread.yield();
-        try {
-            Thread.sleep (200);
-        } catch (InterruptedException e) {}
-    }
-
     private int exchangeCount = 0;
 
     synchronized void startExchange () {
         exchangeCount ++;
+    }
+
+    synchronized int getExchangeCount() {
+        return exchangeCount;
     }
 
     synchronized int endExchange () {

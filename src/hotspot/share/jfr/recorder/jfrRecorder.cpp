@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,6 +32,7 @@
 #include "jfr/periodic/sampling/jfrThreadSampler.hpp"
 #include "jfr/recorder/jfrRecorder.hpp"
 #include "jfr/recorder/checkpoint/jfrCheckpointManager.hpp"
+#include "jfr/recorder/checkpoint/types/jfrThreadGroupManager.hpp"
 #include "jfr/recorder/repository/jfrRepository.hpp"
 #include "jfr/recorder/service/jfrEventThrottler.hpp"
 #include "jfr/recorder/service/jfrOptionSet.hpp"
@@ -226,7 +227,7 @@ bool JfrRecorder::on_create_vm_2() {
 }
 
 bool JfrRecorder::on_create_vm_3() {
-  assert(JvmtiEnvBase::get_phase() == JVMTI_PHASE_LIVE, "invalid init sequence");
+  JVMTI_ONLY( assert(JvmtiEnvBase::get_phase() == JVMTI_PHASE_LIVE, "invalid init sequence, phase is %d", (int)JvmtiEnvBase::get_phase()); )
   return Arguments::is_dumping_archive() || launch_command_line_recordings(JavaThread::current());
 }
 
@@ -294,6 +295,9 @@ bool JfrRecorder::create_components() {
     return false;
   }
   if (!create_event_throttler()) {
+    return false;
+  }
+  if (!create_thread_group_manager()) {
     return false;
   }
   return true;
@@ -373,6 +377,10 @@ bool JfrRecorder::create_event_throttler() {
   return JfrEventThrottler::create();
 }
 
+bool JfrRecorder::create_thread_group_manager() {
+  return JfrThreadGroupManager::create();
+}
+
 void JfrRecorder::destroy_components() {
   JfrJvmtiAgent::destroy();
   if (_post_box != nullptr) {
@@ -408,6 +416,7 @@ void JfrRecorder::destroy_components() {
     _thread_sampling = nullptr;
   }
   JfrEventThrottler::destroy();
+  JfrThreadGroupManager::destroy();
 }
 
 bool JfrRecorder::create_recorder_thread() {

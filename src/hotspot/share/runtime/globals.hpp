@@ -244,8 +244,10 @@ const int ObjectAlignmentInBytes = 8;
                                                                             \
   product(size_t, LargePageSizeInBytes, 0,                                  \
           "Maximum large page size used (0 will use the default large "     \
-          "page size for the environment as the maximum)")                  \
+          "page size for the environment as the maximum) "                  \
+          "(must be a power of 2)")                                         \
           range(0, max_uintx)                                               \
+          constraint(LargePageSizeInBytesConstraintFunc, AtParse)           \
                                                                             \
   product(size_t, LargePageHeapSizeThreshold, 128*M,                        \
           "Use large pages if maximum heap is at least this big")           \
@@ -329,6 +331,12 @@ const int ObjectAlignmentInBytes = 8;
                                                                             \
   product(bool, UseChaCha20Intrinsics, false, DIAGNOSTIC,                   \
           "Use intrinsics for the vectorized version of ChaCha20")          \
+                                                                            \
+  product(bool, UseKyberIntrinsics, false, DIAGNOSTIC,                      \
+          "Use intrinsics for the vectorized version of Kyber")             \
+                                                                            \
+  product(bool, UseDilithiumIntrinsics, false, DIAGNOSTIC,                  \
+          "Use intrinsics for the vectorized version of Dilithium")         \
                                                                             \
   product(bool, UseMD5Intrinsics, false, DIAGNOSTIC,                        \
           "Use intrinsics for MD5 crypto hash function")                    \
@@ -1989,6 +1997,23 @@ const int ObjectAlignmentInBytes = 8;
           "more eagerly at the cost of higher overhead. A value of 0 "      \
           "(default) disables native heap trimming.")                       \
           range(0, UINT_MAX)                                                \
+                                                                            \
+  product(bool, UseThreadsLockThrottleLock, true, DIAGNOSTIC,               \
+          "Use an extra lock during Thread start and exit to alleviate"     \
+          "contention on Threads_lock.")                                    \
+                                                                            \
+  product(bool, UseSecondarySupersCache, true, DIAGNOSTIC,                  \
+                "Use secondary supers cache during subtype checks.")        \
+                                                                            \
+  product(bool, UseSecondarySupersTable, false, DIAGNOSTIC,                 \
+                "Use hash table to lookup secondary supers.")               \
+                                                                            \
+  product(bool, VerifySecondarySupers, false, DIAGNOSTIC,                   \
+          "Check that linear and hashed secondary lookups return the same result.") \
+                                                                            \
+  product(bool, StressSecondarySupers, false, DIAGNOSTIC,                   \
+          "Use a terrible hash function in order to generate many collisions.") \
+                                                                            \
 
 // end of RUNTIME_FLAGS
 

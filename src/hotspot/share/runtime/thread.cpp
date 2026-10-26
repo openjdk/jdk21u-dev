@@ -36,6 +36,8 @@
 #include "memory/resourceArea.hpp"
 #include "oops/oop.inline.hpp"
 #include "runtime/atomic.hpp"
+#include "runtime/globals.hpp"
+#include "runtime/globals_extension.hpp"
 #include "runtime/handles.inline.hpp"
 #include "runtime/javaThread.inline.hpp"
 #include "runtime/nonJavaThread.hpp"
@@ -235,6 +237,9 @@ void Thread::call_run() {
   // delete themselves when they terminate. But no thread should ever be deleted
   // asynchronously with respect to its termination - that is what _run_state can
   // be used to check.
+
+  // Logically we should do this->unregister_thread_stack_with_NMT() here, but we
+  // had to move that into post_run() because of the `this` deletion issue.
 
   assert(Thread::current_or_null() == nullptr, "current thread still present");
 }

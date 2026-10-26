@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 1997, 2023, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2014, 2021, Red Hat Inc. All rights reserved.
+ * Copyright (c) 2014, 2024, Red Hat Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,6 +31,7 @@
 #include "metaprogramming/enableIf.hpp"
 #include "oops/compressedOops.hpp"
 #include "runtime/vm_version.hpp"
+#include "utilities/globalDefinitions.hpp"
 #include "utilities/powerOfTwo.hpp"
 
 class OopMap;
@@ -678,6 +679,9 @@ public:
   // Support for sign-extension (hi:lo = extend_sign(lo))
   void extend_sign(Register hi, Register lo);
 
+  // Clean up a subword typed value to the representation in compliance with JVMS §2.3
+  void narrow_subword_type(Register reg, BasicType bt);
+
   // Load and store values by size and signed-ness
   void load_sized_value(Register dst, Address src, size_t size_in_bytes, bool is_signed);
   void store_sized_value(Address dst, Register src, size_t size_in_bytes);
@@ -997,6 +1001,31 @@ public:
                                      Label* L_failure,
                                      bool set_cond_codes = false);
 
+  // As above, but with a constant super_klass.
+  // The result is in Register result, not the condition codes.
+  bool lookup_secondary_supers_table(Register r_sub_klass,
+                                     Register r_super_klass,
+                                     Register temp1,
+                                     Register temp2,
+                                     Register temp3,
+                                     FloatRegister vtemp,
+                                     Register result,
+                                     u1 super_klass_slot,
+                                     bool stub_is_near = false);
+
+  void verify_secondary_supers_table(Register r_sub_klass,
+                                     Register r_super_klass,
+                                     Register temp1,
+                                     Register temp2,
+                                     Register result);
+
+  void lookup_secondary_supers_table_slow_path(Register r_super_klass,
+                                               Register r_array_base,
+                                               Register r_array_index,
+                                               Register r_bitmap,
+                                               Register temp1,
+                                               Register result);
+
   // Simplified, combined version, good for typical uses.
   // Falls through on failure.
   void check_klass_subtype(Register sub_klass,
@@ -1211,6 +1240,7 @@ public:
   // - relocInfo::virtual_call_type
   //
   // Return: the call PC or null if CodeCache is full.
+  // Clobbers: rscratch1
   address trampoline_call(Address entry);
 
   static bool far_branches() {
