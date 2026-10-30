@@ -303,15 +303,20 @@ public class SignerInfo implements DerEncoder {
         return certList;
     }
 
-    /* Returns null if verify fails, this signerInfo if
-       verify succeeds. */
-    SignerInfo verify(PKCS7 block, byte[] data)
-    throws NoSuchAlgorithmException, SignatureException {
+    /**
+     * Verify this signerInfo in a PKCS7 block.
+     *
+     * @param block the PKCS7 object
+     * @param data the content to verify against; read from block if null
+     * @param cert certificate to verify with; read from block if null
+     * @return null if verify fails, this signerInfo if verify succeeds.
+     */
+    SignerInfo verify(PKCS7 block, byte[] data, X509Certificate cert)
+            throws NoSuchAlgorithmException, SignatureException {
 
         try {
-            Timestamp timestamp = null;
             try {
-                timestamp = getTimestamp();
+                getTimestamp();
             } catch (Exception e) {
                 // Log exception and continue. This allows for the case
                 // where, if there are no other errors, the code is
@@ -371,22 +376,19 @@ public class SignerInfo implements DerEncoder {
                     return null;
 
                 byte[] computedMessageDigest;
-                if (digestAlgName.equals("SHAKE256")
-                        || digestAlgName.equals("SHAKE256-LEN")) {
-                    if (digestAlgName.equals("SHAKE256-LEN")) {
-                        // RFC8419: for EdDSA in CMS, the id-shake256-len
-                        // algorithm id must contain parameter value 512
-                        // encoded as a positive integer value
-                        byte[] params = digestAlgorithmId.getEncodedParams();
-                        if (params == null) {
-                            throw new SignatureException(
-                                    "id-shake256-len oid missing length");
-                        }
-                        int v = new DerValue(params).getInteger();
-                        if (v != 512) {
-                            throw new SignatureException(
-                                    "Unsupported id-shake256-" + v);
-                        }
+                if (digestAlgName.equals("SHAKE256-LEN")) {
+                    // RFC8419: for EdDSA in CMS, the id-shake256-len
+                    // algorithm id must contain parameter value 512
+                    // encoded as a positive integer value
+                    byte[] params = digestAlgorithmId.getEncodedParams();
+                    if (params == null) {
+                        throw new SignatureException(
+                                "id-shake256-len oid missing length");
+                    }
+                    int v = new DerValue(params).getInteger();
+                    if (v != 512) {
+                        throw new SignatureException(
+                                "Unsupported id-shake256-" + v);
                     }
                     var md = new SHAKE256(64);
                     md.update(data, 0, data.length);
@@ -426,9 +428,11 @@ public class SignerInfo implements DerEncoder {
                         "SignerInfo digestEncryptionAlgorithm field", true));
             }
 
-            X509Certificate cert = getCertificate(block);
             if (cert == null) {
-                return null;
+                cert = getCertificate(block);
+                if (cert == null) {
+                    return null;
+                }
             }
             PublicKey key = cert.getPublicKey();
 
@@ -492,9 +496,9 @@ public class SignerInfo implements DerEncoder {
      * The digest algorithm is in the form "DIG", and the encryption
      * algorithm can be in any of the 3 forms:
      *
-     * 1. Old style key algorithm like RSA, DSA, EC, this method returns
+     * 1. Simple key algorithm like RSA, DSA, EC, this method returns
      *    DIGwithKEY.
-     * 2. New style signature algorithm in the form of HASHwithKEY, this
+     * 2. Traditional signature algorithm in the form of HASHwithKEY, this
      *    method returns DIGwithKEY. Please note this is not HASHwithKEY.
      * 3. Modern signature algorithm like RSASSA-PSS and EdDSA, this method
      *    returns the signature algorithm itself but ensures digAlgId is
