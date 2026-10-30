@@ -142,6 +142,10 @@ public class X509Key implements PublicKey, DerEncoder {
         return (BitArray)bitStringKey.clone();
     }
 
+    public byte[] getKeyAsBytes() {
+        return getKey().toByteArray();
+    }
+
     /**
      * Construct X.509 subject public key from a DER value.  If
      * the runtime environment is configured with a specific class for
