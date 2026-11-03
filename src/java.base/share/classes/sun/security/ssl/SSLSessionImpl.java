@@ -37,7 +37,6 @@ import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Queue;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
