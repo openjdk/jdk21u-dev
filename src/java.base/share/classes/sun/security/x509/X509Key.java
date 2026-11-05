@@ -142,6 +142,8 @@ public class X509Key implements PublicKey, DerEncoder {
         return (BitArray)bitStringKey.clone();
     }
 
+    // Using 'getKey()` here over `bitStringKey` as the bitStringKey
+    // might not be set yet.
     public byte[] getKeyAsBytes() {
         return getKey().toByteArray();
     }
