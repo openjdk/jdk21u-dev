@@ -785,7 +785,7 @@ public class PKCS7 {
 
         if (digAlgID == null) {
             digAlgID = SignatureUtil.getDigestAlgInPkcs7SignerInfo(
-                signer, sigalg, privateKey, directsign);
+                    signer, sigalg, privateKey, directsign);
         }
         AlgorithmId sigAlgID = SignatureUtil.fromSignature(signer, privateKey);
 

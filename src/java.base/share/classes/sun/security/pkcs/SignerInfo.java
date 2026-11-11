@@ -526,53 +526,77 @@ public class SignerInfo implements DerEncoder {
                 }
 
                 if (!AlgorithmId.get(spec.getDigestAlgorithm()).equals(digAlgId)) {
-                    throw new NoSuchAlgorithmException("Incompatible digest algorithm");
+                    throw new NoSuchAlgorithmException("Incompatible digest algorithm " + digAlgId);
                 }
                 return encAlg;
             case "Ed25519":
-                if (!digAlgId.equals(SignatureUtil.EdDSADigestAlgHolder.sha512)) {
-                    throw new NoSuchAlgorithmException("Incompatible digest algorithm");
+                if (!digAlgId.equalsOID(AlgorithmId.SHA512_oid)) {
+                    throw new NoSuchAlgorithmException("Incompatible digest algorithm " + digAlgId);
                 }
                 return encAlg;
             case "Ed448":
                 if (directSign) {
-                    if (!digAlgId.equals(SignatureUtil.EdDSADigestAlgHolder.shake256)) {
-                        throw new NoSuchAlgorithmException("Incompatible digest algorithm");
+                    if (!digAlgId.equalsOID(AlgorithmId.SHAKE256_512_oid)) {
+                        throw new NoSuchAlgorithmException("Incompatible digest algorithm " + digAlgId);
                     }
                 } else {
-                    if (!digAlgId.equals(SignatureUtil.EdDSADigestAlgHolder.shake256$512)) {
-                        throw new NoSuchAlgorithmException("Incompatible digest algorithm");
+                    if (!digAlgId.equals(SignatureUtil.DigestAlgHolder.shake256lenWith512)) {
+                        throw new NoSuchAlgorithmException("Incompatible digest algorithm " + digAlgId);
                     }
                 }
                 return encAlg;
-            default:
-                String digAlg = digAlgId.getName();
-                String keyAlg = SignatureUtil.extractKeyAlgFromDwithE(encAlg);
-                if (keyAlg == null) {
-                    // The encAlg used to be only the key alg
-                    keyAlg = encAlg;
+            case "ML-DSA-44":
+                // Following 3 from Table 1 inside
+                // https://datatracker.ietf.org/doc/html/rfc9882#name-signerinfo-content
+                if (!digAlgId.equalsOID(AlgorithmId.SHA256_oid)
+                        && !digAlgId.equalsOID(AlgorithmId.SHA384_oid)
+                        && !digAlgId.equalsOID(AlgorithmId.SHA512_oid)
+                        && !digAlgId.equalsOID(AlgorithmId.SHA3_256_oid)
+                        && !digAlgId.equalsOID(AlgorithmId.SHA3_384_oid)
+                        && !digAlgId.equalsOID(AlgorithmId.SHA3_512_oid)
+                        && !digAlgId.equalsOID(AlgorithmId.SHAKE128_256_oid)
+                        && !digAlgId.equalsOID(AlgorithmId.SHAKE256_512_oid)) {
+                    throw new NoSuchAlgorithmException("Incompatible digest algorithm " + digAlgId);
                 }
+                return encAlg;
+            case "ML-DSA-65":
+                if (!digAlgId.equalsOID(AlgorithmId.SHA384_oid)
+                        && !digAlgId.equalsOID(AlgorithmId.SHA512_oid)
+                        && !digAlgId.equalsOID(AlgorithmId.SHA3_384_oid)
+                        && !digAlgId.equalsOID(AlgorithmId.SHA3_512_oid)
+                        && !digAlgId.equalsOID(AlgorithmId.SHAKE256_512_oid)) {
+                    throw new NoSuchAlgorithmException("Incompatible digest algorithm " + digAlgId);
+                }
+                return encAlg;
+            case "ML-DSA-87":
+                if (!digAlgId.equalsOID(AlgorithmId.SHA512_oid)
+                        && !digAlgId.equalsOID(AlgorithmId.SHA3_512_oid)
+                        && !digAlgId.equalsOID(AlgorithmId.SHAKE256_512_oid)) {
+                    throw new NoSuchAlgorithmException("Incompatible digest algorithm " + digAlgId);
+                }
+                return encAlg;
+            default:
+                String keyAlg = SignatureUtil.extractKeyAlgFromDwithE(encAlg);
+                if (keyAlg == null) { // No "WITH" inside
+                    if (encAlg.equals("RSA") || encAlg.equals("DSA") || encAlg.equals("EC")) {
+                        keyAlg = encAlg; // Sometimes encAlgId is just the enc alg
+                    } else {
+                        return encAlg; // Must be a modern algorithm like EdDSA or ML-DSA
+                    }
+                }
+                String digAlg = digAlgId.getName();
                 if (digAlg.startsWith("SHA-")) {
                     digAlg = "SHA" + digAlg.substring(4);
                 }
                 if (keyAlg.equals("EC")) keyAlg = "ECDSA";
-                String sigAlg = digAlg + "with" + keyAlg;
-                try {
-                    Signature.getInstance(sigAlg);
-                    return sigAlg;
-                } catch (NoSuchAlgorithmException e) {
-                    // Possibly an unknown modern signature algorithm,
-                    // in this case, encAlg should already be a signature
-                    // algorithm.
-                    return encAlg;
-                }
+                return digAlg + "with" + keyAlg;
         }
     }
 
     /* Verify the content of the pkcs7 block. */
     SignerInfo verify(PKCS7 block)
         throws NoSuchAlgorithmException, SignatureException {
-        return verify(block, null);
+        return verify(block, null, null);
     }
 
     public BigInteger getVersion() {
