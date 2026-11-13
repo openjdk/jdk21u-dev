@@ -215,8 +215,6 @@ public class KAKeyDerivation implements SSLKeyDerivation {
         } catch (RuntimeException e) {
             // unexpected provider/runtime failure
             throw context.conContext.fatal(Alert.INTERNAL_ERROR, e);
-        } finally {
-            KeyUtil.destroySecretKeys(sharedSecret);
         }
     }
 
