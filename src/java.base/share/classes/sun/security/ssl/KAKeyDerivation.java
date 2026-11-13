@@ -121,9 +121,9 @@ public class KAKeyDerivation implements SSLKeyDerivation {
             throws GeneralSecurityException, IOException {
         SecretKey earlySecret = null;
         SecretKey saltSecret = null;
+        CipherSuite.HashAlg hashAlg = context.negotiatedCipherSuite.hashAlg;
+        SSLKeyDerivation kd = context.handshakeKeyDerivation;
         try {
-            CipherSuite.HashAlg hashAlg = context.negotiatedCipherSuite.hashAlg;
-            SSLKeyDerivation kd = context.handshakeKeyDerivation;
             HKDF hkdf = new HKDF(hashAlg.name);
             if (kd == null) {   // No PSK is in use.
                 // If PSK is not in use Early Secret will still be
@@ -141,6 +141,9 @@ public class KAKeyDerivation implements SSLKeyDerivation {
 
             // derive handshake secret
             if (sharedSecret instanceof Hybrid.SecretKeyImpl hsk) {
+                // No javax.crypto.KDF. Concatenating the two hybrid
+                // shared secrets for single IKM in HKDF.extract(),
+                // then clearing the temporary copies.
                 byte[] k1 = hsk.k1().getEncoded();
                 byte[] k2 = hsk.k2().getEncoded();
                 byte[] ikm = new byte[k1.length + k2.length];
@@ -148,15 +151,16 @@ public class KAKeyDerivation implements SSLKeyDerivation {
                 System.arraycopy(k2, 0, ikm, k1.length, k2.length);
                 try {
                     return hkdf.extract(saltSecret,
-                            new SecretKeySpec(ikm, "TlsPremasterSecret"), label);
+                            new SecretKeySpec(ikm, "TlsPremasterSecret"),
+                            label);
                 } finally {
                     Arrays.fill(k1, (byte)0);
                     Arrays.fill(k2, (byte)0);
                     Arrays.fill(ikm, (byte)0);
                 }
+            } else {
+                return hkdf.extract(saltSecret, sharedSecret, label);
             }
-
-            return hkdf.extract(saltSecret, sharedSecret, label);
         } catch (GeneralSecurityException gse) {
             throw new SSLHandshakeException("Could not generate secret", gse);
         }
