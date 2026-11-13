@@ -742,7 +742,7 @@ public class PKCS7 {
     }
 
     // Generate signed data without a specified digAlgID.
-    public static byte[] generateSignedData(
+    public static byte[] generateNewSignedData(
             String sigalg, Provider sigProvider,
             PrivateKey privateKey, X509Certificate[] signerChain,
             byte[] content, boolean internalsf, boolean directsign,
@@ -772,7 +772,7 @@ public class PKCS7 {
      * @throws IOException should not happen here, all byte array
      * @throws NoSuchAlgorithmException if siglag is bad
      */
-    public static byte[] generateNewSignedData(
+    public static byte[] generateSignedData(
             String sigalg, Provider sigProvider,
             PrivateKey privateKey, X509Certificate[] signerChain,
             byte[] content, boolean internalsf, boolean directsign,

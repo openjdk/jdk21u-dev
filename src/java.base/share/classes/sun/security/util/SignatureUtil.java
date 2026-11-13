@@ -498,14 +498,17 @@ public class SignatureUtil {
     public static String getDefaultSigAlgForKey(PrivateKey k) {
         String kAlg = k.getAlgorithm().toUpperCase(Locale.ENGLISH);
         return switch (kAlg) {
+            case "DH", "XDH", "X25519", "X448" -> null;
             case "DSA" -> "SHA256withDSA";
             case "RSA" -> ifcFfcStrength(KeyUtil.getKeySize(k)) + "withRSA";
             case "EC" -> ecStrength(KeyUtil.getKeySize(k)) + "withECDSA";
             case "EDDSA" -> k instanceof EdECPrivateKey
                     ? ((EdECPrivateKey) k).getParams().getName()
                     : kAlg;
-            case "RSASSA-PSS", "ED25519", "ED448" -> kAlg;
-            default -> null;
+            default -> kAlg.contains("KEM") ? null : kAlg;
+                // All modern signature algorithms use the same name across
+                // key algorithms and signature algorithms, for example,
+                // RSASSA-PSS, ED25519, ED448, HSS/LMS, etc
         };
     }
 
