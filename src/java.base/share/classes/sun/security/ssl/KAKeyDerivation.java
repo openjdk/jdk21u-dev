@@ -184,76 +184,6 @@ public class KAKeyDerivation implements SSLKeyDerivation {
                     "encapsulation");
         }
 
-        try {
-            KeyFactory kf = (provider != null) ?
-                    KeyFactory.getInstance(algorithmName, provider) :
-                    KeyFactory.getInstance(algorithmName);
-            var pk = kf.generatePublic(new RawKeySpec(keyshare));
-
-            KEM kem = (provider != null) ?
-                    KEM.getInstance(algorithmName, provider) :
-                    KEM.getInstance(algorithmName);
-            KEM.Encapsulator e = kem.newEncapsulator(pk, random);
-            KEM.Encapsulated enc = e.encapsulate();
-            sharedSecret = enc.key();
-
-            SecretKey derived = deriveHandshakeSecret(algorithm, sharedSecret);
-
-            return new KEM.Encapsulated(derived, enc.encapsulation(), null);
-        } catch (GeneralSecurityException gse) {
-            throw new SSLHandshakeException("Could not generate secret", gse);
-        }
-    }
-
-    /**
-     * Handle the TLSv1.3 objects, which use the HKDF algorithms.
-     */
-    private SecretKey t13DeriveKey(String type,
-            AlgorithmParameterSpec params) throws IOException {
-        SecretKey sharedSecret = null;
-
-        try {
-            if (keyshare != null) {
-                // Using KEM: called by the client after receiving the KEM
-                // ciphertext (keyshare) from the server in ServerHello.
-                // The client decapsulates it using its private key.
-                KEM kem = (provider != null)
-                        ? KEM.getInstance(algorithmName, provider)
-                        : KEM.getInstance(algorithmName);
-                var decapsulator = kem.newDecapsulator(localPrivateKey);
-                sharedSecret = decapsulator.decapsulate(
-                        keyshare, 0, decapsulator.secretSize(),
-                        "TlsPremasterSecret");
-            } else {
-                // Using traditional DH-style Key Agreement
-                KeyAgreement ka = KeyAgreement.getInstance(algorithmName);
-                ka.init(localPrivateKey);
-                ka.doPhase(peerPublicKey, true);
-                sharedSecret = ka.generateSecret("TlsPremasterSecret");
-            }
-
-            return deriveHandshakeSecret(type, sharedSecret);
-        } catch (GeneralSecurityException gse) {
-            throw new SSLHandshakeException("Could not generate secret", gse);
-        }
-    }
-    /**
-     * This method is called by the server to perform KEM encapsulation.
-     * It uses the client's public key (sent by the client as a keyshare)
-     * to encapsulate a shared secret and returns the encapsulated message.
-     *
-     * Package-private, used from KeyShareExtension.SHKeyShareProducer::
-     * produce().
-     */
-    KEM.Encapsulated encapsulate(String algorithm, SecureRandom random)
-            throws IOException {
-        SecretKey sharedSecret = null;
-
-        if (keyshare == null) {
-            throw new IOException("No keyshare available for KEM " +
-                    "encapsulation");
-        }
-
         // All exceptions thrown during KEM encapsulation are mapped
         // to TLS fatal alerts:
         // illegal_parameter alert or internal_error alert.
@@ -285,6 +215,8 @@ public class KAKeyDerivation implements SSLKeyDerivation {
         } catch (RuntimeException e) {
             // unexpected provider/runtime failure
             throw context.conContext.fatal(Alert.INTERNAL_ERROR, e);
+        } finally {
+            KeyUtil.destroySecretKeys(sharedSecret);
         }
     }
 
