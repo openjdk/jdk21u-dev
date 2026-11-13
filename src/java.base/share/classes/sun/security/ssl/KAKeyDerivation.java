@@ -233,7 +233,6 @@ public class KAKeyDerivation implements SSLKeyDerivation {
             }
 
             return deriveHandshakeSecret(type, sharedSecret);
->>>>>>> 198fb990321e2ab8be9c4f3715812f805cf44556
         } catch (GeneralSecurityException gse) {
             throw new SSLHandshakeException("Could not generate secret", gse);
         }
