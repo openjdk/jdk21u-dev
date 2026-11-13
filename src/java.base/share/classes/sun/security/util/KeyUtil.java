@@ -193,9 +193,20 @@ public final class KeyUtil {
      * KeyPairGenerator, "EdDSA" means "Ed25519".
      */
     public static String getAlgorithm(Key key) {
-        if (key instanceof AsymmetricKey ak &&
+        /*
+        if (key instanceof PrivateKey ak &&
             ak.getParams() instanceof NamedParameterSpec nps) {
             return nps.getName();
+        } else if (key instanceof PublicKey ak &&
+            ak.getParams() instanceof NamedParameterSpec nps) {
+            return nps.getName();
+        }
+        */
+        if (key instanceof PrivateKey || key instanceof PublicKey) {
+            AlgorithmParameterSpec params = KeyUtil.getParams(key);
+            if (params instanceof NamedParameterSpec nps) {
+                return nps.getName();
+            }
         }
         return key.getAlgorithm();
     }
