@@ -49,6 +49,7 @@ public class HybridProvider {
         @java.io.Serial
         private static final long serialVersionUID = 0L;
 
+        // Needed for the SecurityManager.
         @SuppressWarnings("removal")
         ProviderImpl() {
             super("HybridAndDHAsKEM", PROVIDER_VER,
