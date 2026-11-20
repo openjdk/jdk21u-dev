@@ -51,7 +51,7 @@ import jdk.internal.vm.annotation.ForceInline;
 public abstract sealed class HeapMemorySegmentImpl extends AbstractMemorySegmentImpl {
 
     private static final Unsafe UNSAFE = Unsafe.getUnsafe();
-    private static final int BYTE_ARR_BASE = UNSAFE.arrayBaseOffset(byte[].class);
+    private static final long BYTE_ARR_BASE = UNSAFE.arrayBaseOffset(byte[].class);
 
     private static final long MAX_ALIGN_1 = ValueLayout.JAVA_BYTE.byteAlignment();
     private static final long MAX_ALIGN_2 = ValueLayout.JAVA_SHORT.byteAlignment();
