@@ -189,6 +189,10 @@ public class SignatureFileVerifier {
     /**
      * Returns the signed JAR block file extension for a key.
      *
+     * Returns "DSA" for unknown algorithms. This is safe because the
+     * signature verification process does not require the extension to
+     * match the key algorithm as long as it is "RSA", "DSA", or "EC."
+     *
      * @param key the key used to sign the JAR file
      * @return the extension
      * @see #isBlockOrSF(String)
